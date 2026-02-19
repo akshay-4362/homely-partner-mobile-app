@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "urban-mobile-professional",
-    "slug": "urban-mobile-professional",
+    "slug": "homelyo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -28,6 +28,12 @@
     },
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "df44272b-225f-4ef8-9bc6-f68282adf5b6"
+      }
+    },
+    "owner": "akshay.tulajannavar"
   }
 }
