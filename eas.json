@@ -14,7 +14,8 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "credentialsSource": "remote"
       },
       "env": {
         "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
@@ -22,11 +23,13 @@
     },
     "production": {
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "credentialsSource": "remote"
       },
       "env": {
         "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
-      }
+      },
+      "autoIncrement": true
     }
   },
   "submit": {
