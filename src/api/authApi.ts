@@ -3,7 +3,7 @@ import client from './client';
 export const authApi = {
   login: async (email: string, password: string) => {
     const { data } = await client.post('/auth/login', { email, password });
-    return data;
+    return data.data || data; // Handle both { data: { user, ... } } and { user, ... }
   },
 
   register: async (payload: {
@@ -16,6 +16,6 @@ export const authApi = {
       ...payload,
       role: 'professional',
     });
-    return data;
+    return data.data || data; // Handle both { data: { user, ... } } and { user, ... }
   },
 };

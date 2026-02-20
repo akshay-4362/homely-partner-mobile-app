@@ -3,7 +3,7 @@ import client from './client';
 export const stripeApi = {
   createAccount: async (email: string) => {
     const { data } = await client.post('/professionals/stripe/account', { email });
-    return data;
+    return data.data || data;
   },
 
   getOnboardingLink: async (refreshUrl: string, returnUrl: string) => {
@@ -11,11 +11,11 @@ export const stripeApi = {
       refreshUrl,
       returnUrl,
     });
-    return data;
+    return data.data || data;
   },
 
   getAccountStatus: async () => {
     const { data } = await client.get('/professionals/stripe/account-status');
-    return data;
+    return data.data || data;
   },
 };
