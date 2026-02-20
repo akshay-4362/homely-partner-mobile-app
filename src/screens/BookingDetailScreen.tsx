@@ -187,15 +187,11 @@ export const BookingDetailScreen = () => {
         {/* OTP Section */}
         {isConfirmed && (
           <Card style={styles.otpCard}>
-            <Text style={styles.sectionTitle}>Start OTP</Text>
-            <Text style={styles.otpHint}>Share this OTP with customer to start the job</Text>
-            <View style={styles.otpDisplay}>
-              <Text style={styles.otpBig}>{booking.startOtp || '——'}</Text>
-            </View>
-            <Text style={[styles.sectionTitle, { marginTop: Spacing.lg }]}>Enter Customer OTP to Start</Text>
+            <Text style={styles.sectionTitle}>Start Job</Text>
+            <Text style={styles.otpHint}>Ask customer for the 6-digit start OTP</Text>
             <TextInput
               style={styles.otpInput}
-              placeholder="Enter 6-digit OTP"
+              placeholder="Enter 6-digit OTP from customer"
               keyboardType="number-pad"
               maxLength={6}
               value={otp}
@@ -216,15 +212,11 @@ export const BookingDetailScreen = () => {
         {isInProgress && (
           <>
             <Card style={styles.otpCard}>
-              <Text style={styles.sectionTitle}>Completion OTP</Text>
-              <Text style={styles.otpHint}>Share this OTP with customer to complete the job</Text>
-              <View style={styles.otpDisplay}>
-                <Text style={styles.otpBig}>{booking.completionOtp || '——'}</Text>
-              </View>
-              <Text style={[styles.sectionTitle, { marginTop: Spacing.lg }]}>Enter OTP to Complete</Text>
+              <Text style={styles.sectionTitle}>Complete Job</Text>
+              <Text style={styles.otpHint}>Ask customer for the 6-digit completion OTP</Text>
               <TextInput
                 style={styles.otpInput}
-                placeholder="Enter 6-digit OTP"
+                placeholder="Enter 6-digit OTP from customer"
                 keyboardType="number-pad"
                 maxLength={6}
                 value={otp}
