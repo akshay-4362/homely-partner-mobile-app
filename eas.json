@@ -4,6 +4,15 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "debug": {
+      "android": {
+        "gradleCommand": ":app:assembleDebug",
+        "withoutCredentials": true
+      },
+      "env": {
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
