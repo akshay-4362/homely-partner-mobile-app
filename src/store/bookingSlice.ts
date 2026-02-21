@@ -39,6 +39,7 @@ const mapBooking = (b: any): ProBooking => ({
   total: b.total ?? b.pricing?.total ?? 0,
   additionalChargesTotal: b.additionalChargesTotal ?? 0,
   finalTotal: b.finalTotal ?? b.total ?? 0,
+  creditDeducted: b.creditDeducted ?? b.pricing?.creditDeducted,
   beforeMedia: b.beforeMedia || [],
   afterMedia: b.afterMedia || [],
   warrantyExpiresAt: b.warrantyExpiresAt,

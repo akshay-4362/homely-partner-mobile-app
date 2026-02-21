@@ -17,6 +17,7 @@ import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
 import { Loader } from '../components/common/Loader';
+import { ProfilePictureUpload } from '../components/ProfilePictureUpload';
 import { ProfessionalDocument, StripeAccountStatus } from '../types';
 
 export const ProfileScreen = () => {
@@ -133,14 +134,21 @@ export const ProfileScreen = () => {
 
   const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`;
 
+  const handleProfilePictureUpdate = (imageUrl: string, thumbnailUrl: string) => {
+    // Optionally update local user state or refresh profile
+    loadData();
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+          <ProfilePictureUpload
+            currentImageUrl={user?.profilePicture}
+            onUploadSuccess={handleProfilePictureUpdate}
+            size={120}
+          />
           <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
           <Text style={styles.email}>{user?.email}</Text>
           <Text style={styles.role}>Professional Partner</Text>

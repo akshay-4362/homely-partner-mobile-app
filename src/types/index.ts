@@ -5,6 +5,8 @@ export interface User {
   email: string;
   role: 'professional';
   city?: string;
+  profilePicture?: string;
+  profilePictureThumbnail?: string;
 }
 
 export interface MediaItem {
@@ -30,6 +32,7 @@ export interface ProBooking {
   total: number;
   additionalChargesTotal: number;
   finalTotal: number;
+  creditDeducted?: number;
   beforeMedia: MediaItem[];
   afterMedia: MediaItem[];
   warrantyExpiresAt?: string;

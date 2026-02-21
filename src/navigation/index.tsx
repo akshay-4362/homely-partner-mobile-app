@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -14,12 +15,13 @@ import { EarningsScreen } from '../screens/EarningsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AvailabilityScreen } from '../screens/AvailabilityScreen';
 import { PayoutsScreen } from '../screens/PayoutsScreen';
-import { CalendarScreen } from '../screens/CalendarScreen';
+import { EnhancedCalendarScreen } from '../screens/EnhancedCalendarScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { CreditsScreen } from '../screens/CreditsScreen';
 import { TrainingScreen } from '../screens/TrainingScreen';
-import { HelpScreen } from '../screens/HelpScreen';
+import { HelpCenterScreen } from '../screens/HelpCenterScreen';
+import { TicketDetailScreen } from '../screens/TicketDetailScreen';
 import { MyHubScreen } from '../screens/MyHubScreen';
 
 const Stack = createStackNavigator();
@@ -44,11 +46,15 @@ const MainTabs = () => (
         backgroundColor: Colors.surface,
         borderTopColor: Colors.border,
         borderTopWidth: 1,
-        paddingTop: 6,
-        paddingBottom: 6,
-        height: 62,
+        paddingTop: 8,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+        height: Platform.OS === 'ios' ? 88 : 68,
       },
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '600' as const, marginTop: 2 },
+      tabBarLabelStyle: {
+        fontSize: 11,
+        fontWeight: '600' as const,
+        marginBottom: Platform.OS === 'ios' ? 0 : 4,
+      },
       tabBarIcon: ({ color, size, focused }) => {
         const icons: Record<string, { active: any; inactive: any }> = {
           Home: { active: 'home', inactive: 'home-outline' },
@@ -79,12 +85,13 @@ export const AppNavigator = () => {
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Availability" component={AvailabilityScreen} />
-            <Stack.Screen name="Calendar" component={CalendarScreen} />
+            <Stack.Screen name="Calendar" component={EnhancedCalendarScreen} />
             <Stack.Screen name="Payouts" component={PayoutsScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Credits" component={CreditsScreen} />
             <Stack.Screen name="Training" component={TrainingScreen} />
-            <Stack.Screen name="Help" component={HelpScreen} />
+            <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+            <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
             <Stack.Screen name="MyHub" component={MyHubScreen} />
           </>
         ) : (

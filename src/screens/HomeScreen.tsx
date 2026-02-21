@@ -17,7 +17,10 @@ import { formatCurrency, formatDate } from '../utils/format';
 import { Badge } from '../components/common/Badge';
 import { Card } from '../components/common/Card';
 import { SectionHeader } from '../components/common/SectionHeader';
+import { CreditBalanceWidget } from '../components/CreditBalanceWidget';
+import { PendingTasksWidget } from '../components/PendingTasksWidget';
 import { TodayBooking, ProfessionalAccountingSummary, Notification } from '../types';
+import { creditApi } from '../api/creditApi';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -28,21 +31,25 @@ export const HomeScreen = () => {
   const [todayJobs, setTodayJobs] = useState<TodayBooking[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [creditBalance, setCreditBalance] = useState<number>(0);
 
   const loadData = async () => {
     dispatch(fetchProBookings());
     dispatch(fetchPayouts());
     try {
-      const [sumData, todayData, notifData] = await Promise.all([
+      const [sumData, todayData, notifData, creditData] = await Promise.all([
         accountingApi.getSummary(),
         accountingApi.getTodayBookings(),
         notificationApi.list(5),
+        creditApi.getCreditBalance(),
       ]);
       setSummary(sumData?.data || sumData);
       const today = todayData?.data || todayData || [];
       setTodayJobs(Array.isArray(today) ? today : []);
       const notifs = notifData?.data || notifData || [];
       setNotifications(Array.isArray(notifs) ? notifs.slice(0, 5) : []);
+      const credits = creditData?.data || creditData;
+      setCreditBalance(credits?.balance || 0);
     } catch {}
   };
 
@@ -69,14 +76,17 @@ export const HomeScreen = () => {
           <Text style={styles.greeting}>Good morning,</Text>
           <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
         </View>
-        <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
-          <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
-          {unreadNotifs > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadNotifs}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <CreditBalanceWidget />
+          <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
+            <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
+            {unreadNotifs > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadNotifs}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -84,6 +94,27 @@ export const HomeScreen = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         contentContainerStyle={styles.scroll}
       >
+        {/* Pending Tasks */}
+        <PendingTasksWidget />
+
+        {/* New Jobs Paused Banner */}
+        {creditBalance === 0 && (
+          <View style={styles.pausedBanner}>
+            <Ionicons name="pause-circle" size={24} color={Colors.error} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pausedTitle}>New jobs are paused</Text>
+              <Text style={styles.pausedSubtitle}>Recharge credits to receive new job assignments</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.pausedBtn}
+              onPress={() => navigation.navigate('Credits')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pausedBtnText}>Recharge</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Status Banner */}
         <View style={[styles.statusBanner, inProgressCount > 0 ? styles.bannerActive : styles.bannerIdle]}>
           <Ionicons
@@ -137,6 +168,31 @@ export const HomeScreen = () => {
               <TodayJobCard key={job.bookingId} job={job} onPress={() => navigation.navigate('Jobs')} />
             ))}
           </View>
+        )}
+
+        {/* Unread Updates */}
+        {unreadNotifs > 0 && (
+          <TouchableOpacity
+            style={styles.updatesCard}
+            onPress={() => navigation.navigate('Notifications')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.updatesLeft}>
+              <View style={styles.updatesIconContainer}>
+                <Ionicons name="notifications" size={20} color={Colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.updatesTitle}>Unread Updates</Text>
+                <Text style={styles.updatesSubtitle}>You have new notifications</Text>
+              </View>
+            </View>
+            <View style={styles.updatesRight}>
+              <View style={styles.updatesBadge}>
+                <Text style={styles.updatesBadgeText}>{unreadNotifs}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
         )}
 
         {/* Recent Bookings */}
@@ -336,4 +392,95 @@ const styles = StyleSheet.create({
   pendingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   pendingText: { fontSize: 14, color: Colors.textPrimary, fontWeight: '500', flex: 1 },
   pendingAction: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
+  pausedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.errorBg,
+    borderWidth: 1,
+    borderColor: Colors.error,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
+  },
+  pausedTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.error,
+    marginBottom: 2,
+  },
+  pausedSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  pausedBtn: {
+    backgroundColor: Colors.error,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+  },
+  pausedBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  updatesCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.primaryBg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  updatesLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+  },
+  updatesIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  updatesTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  updatesSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  updatesRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  updatesBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  updatesBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
 });

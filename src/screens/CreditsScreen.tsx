@@ -1,61 +1,61 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { Loader } from '../components/common/Loader';
 import { EmptyState } from '../components/common/EmptyState';
 import { formatCurrency, formatDate } from '../utils/format';
-import apiClient from '../api/client';
+import { RootState, AppDispatch } from '../store';
+import { fetchCreditStats, fetchCreditTransactions } from '../store/creditSlice';
+import { CreditTransaction as CreditTransactionType } from '../api/creditApi';
 
 type Tab = 'all' | 'recharges' | 'expenses' | 'penalties';
 
-interface CreditTransaction {
-  _id: string;
-  type: 'credit' | 'debit';
-  category: 'recharge' | 'expense' | 'penalty' | 'bonus';
-  amount: number;
-  description: string;
-  createdAt: string;
-  balance?: number;
-}
-
 export const CreditsScreen = () => {
   const navigation = useNavigation<any>();
+  const dispatch = useDispatch<AppDispatch>();
   const [tab, setTab] = useState<Tab>('all');
-  const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { load(); }, []);
+  const { stats, transactions, status } = useSelector((state: RootState) => state.credit);
+  const balance = stats?.currentBalance || 0;
 
-  const load = async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const res = await apiClient.get('/professional/credits');
-      const data = res.data?.data || res.data || {};
-      setBalance(data.balance ?? 0);
-      setTransactions(data.transactions ?? []);
-    } catch {
-      // Use demo data if API not available
-      setBalance(1250);
-      setTransactions(DEMO_TRANSACTIONS);
-    }
-    setLoading(false);
+  useEffect(() => {
+    load();
+  }, []);
+
+  const load = async () => {
+    await Promise.all([
+      dispatch(fetchCreditStats()),
+      dispatch(fetchCreditTransactions()),
+    ]);
     setRefreshing(false);
   };
 
-  const onRefresh = () => { setRefreshing(true); load(true); };
+  const onRefresh = () => {
+    setRefreshing(true);
+    load();
+  };
+
+  const handleAddCredits = () => {
+    // Navigate to purchase credits modal/screen
+    Alert.alert(
+      'Add Credits',
+      'Credit purchase functionality will be implemented with Stripe integration.',
+      [{ text: 'OK' }]
+    );
+  };
 
   const filtered = transactions.filter((t) => {
     if (tab === 'all') return true;
-    if (tab === 'recharges') return t.category === 'recharge' || t.category === 'bonus';
-    if (tab === 'expenses') return t.category === 'expense';
-    if (tab === 'penalties') return t.category === 'penalty';
+    if (tab === 'recharges') return t.type === 'purchase' || t.type === 'refund';
+    if (tab === 'expenses') return t.type === 'job_deduction';
+    if (tab === 'penalties') return t.type === 'penalty';
     return true;
   });
 
@@ -66,7 +66,7 @@ export const CreditsScreen = () => {
     { id: 'penalties', label: 'Penalties' },
   ];
 
-  if (loading) return <Loader text="Loading credits..." />;
+  if (status === 'loading' && !stats) return <Loader text="Loading credits..." />;
 
   return (
     <View style={styles.container}>
@@ -84,7 +84,12 @@ export const CreditsScreen = () => {
         <Card style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Available Balance</Text>
           <Text style={styles.balanceAmount}>{formatCurrency(balance)}</Text>
-          <TouchableOpacity style={styles.rechargeBtn}>
+          {stats && (
+            <Text style={styles.jobsRemaining}>
+              ~{stats.jobsRemaining} jobs remaining (₹{stats.creditPerJob}/job)
+            </Text>
+          )}
+          <TouchableOpacity style={styles.rechargeBtn} onPress={handleAddCredits}>
             <Ionicons name="add-circle-outline" size={18} color="#fff" />
             <Text style={styles.rechargeBtnText}>Add Credits</Text>
           </TouchableOpacity>
@@ -119,22 +124,22 @@ export const CreditsScreen = () => {
   );
 };
 
-const TransactionRow = ({ item }: { item: CreditTransaction }) => {
-  const isCredit = item.type === 'credit';
+const TransactionRow = ({ item }: { item: CreditTransactionType }) => {
+  const isCredit = item.amount > 0;
   const iconMap: Record<string, any> = {
-    recharge: 'add-circle',
-    bonus: 'star',
-    expense: 'remove-circle',
+    purchase: 'add-circle',
+    refund: 'arrow-undo',
+    job_deduction: 'remove-circle',
     penalty: 'warning',
   };
   const colorMap: Record<string, string> = {
-    recharge: Colors.success,
-    bonus: Colors.warning,
-    expense: Colors.error,
+    purchase: Colors.success,
+    refund: Colors.warning,
+    job_deduction: Colors.error,
     penalty: Colors.error,
   };
-  const icon = iconMap[item.category] || 'ellipse';
-  const color = colorMap[item.category] || Colors.textSecondary;
+  const icon = iconMap[item.type] || 'ellipse';
+  const color = colorMap[item.type] || Colors.textSecondary;
 
   return (
     <View style={styles.txRow}>
@@ -152,14 +157,6 @@ const TransactionRow = ({ item }: { item: CreditTransaction }) => {
   );
 };
 
-const DEMO_TRANSACTIONS: CreditTransaction[] = [
-  { _id: '1', type: 'credit', category: 'recharge', amount: 500, description: 'Credit recharge via UPI', createdAt: new Date(Date.now() - 86400000).toISOString() },
-  { _id: '2', type: 'debit', category: 'expense', amount: 50, description: 'Platform fee - Booking #1234', createdAt: new Date(Date.now() - 172800000).toISOString() },
-  { _id: '3', type: 'credit', category: 'bonus', amount: 100, description: 'Performance bonus - 5 star week', createdAt: new Date(Date.now() - 259200000).toISOString() },
-  { _id: '4', type: 'debit', category: 'penalty', amount: 200, description: 'Cancellation penalty - Booking #1198', createdAt: new Date(Date.now() - 345600000).toISOString() },
-  { _id: '5', type: 'credit', category: 'recharge', amount: 1000, description: 'Credit recharge via NEFT', createdAt: new Date(Date.now() - 432000000).toISOString() },
-  { _id: '6', type: 'debit', category: 'expense', amount: 100, description: 'Lead purchase - AC repair', createdAt: new Date(Date.now() - 518400000).toISOString() },
-];
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
@@ -175,7 +172,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary, alignItems: 'center', paddingVertical: Spacing.xxl,
   },
   balanceLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '500', marginBottom: 8 },
-  balanceAmount: { fontSize: 36, fontWeight: '800', color: '#fff', marginBottom: Spacing.lg },
+  balanceAmount: { fontSize: 36, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  jobsRemaining: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginBottom: Spacing.md },
   rechargeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: BorderRadius.full,

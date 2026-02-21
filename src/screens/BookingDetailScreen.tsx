@@ -331,6 +331,14 @@ export const BookingDetailScreen = () => {
             <Text style={styles.payTotalLabel}>Total</Text>
             <Text style={styles.payTotalValue}>{formatCurrency(booking.finalTotal || booking.total)}</Text>
           </View>
+          {isCompleted && booking.creditDeducted && (
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Platform Fee (Prepaid)</Text>
+              <Text style={[styles.payValue, { color: Colors.error }]}>
+                -{formatCurrency(booking.creditDeducted)}
+              </Text>
+            </View>
+          )}
           <View style={styles.payMethodRow}>
             <Text style={styles.payLabel}>Payment</Text>
             <Text style={styles.payValue}>
