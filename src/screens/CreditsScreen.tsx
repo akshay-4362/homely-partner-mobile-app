@@ -87,7 +87,7 @@ export const CreditsScreen = () => {
           <Text style={styles.balanceAmount}>{formatCurrency(balance)}</Text>
           {stats && (
             <Text style={styles.jobsRemaining}>
-              ~{stats.jobsRemaining} jobs remaining (₹{stats.creditPerJob}/job)
+              ~{Math.floor(stats.jobsRemaining / 2)} jobs remaining (₹{stats.creditPerJob * 2}/job)
             </Text>
           )}
           <TouchableOpacity style={styles.rechargeBtn} onPress={handleAddCredits}>

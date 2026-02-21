@@ -9,13 +9,14 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.14.0",
     "@react-navigation/drawer": "^7.8.1",
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/stack": "^7.7.2",
     "@reduxjs/toolkit": "^2.11.2",
-    "@stripe/stripe-react-native": "^0.41.5",
+    "@stripe/stripe-react-native": "^0.38.1",
     "axios": "^1.13.5",
     "expo": "~54.0.33",
     "expo-document-picker": "~14.0.8",

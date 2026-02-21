@@ -31,10 +31,7 @@ interface CreditPackage {
 }
 
 const CREDIT_PACKAGES: CreditPackage[] = [
-  { amount: 3000, label: '₹3,000', jobs: 10, bonus: '+1 job free' },
-  { amount: 6000, label: '₹6,000', jobs: 20, popular: true, bonus: '+2 jobs free' },
-  { amount: 9000, label: '₹9,000', jobs: 30, bonus: '+3 jobs free' },
-  { amount: 15000, label: '₹15,000', jobs: 50, bonus: '+5 jobs free' },
+  { amount: 50000, label: '₹50,000', jobs: 166, popular: true, bonus: 'Standard Package' },
 ];
 
 export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
@@ -43,7 +40,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
   onSuccess,
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
-  const [selectedAmount, setSelectedAmount] = useState<number>(6000);
+  const [selectedAmount, setSelectedAmount] = useState<number>(50000);
   const [processing, setProcessing] = useState(false);
 
   const handlePurchase = async () => {
@@ -151,43 +148,27 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
             <View style={styles.infoCard}>
               <Ionicons name="information-circle" size={20} color={Colors.primary} />
               <Text style={styles.infoText}>
-                Credits are prepaid platform fees deducted when you complete jobs (₹300/job)
+                Credits are deducted twice per job: ₹150 on assignment + ₹150 on completion (₹300 total/job)
               </Text>
             </View>
 
-            {/* Package Selection */}
-            <Text style={styles.sectionTitle}>Select Package</Text>
-            <View style={styles.packages}>
-              {CREDIT_PACKAGES.map((pkg) => (
-                <TouchableOpacity
-                  key={pkg.amount}
-                  style={[
-                    styles.package,
-                    selectedAmount === pkg.amount && styles.packageSelected,
-                  ]}
-                  onPress={() => setSelectedAmount(pkg.amount)}
-                  disabled={processing}
-                >
-                  {pkg.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={styles.popularText}>POPULAR</Text>
-                    </View>
-                  )}
-                  <Text style={styles.packageAmount}>{pkg.label}</Text>
-                  <Text style={styles.packageJobs}>~{pkg.jobs} jobs</Text>
-                  {pkg.bonus && (
-                    <View style={styles.bonusBadge}>
-                      <Ionicons name="gift-outline" size={12} color={Colors.success} />
-                      <Text style={styles.bonusText}>{pkg.bonus}</Text>
-                    </View>
-                  )}
-                  {selectedAmount === pkg.amount && (
-                    <View style={styles.checkmark}>
-                      <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
+            {/* Package Info */}
+            <Text style={styles.sectionTitle}>Credit Package</Text>
+            <View style={styles.packageContainer}>
+              <View style={styles.singlePackage}>
+                <View style={styles.popularBadge}>
+                  <Text style={styles.popularText}>MINIMUM PACKAGE</Text>
+                </View>
+                <Text style={styles.packageAmount}>₹50,000</Text>
+                <Text style={styles.packageJobs}>166 complete jobs</Text>
+                <View style={styles.bonusBadge}>
+                  <Ionicons name="star-outline" size={12} color={Colors.primary} />
+                  <Text style={styles.bonusText}>₹300/job (₹150 × 2)</Text>
+                </View>
+                <Text style={styles.packageNote}>
+                  ₹150 deducted on assignment + ₹150 on completion
+                </Text>
+              </View>
             </View>
 
             {/* Payment Details */}
@@ -294,25 +275,24 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
-  packages: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
+  packageContainer: {
     marginBottom: Spacing.xl,
   },
-  package: {
-    width: '48%',
-    backgroundColor: Colors.surface,
+  singlePackage: {
+    backgroundColor: Colors.primaryBg,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: Colors.primary,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.xl,
     alignItems: 'center',
     position: 'relative',
   },
-  packageSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryBg,
+  packageNote: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    fontStyle: 'italic',
   },
   popularBadge: {
     position: 'absolute',
