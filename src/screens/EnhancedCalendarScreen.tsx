@@ -225,7 +225,7 @@ export const EnhancedCalendarScreen = () => {
       >
         {/* Statistics */}
         {stats && (
-          <Card style={[styles.statsCard, stats.needsUpdate && styles.statsCardWarning]}>
+          <Card style={stats.needsUpdate ? {...styles.statsCard, ...styles.statsCardWarning} : styles.statsCard}>
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{stats.weeklyHours}h</Text>

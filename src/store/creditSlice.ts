@@ -97,7 +97,7 @@ export const confirmPurchase = createAsyncThunk(
       // Refresh balance and stats after successful purchase
       dispatch(fetchCreditBalance());
       dispatch(fetchCreditStats());
-      dispatch(fetchCreditTransactions());
+      dispatch(fetchCreditTransactions({}));
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to confirm purchase');

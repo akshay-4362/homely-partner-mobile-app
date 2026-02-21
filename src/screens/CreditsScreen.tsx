@@ -32,7 +32,7 @@ export const CreditsScreen = () => {
   const load = async () => {
     await Promise.all([
       dispatch(fetchCreditStats()),
-      dispatch(fetchCreditTransactions()),
+      dispatch(fetchCreditTransactions({})),
     ]);
     setRefreshing(false);
   };
