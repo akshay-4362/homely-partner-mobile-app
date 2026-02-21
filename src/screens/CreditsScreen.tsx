@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -9,6 +9,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { Loader } from '../components/common/Loader';
 import { EmptyState } from '../components/common/EmptyState';
+import { PurchaseCreditsModal } from '../components/PurchaseCreditsModal';
 import { formatCurrency, formatDate } from '../utils/format';
 import { RootState, AppDispatch } from '../store';
 import { fetchCreditStats, fetchCreditTransactions } from '../store/creditSlice';
@@ -21,6 +22,7 @@ export const CreditsScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [tab, setTab] = useState<Tab>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   const { stats, transactions, status } = useSelector((state: RootState) => state.credit);
   const balance = stats?.currentBalance || 0;
@@ -43,12 +45,11 @@ export const CreditsScreen = () => {
   };
 
   const handleAddCredits = () => {
-    // Navigate to purchase credits modal/screen
-    Alert.alert(
-      'Add Credits',
-      'Credit purchase functionality will be implemented with Stripe integration.',
-      [{ text: 'OK' }]
-    );
+    setShowPurchaseModal(true);
+  };
+
+  const handlePurchaseSuccess = () => {
+    load(); // Refresh data after successful purchase
   };
 
   const filtered = transactions.filter((t) => {
@@ -119,6 +120,13 @@ export const CreditsScreen = () => {
           <EmptyState icon="wallet-outline" title="No transactions" subtitle="Your credit history will appear here" />
         }
         renderItem={({ item }) => <TransactionRow item={item} />}
+      />
+
+      {/* Purchase Modal */}
+      <PurchaseCreditsModal
+        visible={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+        onSuccess={handlePurchaseSuccess}
       />
     </View>
   );
