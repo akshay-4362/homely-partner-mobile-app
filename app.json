@@ -34,7 +34,15 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.homelyo.pro",
+          "enableGooglePay": true
+        }
+      ]
     ],
     "extra": {
       "eas": {
