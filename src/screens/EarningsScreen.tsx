@@ -1,214 +1,347 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
+  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useAppDispatch } from '../hooks/useAppDispatch';
+import { useAppSelector } from '../hooks/useAppSelector';
+import { fetchPayouts } from '../store/payoutSlice';
 import { accountingApi } from '../api/accountingApi';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
-import { formatCurrency, formatDate } from '../utils/format';
-import { ProfessionalAccountingSummary, ProfessionalBookingEarning, ProfessionalMonthlyEarning, TodayBooking } from '../types';
+import { formatCurrency, formatDateOnly } from '../utils/format';
+import { ProfessionalAccountingSummary, ProfessionalMonthlyEarning } from '../types';
 import { Loader } from '../components/common/Loader';
-
-type Tab = 'today' | 'history' | 'monthly';
 
 export const EarningsScreen = () => {
   const navigation = useNavigation<any>();
-  const [activeTab, setActiveTab] = useState<Tab>('today');
+  const dispatch = useAppDispatch();
+  const { items: payouts, status: payoutsStatus } = useAppSelector((s) => s.payouts);
+
   const [summary, setSummary] = useState<ProfessionalAccountingSummary | null>(null);
-  const [earnings, setEarnings] = useState<ProfessionalBookingEarning[]>([]);
-  const [monthly, setMonthly] = useState<ProfessionalMonthlyEarning[]>([]);
-  const [today, setToday] = useState<TodayBooking[]>([]);
+  const [monthlyData, setMonthlyData] = useState<ProfessionalMonthlyEarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // 0 = current month
 
   const load = async () => {
     try {
-      const [s, e, m, t] = await Promise.all([
+      const [s, m] = await Promise.all([
         accountingApi.getSummary(),
-        accountingApi.getEarnings(),
-        accountingApi.getMonthlyEarnings(6),
-        accountingApi.getTodayBookings(),
+        accountingApi.getMonthlyEarnings(6), // Get last 6 months data
       ]);
       setSummary(s?.data || s);
-      const earningsList = e?.data || e?.earnings || e || [];
-      setEarnings(Array.isArray(earningsList) ? earningsList : []);
       const monthlyList = m?.data || m?.months || m || [];
-      setMonthly(Array.isArray(monthlyList) ? monthlyList : []);
-      const todayList = t?.data || t?.bookings || t || [];
-      setToday(Array.isArray(todayList) ? todayList : []);
-    } catch {}
+      setMonthlyData(Array.isArray(monthlyList) ? monthlyList : []);
+      dispatch(fetchPayouts());
+    } catch (err) {
+      console.error('Failed to load earnings:', err);
+    }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
 
   if (loading) return <Loader text="Loading earnings..." />;
 
-  const maxMonthlyEarning = Math.max(...monthly.map((m) => m.earnings), 1);
+  // Get selected month data
+  const selectedMonth = monthlyData[selectedMonthIndex] || monthlyData[0];
+  const selectedMonthEarnings = selectedMonth?.earnings || 0;
+  const selectedMonthCommission = selectedMonth?.commission || 0;
+  const selectedMonthName = selectedMonth?.month || 'This Month';
+
+  // Calculate breakdown for selected month
+  const grossEarnings = selectedMonthEarnings;
+  const platformFee = selectedMonthCommission; // Commission taken by platform
+  const gstAmount = grossEarnings * 0.18; // 18% GST
+  const totalDeductions = platformFee + gstAmount;
+  const netEarnings = grossEarnings - totalDeductions;
+
+  // Generate last 7 days data for chart (mock data - replace with real API)
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      day: date.getDate(),
+      amount: Math.random() * 5000, // Replace with real data from API
+    };
+  });
+
+  const maxDailyAmount = Math.max(...last7Days.map(d => d.amount), 1);
+
+  // Categorize payouts
+  const upcomingPayouts = payouts.filter(p => p.status === 'pending');
+  const processingPayouts = payouts.filter(p => p.status === 'processing');
+  const paidPayouts = payouts.filter(p => p.status === 'paid');
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Earnings & Jobs</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Payouts')}>
-          <Text style={styles.payoutsLink}>Payouts →</Text>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         contentContainerStyle={styles.scroll}
       >
-        {/* Summary Cards */}
-        {summary && (
-          <View style={styles.summaryGrid}>
-            <SummaryCard label="Total Earnings" value={formatCurrency(summary.totalEarnings)} color={Colors.success} icon="cash-outline" />
-            <SummaryCard label="Pending Payout" value={formatCurrency(summary.pendingPayout)} color={Colors.warning} icon="time-outline" />
-            <SummaryCard label="Paid Out" value={formatCurrency(summary.paidOut)} color={Colors.primary} icon="card-outline" />
-            <SummaryCard label="Avg Per Job" value={formatCurrency(summary.averageEarningsPerJob)} color={Colors.purple} icon="trending-up-outline" />
-          </View>
-        )}
-
-        {/* Rating */}
-        {summary && (
-          <View style={styles.ratingCard}>
-            <View style={styles.ratingLeft}>
-              <Text style={styles.ratingValue}>{summary.rating.toFixed(1)}</Text>
-              <View style={styles.stars}>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Ionicons
-                    key={s}
-                    name={s <= Math.round(summary.rating) ? 'star' : 'star-outline'}
-                    size={14}
-                    color={Colors.warning}
-                  />
-                ))}
-              </View>
-              <Text style={styles.ratingReviews}>{summary.reviewCount} reviews</Text>
-            </View>
-            <View style={styles.ratingRight}>
-              <StatPill label="Completed" value={summary.completedBookings} color={Colors.success} />
-              <StatPill label="Cancelled" value={summary.cancelledBookings} color={Colors.error} />
-              <StatPill label="Total" value={summary.totalBookings} color={Colors.primary} />
-            </View>
-          </View>
-        )}
-
-        {/* Tabs */}
-        <View style={styles.tabs}>
-          {([
-            { key: 'today', label: "Today's Jobs" },
-            { key: 'history', label: 'History' },
-            { key: 'monthly', label: 'Monthly' },
-          ] as { key: Tab; label: string }[]).map((t) => (
-            <TouchableOpacity
-              key={t.key}
-              style={[styles.tab, activeTab === t.key && styles.tabActive]}
-              onPress={() => setActiveTab(t.key)}
-            >
-              <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>{t.label}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Money</Text>
         </View>
 
-        {/* Today's Jobs */}
-        {activeTab === 'today' && (
-          <View style={styles.section}>
-            {today.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Ionicons name="calendar-outline" size={36} color={Colors.gray300} />
-                <Text style={styles.emptyText}>No jobs scheduled today</Text>
-              </View>
-            ) : (
-              today.map((job) => (
-                <View key={job.bookingId} style={styles.todayCard}>
-                  <View style={styles.todayTop}>
-                    <View>
-                      <Text style={styles.todayCustomer}>{job.customerName}</Text>
-                      <Text style={styles.todayService}>{job.serviceName}</Text>
-                      <Text style={styles.todayTime}>
-                        {new Date(job.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                    </View>
-                    <View style={styles.todayRight}>
-                      <Text style={styles.todayEarnings}>{formatCurrency(job.earnings)}</Text>
-                      {job.customerPhone && (
-                        <Text style={styles.todayPhone}>{job.customerPhone}</Text>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* OTP Codes */}
-                  {(job.startOtp || job.completionOtp) && (
-                    <View style={styles.otpRow}>
-                      {job.startOtp && (
-                        <View style={styles.otpBox}>
-                          <Text style={styles.otpBoxLabel}>Start OTP</Text>
-                          <Text style={styles.otpBoxValue}>{job.startOtp}</Text>
-                        </View>
-                      )}
-                      {job.completionOtp && (
-                        <View style={[styles.otpBox, { backgroundColor: Colors.successBg }]}>
-                          <Text style={[styles.otpBoxLabel, { color: Colors.success }]}>Complete OTP</Text>
-                          <Text style={[styles.otpBoxValue, { color: Colors.success }]}>{job.completionOtp}</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                </View>
-              ))
-            )}
-          </View>
-        )}
-
-        {/* History */}
-        {activeTab === 'history' && (
-          <View style={styles.section}>
-            {earnings.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyText}>No earnings history</Text>
-              </View>
-            ) : (
-              earnings.map((e) => (
-                <View key={e.bookingId} style={styles.historyRow}>
-                  <View style={styles.historyLeft}>
-                    <Text style={styles.historyCustomer}>{e.customerName}</Text>
-                    <Text style={styles.historyService}>{e.serviceName}</Text>
-                    <Text style={styles.historyDate}>{formatDate(e.scheduledAt)}</Text>
-                  </View>
-                  <View style={styles.historyRight}>
-                    <Text style={styles.historyEarnings}>{formatCurrency(e.earnings)}</Text>
-                    <Text style={styles.historyCommission}>-{formatCurrency(e.commission)} fee</Text>
-                    <View style={[styles.historyStatus, { backgroundColor: e.status === 'completed' ? Colors.successBg : Colors.cancelledBg }]}>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: e.status === 'completed' ? Colors.success : Colors.error }}>
-                        {e.status.toUpperCase()}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              ))
-            )}
-          </View>
-        )}
-
-        {/* Monthly */}
-        {activeTab === 'monthly' && (
-          <View style={styles.section}>
-            <Text style={styles.chartTitle}>Last 6 Months</Text>
-            {monthly.map((m) => (
-              <View key={m.month} style={styles.barRow}>
-                <Text style={styles.barMonth}>{m.month}</Text>
-                <View style={styles.barWrap}>
-                  <View style={[styles.barFill, { width: `${(m.earnings / maxMonthlyEarning) * 100}%` }]} />
-                </View>
-                <Text style={styles.barValue}>{formatCurrency(m.earnings)}</Text>
-              </View>
+        {/* Month Selector */}
+        <View style={styles.monthSelector}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.monthScrollContent}
+          >
+            {monthlyData.map((month, index) => (
+              <TouchableOpacity
+                key={month.month}
+                style={[
+                  styles.monthChip,
+                  selectedMonthIndex === index && styles.monthChipActive
+                ]}
+                onPress={() => setSelectedMonthIndex(index)}
+              >
+                <Text
+                  style={[
+                    styles.monthChipText,
+                    selectedMonthIndex === index && styles.monthChipTextActive
+                  ]}
+                >
+                  {month.month}
+                </Text>
+              </TouchableOpacity>
             ))}
+          </ScrollView>
+        </View>
+
+        {/* Main Earnings Card */}
+        <View style={styles.earningsCard}>
+          <TouchableOpacity
+            style={styles.earningsTop}
+            onPress={() => navigation.navigate('Payouts')}
+          >
+            <View>
+              <Text style={styles.mainAmount}>{formatCurrency(selectedMonthEarnings)}</Text>
+              <Text style={styles.mainLabel}>
+                {selectedMonthIndex === 0 ? 'Earned this month' : `Earned in ${selectedMonthName}`}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Bar Chart */}
+          <View style={styles.chartContainer}>
+            {last7Days.map((day, index) => {
+              const barHeight = (day.amount / maxDailyAmount) * 80;
+              const isToday = index === last7Days.length - 1;
+
+              return (
+                <View key={index} style={styles.barColumn}>
+                  <View style={styles.barWrapper}>
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: barHeight,
+                          backgroundColor: isToday ? Colors.primary : Colors.primaryBg,
+                        }
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.barLabel}>{day.day}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Earnings Breakdown Card */}
+        <View style={styles.breakdownCard}>
+          <Text style={styles.breakdownTitle}>
+            {selectedMonthIndex === 0 ? "This month's breakdown" : `${selectedMonthName} breakdown`}
+          </Text>
+
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabel}>Gross earnings</Text>
+            <Text style={styles.breakdownValue}>{formatCurrency(grossEarnings)}</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.breakdownRow}>
+            <View style={styles.breakdownLabelWithIcon}>
+              <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
+              <Text style={styles.breakdownLabel}>Platform fee (10%)</Text>
+            </View>
+            <Text style={[styles.breakdownValue, styles.deductionValue]}>
+              -{formatCurrency(platformFee)}
+            </Text>
+          </View>
+
+          <View style={styles.breakdownRow}>
+            <View style={styles.breakdownLabelWithIcon}>
+              <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
+              <Text style={styles.breakdownLabel}>GST (18%)</Text>
+            </View>
+            <Text style={[styles.breakdownValue, styles.deductionValue]}>
+              -{formatCurrency(gstAmount)}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabelBold}>Total deductions</Text>
+            <Text style={[styles.breakdownValueBold, styles.deductionValue]}>
+              -{formatCurrency(totalDeductions)}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabelBold}>Net earnings</Text>
+            <Text style={[styles.breakdownValueBold, { color: Colors.success }]}>
+              {formatCurrency(netEarnings)}
+            </Text>
+          </View>
+
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
+            <Text style={styles.infoText}>
+              Net amount will be transferred to your bank account after deductions
+            </Text>
+          </View>
+        </View>
+
+        {/* Bank Transfers Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bank transfers</Text>
+
+          {/* Upcoming Payouts */}
+          {upcomingPayouts.length > 0 && (
+            <View style={styles.payoutGroup}>
+              {upcomingPayouts.map((payout) => (
+                <TouchableOpacity
+                  key={payout.id}
+                  style={styles.payoutCard}
+                  onPress={() => navigation.navigate('Payouts')}
+                >
+                  <View style={styles.payoutLeft}>
+                    <Text style={styles.payoutAmount}>{formatCurrency(payout.amount)}</Text>
+                    <Text style={styles.payoutDate}>
+                      {formatDateOnly(payout.periodStart).split(' ')[0]} - {formatDateOnly(payout.periodEnd)}
+                    </Text>
+                  </View>
+                  <View style={styles.payoutRight}>
+                    <View style={[styles.statusBadge, styles.statusUpcoming]}>
+                      <Text style={styles.statusUpcomingText}>Upcoming</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Processing Payouts */}
+          {processingPayouts.length > 0 && (
+            <View style={styles.payoutGroup}>
+              {processingPayouts.map((payout) => (
+                <TouchableOpacity
+                  key={payout.id}
+                  style={styles.payoutCard}
+                  onPress={() => navigation.navigate('Payouts')}
+                >
+                  <View style={styles.payoutLeft}>
+                    <Text style={styles.payoutAmount}>{formatCurrency(payout.amount)}</Text>
+                    <Text style={styles.payoutDate}>
+                      {formatDateOnly(payout.periodStart).split(' ')[0]} - {formatDateOnly(payout.periodEnd)}
+                    </Text>
+                  </View>
+                  <View style={styles.payoutRight}>
+                    <View style={[styles.statusBadge, styles.statusProcessing]}>
+                      <Text style={styles.statusProcessingText}>In processing</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Paid Payouts (show only recent 3) */}
+          {paidPayouts.length > 0 && (
+            <View style={styles.payoutGroup}>
+              {paidPayouts.slice(0, 3).map((payout) => (
+                <TouchableOpacity
+                  key={payout.id}
+                  style={styles.payoutCard}
+                  onPress={() => navigation.navigate('Payouts')}
+                >
+                  <View style={styles.payoutLeft}>
+                    <Text style={styles.payoutAmount}>{formatCurrency(payout.amount)}</Text>
+                    <Text style={styles.payoutDate}>
+                      {formatDateOnly(payout.periodStart).split(' ')[0]} - {formatDateOnly(payout.periodEnd)}
+                    </Text>
+                  </View>
+                  <View style={styles.payoutRight}>
+                    <View style={[styles.statusBadge, styles.statusPaid]}>
+                      <Text style={styles.statusPaidText}>Paid</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Empty State */}
+          {payouts.length === 0 && (
+            <View style={styles.emptyState}>
+              <Ionicons name="wallet-outline" size={48} color={Colors.gray300} />
+              <Text style={styles.emptyText}>No bank transfers yet</Text>
+              <Text style={styles.emptySubtext}>Complete jobs to earn and receive payouts</Text>
+            </View>
+          )}
+
+          {/* View All Link */}
+          {payouts.length > 3 && (
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={() => navigation.navigate('Payouts')}
+            >
+              <Text style={styles.viewAllText}>View all transactions</Text>
+              <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Summary Stats */}
+        {summary && (
+          <View style={styles.summarySection}>
+            <Text style={styles.sectionTitle}>Overview</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+                <Text style={styles.statValue}>{summary.completedBookings}</Text>
+                <Text style={styles.statLabel}>Completed Jobs</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Ionicons name="trending-up" size={20} color={Colors.primary} />
+                <Text style={styles.statValue}>{formatCurrency(summary.averageEarningsPerJob)}</Text>
+                <Text style={styles.statLabel}>Avg per Job</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Ionicons name="star" size={20} color={Colors.warning} />
+                <Text style={styles.statValue}>{summary.rating.toFixed(1)}</Text>
+                <Text style={styles.statLabel}>Rating</Text>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -216,98 +349,308 @@ export const EarningsScreen = () => {
   );
 };
 
-const SummaryCard = ({ label, value, color, icon }: { label: string; value: string; color: string; icon: any }) => (
-  <View style={[styles.summaryCard, { borderTopColor: color, borderTopWidth: 3 }]}>
-    <Ionicons name={icon} size={18} color={color} style={{ marginBottom: 4 }} />
-    <Text style={[styles.summaryValue, { color }]}>{value}</Text>
-    <Text style={styles.summaryLabel}>{label}</Text>
-  </View>
-);
-
-const StatPill = ({ label, value, color }: { label: string; value: number; color: string }) => (
-  <View style={styles.statPill}>
-    <Text style={[styles.statValue, { color }]}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.md,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
-  payoutsLink: { fontSize: 14, color: Colors.primary, fontWeight: '600' },
-  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 100 },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md, marginBottom: Spacing.xl },
-  summaryCard: {
-    width: '47%', backgroundColor: Colors.surface, borderRadius: BorderRadius.lg,
+  scroll: {
+    paddingTop: 56,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: 100,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  monthSelector: {
+    marginBottom: Spacing.lg,
+  },
+  monthScrollContent: {
+    paddingRight: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  monthChip: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray100,
+    borderWidth: 1.5,
+    borderColor: Colors.gray100,
+  },
+  monthChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  monthChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  monthChipTextActive: {
+    color: '#fff',
+  },
+  earningsCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    marginBottom: Spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  earningsTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  mainAmount: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  mainLabel: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  chartContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    height: 100,
+    gap: 4,
+  },
+  barColumn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  barWrapper: {
+    width: '100%',
+    height: 80,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  bar: {
+    width: '80%',
+    borderRadius: 4,
+    minHeight: 4,
+  },
+  barLabel: {
+    marginTop: 6,
+    fontSize: 11,
+    color: Colors.textTertiary,
+    fontWeight: '500',
+  },
+  section: {
+    marginBottom: Spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  payoutGroup: {
+    gap: Spacing.md,
+  },
+  payoutCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  payoutLeft: {
+    flex: 1,
+  },
+  payoutAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  payoutDate: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  payoutRight: {
+    marginLeft: Spacing.md,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  statusUpcoming: {
+    backgroundColor: Colors.gray100,
+  },
+  statusUpcomingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  statusProcessing: {
+    backgroundColor: '#FFF4E5',
+  },
+  statusProcessingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  statusPaid: {
+    backgroundColor: Colors.successBg || '#D4EDDA',
+  },
+  statusPaidText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.success,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxxl,
+    gap: Spacing.sm,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  summarySection: {
+    marginBottom: Spacing.xl,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  breakdownCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    marginBottom: Spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  breakdownTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  breakdownLabelWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  breakdownLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  breakdownValue: {
+    fontSize: 14,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+  },
+  deductionValue: {
+    color: Colors.error,
+  },
+  breakdownLabelBold: {
+    fontSize: 15,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+  },
+  breakdownValueBold: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.sm,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: Colors.primaryBg,
     padding: Spacing.md,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
   },
-  summaryValue: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
-  summaryLabel: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
-  ratingCard: {
-    backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.lg,
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xl, marginBottom: Spacing.xl,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.primary,
+    lineHeight: 18,
   },
-  ratingLeft: { alignItems: 'center' },
-  ratingValue: { fontSize: 36, fontWeight: '800', color: Colors.textPrimary },
-  stars: { flexDirection: 'row', gap: 2, marginVertical: 4 },
-  ratingReviews: { fontSize: 11, color: Colors.textSecondary },
-  ratingRight: { flex: 1, gap: 8 },
-  statPill: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statValue: { fontSize: 18, fontWeight: '700' },
-  statLabel: { fontSize: 13, color: Colors.textSecondary },
-  tabs: {
-    flexDirection: 'row', backgroundColor: Colors.gray100, borderRadius: BorderRadius.md,
-    padding: 3, marginBottom: Spacing.xl,
-  },
-  tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: BorderRadius.sm },
-  tabActive: { backgroundColor: Colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
-  tabText: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
-  tabTextActive: { color: Colors.primary },
-  section: { gap: Spacing.md },
-  todayCard: {
-    backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.lg,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
-    borderLeftWidth: 3, borderLeftColor: Colors.primary,
-  },
-  todayTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.md },
-  todayCustomer: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
-  todayService: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
-  todayTime: { fontSize: 12, color: Colors.textTertiary, marginTop: 2 },
-  todayRight: { alignItems: 'flex-end' },
-  todayEarnings: { fontSize: 20, fontWeight: '800', color: Colors.success },
-  todayPhone: { fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
-  otpRow: { flexDirection: 'row', gap: Spacing.md },
-  otpBox: {
-    flex: 1, backgroundColor: Colors.primaryBg, borderRadius: BorderRadius.md,
-    padding: Spacing.md, alignItems: 'center',
-  },
-  otpBoxLabel: { fontSize: 10, fontWeight: '600', color: Colors.primary, marginBottom: 2 },
-  otpBoxValue: { fontSize: 22, fontWeight: '800', color: Colors.primary, letterSpacing: 4 },
-  historyRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    backgroundColor: Colors.surface, borderRadius: BorderRadius.md, padding: Spacing.md,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
-  },
-  historyLeft: { flex: 1, marginRight: 8 },
-  historyCustomer: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  historyService: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
-  historyDate: { fontSize: 11, color: Colors.textTertiary, marginTop: 2 },
-  historyRight: { alignItems: 'flex-end', gap: 3 },
-  historyEarnings: { fontSize: 16, fontWeight: '800', color: Colors.textPrimary },
-  historyCommission: { fontSize: 11, color: Colors.error },
-  historyStatus: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  emptyBox: { alignItems: 'center', padding: 40, gap: 8 },
-  emptyText: { fontSize: 14, color: Colors.textTertiary },
-  chartTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.md },
-  barRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.md },
-  barMonth: { width: 50, fontSize: 12, color: Colors.textSecondary, fontWeight: '500' },
-  barWrap: { flex: 1, height: 10, backgroundColor: Colors.gray100, borderRadius: 5, overflow: 'hidden' },
-  barFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 5 },
-  barValue: { width: 72, fontSize: 12, fontWeight: '600', color: Colors.textPrimary, textAlign: 'right' },
 });
