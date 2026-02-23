@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
-  scroll: { padding: Spacing.xl, paddingBottom: 40, gap: Spacing.md },
+  scroll: { padding: Spacing.xl, paddingBottom: 100, gap: Spacing.md },
   cityCard: {},
   cityHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   cityLabel: { fontSize: 12, color: Colors.textSecondary, fontWeight: '500', marginBottom: 2 },

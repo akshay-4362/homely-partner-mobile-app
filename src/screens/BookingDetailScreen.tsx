@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppDispatch } from '../hooks/useAppDispatch';
+import { useAppSelector } from '../hooks/useAppSelector';
 import { updateProBookingStatus } from '../store/bookingSlice';
 import { bookingApi } from '../api/bookingApi';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
@@ -15,6 +16,7 @@ import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { ProBooking, AdditionalCharge, MediaItem } from '../types';
+import { FaceVerificationModal } from '../components/FaceVerificationModal';
 
 const CHARGE_CATEGORIES = ['materials', 'extra_work', 'transport', 'other'];
 
@@ -22,11 +24,14 @@ export const BookingDetailScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const dispatch = useAppDispatch();
+  const { user } = useAppSelector((s) => s.auth);
   const booking: ProBooking = route.params?.booking;
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [faceVerificationModal, setFaceVerificationModal] = useState(false);
+  const [faceVerified, setFaceVerified] = useState(false);
 
   // Charges
   const [charges, setCharges] = useState<{ pending: AdditionalCharge[]; approved: AdditionalCharge[]; total: number } | null>(null);
@@ -53,12 +58,50 @@ export const BookingDetailScreen = () => {
     } catch {}
   };
 
+  const initiateJobStart = () => {
+    // Check if profile picture exists
+    if (!user?.profilePicture) {
+      Alert.alert(
+        'Profile Picture Required',
+        'Please upload a profile picture in your profile settings before starting jobs.',
+        [
+          { text: 'Go to Profile', onPress: () => navigation.navigate('Profile') },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
+    // Show face verification modal
+    setFaceVerificationModal(true);
+  };
+
+  const handleFaceVerificationSuccess = () => {
+    setFaceVerificationModal(false);
+    setFaceVerified(true);
+    Alert.alert(
+      'Verification Successful',
+      'Your identity has been verified. You can now enter the start OTP from the customer.'
+    );
+  };
+
   const handleStatusChange = async (newStatus: string) => {
     setError('');
+
+    // Require face verification before starting job
+    if (newStatus === 'in_progress' && !faceVerified) {
+      Alert.alert(
+        'Identity Verification Required',
+        'Please verify your identity by taking a selfie before starting the job.'
+      );
+      return;
+    }
+
     if ((newStatus === 'in_progress' || newStatus === 'completed') && !otp.trim()) {
       setError('Please enter the OTP');
       return;
     }
+
     setLoading(true);
     const res = await dispatch(updateProBookingStatus({ bookingId: booking.id, status: newStatus, otp: otp || undefined }));
     setLoading(false);
@@ -184,9 +227,31 @@ export const BookingDetailScreen = () => {
           )}
         </Card>
 
-        {/* OTP Section */}
-        {isConfirmed && (
+        {/* OTP Section - Start Job */}
+        {isConfirmed && !faceVerified && (
           <Card style={styles.otpCard}>
+            <View style={styles.verificationRequired}>
+              <Ionicons name="shield-checkmark-outline" size={48} color={Colors.primary} />
+              <Text style={styles.sectionTitle}>Identity Verification Required</Text>
+              <Text style={styles.otpHint}>
+                For security purposes, please verify your identity with a selfie before starting this job.
+              </Text>
+              <Button
+                label="Verify Identity"
+                onPress={initiateJobStart}
+                fullWidth
+                style={{ marginTop: Spacing.md }}
+              />
+            </View>
+          </Card>
+        )}
+
+        {isConfirmed && faceVerified && (
+          <Card style={styles.otpCard}>
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+              <Text style={styles.verifiedText}>Identity Verified</Text>
+            </View>
             <Text style={styles.sectionTitle}>Start Job</Text>
             <Text style={styles.otpHint}>Ask customer for the 6-digit start OTP</Text>
             <TextInput
@@ -484,6 +549,14 @@ export const BookingDetailScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Face Verification Modal */}
+      <FaceVerificationModal
+        visible={faceVerificationModal}
+        bookingId={booking.id}
+        onSuccess={handleFaceVerificationSuccess}
+        onCancel={() => setFaceVerificationModal(false)}
+      />
     </View>
   );
 };
@@ -498,7 +571,7 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4 },
   navTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
   chatBtn: { padding: 4 },
-  scroll: { padding: Spacing.xl, gap: Spacing.md, paddingBottom: 40 },
+  scroll: { padding: Spacing.xl, gap: Spacing.md, paddingBottom: 100 },
   headerCard: {},
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.md },
   bookingNum: { fontSize: 11, color: Colors.textTertiary, marginBottom: 2 },
@@ -569,4 +642,22 @@ const styles = StyleSheet.create({
   chargeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   chargeName: { fontSize: 14, color: Colors.textPrimary, flex: 1 },
   chargeAmt: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  verificationRequired: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.successBg || '#d4edda',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  verifiedText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.success,
+  },
 });

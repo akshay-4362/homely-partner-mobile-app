@@ -39,8 +39,8 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "merchant.com.homelyo.pro",
-          "enableGooglePay": true
+          "merchantIdentifier": [],
+          "enableGooglePay": false
         }
       ]
     ],

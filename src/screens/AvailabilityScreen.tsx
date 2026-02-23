@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   bannerGood: { backgroundColor: Colors.successBg },
   bannerWarn: { backgroundColor: Colors.warningBg },
   bannerText: { fontSize: 13, fontWeight: '500' },
-  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 40 },
+  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 100 },
   groupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xl, marginBottom: Spacing.md },
   groupTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
   demandBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.textPrimary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },

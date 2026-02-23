@@ -142,6 +142,19 @@ export const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        {/* Profile Picture Required Alert */}
+        {!user?.profilePicture && (
+          <View style={styles.alertBanner}>
+            <Ionicons name="warning" size={24} color={Colors.warning || '#f59e0b'} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.alertTitle}>Profile Picture Required</Text>
+              <Text style={styles.alertText}>
+                You must upload a profile picture before you can start jobs. This is required for identity verification.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <ProfilePictureUpload
@@ -152,6 +165,12 @@ export const ProfileScreen = () => {
           <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
           <Text style={styles.email}>{user?.email}</Text>
           <Text style={styles.role}>Professional Partner</Text>
+          {user?.profilePicture && (
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+              <Text style={styles.verifiedText}>Profile Picture Verified</Text>
+            </View>
+          )}
         </View>
 
         {/* Quick Nav */}
@@ -390,7 +409,7 @@ const StripeRow = ({ label, enabled }: { label: string; enabled: boolean }) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 40 },
+  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 100 },
   profileHeader: {
     alignItems: 'center', paddingVertical: Spacing.xxxl,
     paddingTop: 60,
@@ -464,4 +483,41 @@ const styles = StyleSheet.create({
   typeChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primary },
   typeText: { fontSize: 12, color: Colors.textSecondary, fontWeight: '500', textTransform: 'capitalize' },
   typeTextActive: { color: Colors.primary, fontWeight: '700' },
+  alertBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    backgroundColor: Colors.warningBg || '#fef3c7',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.warning || '#f59e0b',
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.warning || '#f59e0b',
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.successBg || '#d4edda',
+    borderRadius: BorderRadius.full,
+  },
+  verifiedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.success,
+  },
 });

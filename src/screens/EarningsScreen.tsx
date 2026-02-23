@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
   payoutsLink: { fontSize: 14, color: Colors.primary, fontWeight: '600' },
-  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 40 },
+  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 100 },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md, marginBottom: Spacing.xl },
   summaryCard: {
     width: '47%', backgroundColor: Colors.surface, borderRadius: BorderRadius.lg,
