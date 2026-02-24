@@ -54,18 +54,24 @@ export const EarningsScreen = () => {
   const selectedMonth = monthlyData[selectedMonthIndex] || monthlyData[0];
   const selectedMonthEarnings = selectedMonth?.earnings || 0;
   const selectedMonthCommission = selectedMonth?.commission || 0;
+  const selectedMonthServiceTaxes = selectedMonth?.serviceTaxes || 0;
+  const selectedMonthTotalPaid = selectedMonth?.totalPaid || 0;
   const selectedMonthName = selectedMonth?.month || 'This Month';
 
   // Calculate breakdown for selected month
-  // selectedMonthEarnings = professional's payout (90% of total revenue after platform fee)
-  // selectedMonthCommission = platform's commission (10% of total revenue)
-  // Total revenue = what customer actually paid (base charges + additional charges)
-  const totalRevenue = selectedMonthEarnings + selectedMonthCommission;
-  const platformFee = selectedMonthCommission; // 10% of total revenue (base + additional)
-  const grossEarnings = selectedMonthEarnings; // Professional's share (90% of total)
+  // selectedMonthTotalPaid = total amount customer paid (including service tax)
+  // selectedMonthServiceTaxes = GST on services (goes to government, not split)
+  // Revenue to split = totalPaid - serviceTaxes (what's split between platform and professional)
+  // selectedMonthCommission = platform's commission (10% of revenue to split)
+  // selectedMonthEarnings = professional's payout (90% of revenue to split)
+  const customerPaid = selectedMonthTotalPaid; // Total customer paid
+  const serviceTax = selectedMonthServiceTaxes; // Service GST (goes to govt)
+  const revenueToSplit = selectedMonthEarnings + selectedMonthCommission; // Amount split between platform & pro
+  const platformFee = selectedMonthCommission; // 10% of revenue to split
+  const grossEarnings = selectedMonthEarnings; // Professional's share (90% of revenue to split)
   const gstAmount = grossEarnings * 0.18; // 18% GST on professional's earnings
-  const totalDeductions = platformFee + gstAmount; // Platform fee + GST
-  const netEarnings = totalRevenue - platformFee - gstAmount;
+  const totalDeductions = serviceTax + platformFee + gstAmount; // All deductions
+  const netEarnings = customerPaid - totalDeductions;
 
   // Generate last 7 days data for chart (mock data - replace with real API)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -132,12 +138,12 @@ export const EarningsScreen = () => {
             onPress={() => navigation.navigate('Payouts')}
           >
             <View>
-              <Text style={styles.mainAmount}>{formatCurrency(totalRevenue)}</Text>
+              <Text style={styles.mainAmount}>{formatCurrency(customerPaid)}</Text>
               <Text style={styles.mainLabel}>
-                {selectedMonthIndex === 0 ? 'Total revenue this month' : `Total revenue in ${selectedMonthName}`}
+                {selectedMonthIndex === 0 ? 'Customer paid this month' : `Customer paid in ${selectedMonthName}`}
               </Text>
               <Text style={styles.netLabel}>
-                Net: {formatCurrency(netEarnings)}
+                Net to you: {formatCurrency(netEarnings)}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
@@ -176,8 +182,27 @@ export const EarningsScreen = () => {
           </Text>
 
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Total revenue (customer paid)</Text>
-            <Text style={styles.breakdownValue}>{formatCurrency(totalRevenue)}</Text>
+            <Text style={styles.breakdownLabel}>Customer paid (total)</Text>
+            <Text style={styles.breakdownValue}>{formatCurrency(customerPaid)}</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.breakdownRow}>
+            <View style={styles.breakdownLabelWithIcon}>
+              <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
+              <Text style={styles.breakdownLabel}>Service tax (GST)</Text>
+            </View>
+            <Text style={[styles.breakdownValue, styles.deductionValue]}>
+              -{formatCurrency(serviceTax)}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabel}>Revenue to split</Text>
+            <Text style={styles.breakdownValue}>{formatCurrency(revenueToSplit)}</Text>
           </View>
 
           <View style={styles.divider} />
@@ -195,7 +220,7 @@ export const EarningsScreen = () => {
           <View style={styles.divider} />
 
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Gross earnings</Text>
+            <Text style={styles.breakdownLabel}>Your share (90%)</Text>
             <Text style={styles.breakdownValue}>{formatCurrency(grossEarnings)}</Text>
           </View>
 
@@ -204,7 +229,7 @@ export const EarningsScreen = () => {
           <View style={styles.breakdownRow}>
             <View style={styles.breakdownLabelWithIcon}>
               <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
-              <Text style={styles.breakdownLabel}>GST (18%)</Text>
+              <Text style={styles.breakdownLabel}>GST on earnings (18%)</Text>
             </View>
             <Text style={[styles.breakdownValue, styles.deductionValue]}>
               -{formatCurrency(gstAmount)}
@@ -223,7 +248,7 @@ export const EarningsScreen = () => {
           <View style={styles.divider} />
 
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabelBold}>Net earnings</Text>
+            <Text style={styles.breakdownLabelBold}>Net to your bank</Text>
             <Text style={[styles.breakdownValueBold, { color: Colors.success }]}>
               {formatCurrency(netEarnings)}
             </Text>
@@ -232,7 +257,7 @@ export const EarningsScreen = () => {
           <View style={styles.infoBox}>
             <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
             <Text style={styles.infoText}>
-              Net amount will be transferred to your bank account after deductions
+              Service tax goes to government. Platform takes 10%, you get 90% of remaining amount.
             </Text>
           </View>
         </View>

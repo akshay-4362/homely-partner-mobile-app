@@ -115,6 +115,8 @@ export interface ProfessionalMonthlyEarning {
   earnings: number;
   bookings: number;
   commission: number;
+  serviceTaxes: number;
+  totalPaid: number;
 }
 
 export interface TodayBooking {
