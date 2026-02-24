@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { logout } from '../store/authSlice';
-import { creditApi } from '../api/creditApi';
+import { fetchCreditBalance } from '../store/creditSlice';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { formatCurrency } from '../utils/format';
 
@@ -29,18 +29,20 @@ interface MenuItem {
 export const CustomDrawer: React.FC<DrawerContentComponentProps> = (props) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
-  const [creditBalance, setCreditBalance] = useState<number>(0);
+  const creditBalance = useAppSelector((s) => s.credit.balance);
 
   useEffect(() => {
-    loadCredits();
-  }, []);
+    dispatch(fetchCreditBalance());
+  }, [dispatch]);
 
-  const loadCredits = async () => {
-    try {
-      const { data } = await creditApi.getCreditBalance();
-      setCreditBalance(data?.balance || 0);
-    } catch {}
-  };
+  // Refresh balance when drawer state changes
+  useEffect(() => {
+    const state = props.state;
+    // When drawer is opened (any navigation happens in drawer)
+    if (state.index >= 0) {
+      dispatch(fetchCreditBalance());
+    }
+  }, [props.state.index, dispatch]);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -89,7 +91,13 @@ export const CustomDrawer: React.FC<DrawerContentComponentProps> = (props) => {
     if (callback) {
       callback();
     } else if (screen) {
-      props.navigation.navigate(screen as any);
+      // These screens are in MainTabs, not direct drawer routes
+      const mainTabScreens = ['Home', 'Jobs', 'Earnings', 'Profile'];
+      if (mainTabScreens.includes(screen)) {
+        props.navigation.navigate('MainTabs' as any, { screen });
+      } else {
+        props.navigation.navigate(screen as any);
+      }
     }
   };
 

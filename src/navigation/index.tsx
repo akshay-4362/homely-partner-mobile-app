@@ -70,14 +70,18 @@ const MainTabs = ({ navigation }: any) => (
         backgroundColor: Colors.surface,
         borderTopColor: Colors.border,
         borderTopWidth: 1,
-        paddingTop: 8,
-        paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-        height: Platform.OS === 'ios' ? 88 : 68,
+        paddingTop: 6,
+        paddingBottom: Platform.OS === 'ios' ? 20 : 6,
+        height: Platform.OS === 'ios' ? 80 : 60,
       },
       tabBarLabelStyle: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '600' as const,
-        marginBottom: Platform.OS === 'ios' ? 0 : 4,
+        marginBottom: Platform.OS === 'ios' ? 0 : 2,
+        marginTop: 2,
+      },
+      tabBarIconStyle: {
+        marginTop: Platform.OS === 'ios' ? 4 : 2,
       },
       tabBarIcon: ({ color, size, focused }) => {
         const icons: Record<string, { active: any; inactive: any }> = {

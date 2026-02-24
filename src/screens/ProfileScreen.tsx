@@ -142,19 +142,6 @@ export const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* Profile Picture Required Alert */}
-        {!user?.profilePicture && (
-          <View style={styles.alertBanner}>
-            <Ionicons name="warning" size={24} color={Colors.warning || '#f59e0b'} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.alertTitle}>Profile Picture Required</Text>
-              <Text style={styles.alertText}>
-                You must upload a profile picture before you can start jobs. This is required for identity verification.
-              </Text>
-            </View>
-          </View>
-        )}
-
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <ProfilePictureUpload
@@ -165,12 +152,6 @@ export const ProfileScreen = () => {
           <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
           <Text style={styles.email}>{user?.email}</Text>
           <Text style={styles.role}>Professional Partner</Text>
-          {user?.profilePicture && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
-              <Text style={styles.verifiedText}>Profile Picture Verified</Text>
-            </View>
-          )}
         </View>
 
         {/* Quick Nav */}
@@ -409,10 +390,11 @@ const StripeRow = ({ label, enabled }: { label: string; enabled: boolean }) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 100 },
+  scroll: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, paddingBottom: 40 },
   profileHeader: {
-    alignItems: 'center', paddingVertical: Spacing.xxxl,
-    paddingTop: 60,
+    alignItems: 'center',
+    paddingTop: Spacing.xxl,
+    paddingBottom: Spacing.xl,
   },
   avatar: {
     width: 80, height: 80, borderRadius: 40,
@@ -453,10 +435,11 @@ const styles = StyleSheet.create({
   menuLabel: { flex: 1, fontSize: 15, color: Colors.textPrimary },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: Colors.errorBg, borderRadius: BorderRadius.lg, padding: Spacing.lg, marginVertical: Spacing.lg,
+    backgroundColor: Colors.errorBg, borderRadius: BorderRadius.lg, padding: Spacing.lg, marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   logoutText: { fontSize: 16, fontWeight: '600', color: Colors.error },
-  version: { textAlign: 'center', fontSize: 12, color: Colors.textTertiary, marginBottom: Spacing.xl },
+  version: { textAlign: 'center', fontSize: 12, color: Colors.textTertiary, marginBottom: Spacing.md },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
