@@ -57,11 +57,13 @@ export const EarningsScreen = () => {
   const selectedMonthName = selectedMonth?.month || 'This Month';
 
   // Calculate breakdown for selected month
-  const grossEarnings = selectedMonthEarnings;
-  const platformFee = selectedMonthCommission; // Commission taken by platform
-  const gstAmount = grossEarnings * 0.18; // 18% GST
-  const totalDeductions = platformFee + gstAmount;
-  const netEarnings = grossEarnings - totalDeductions;
+  // NOTE: selectedMonthEarnings is already the professional's payout (after 10% platform fee)
+  // selectedMonthCommission is what the platform already took
+  // So we should NOT deduct platform fee again!
+  const grossEarnings = selectedMonthEarnings; // This is already after 10% platform fee
+  const gstAmount = grossEarnings * 0.18; // 18% GST on the payout amount
+  const totalDeductions = gstAmount; // Only GST is deducted from the payout
+  const netEarnings = grossEarnings - gstAmount;
 
   // Generate last 7 days data for chart (mock data - replace with real API)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -174,16 +176,6 @@ export const EarningsScreen = () => {
           </View>
 
           <View style={styles.divider} />
-
-          <View style={styles.breakdownRow}>
-            <View style={styles.breakdownLabelWithIcon}>
-              <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
-              <Text style={styles.breakdownLabel}>Platform fee (10%)</Text>
-            </View>
-            <Text style={[styles.breakdownValue, styles.deductionValue]}>
-              -{formatCurrency(platformFee)}
-            </Text>
-          </View>
 
           <View style={styles.breakdownRow}>
             <View style={styles.breakdownLabelWithIcon}>
