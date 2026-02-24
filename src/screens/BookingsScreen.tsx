@@ -15,9 +15,10 @@ import { Loader } from '../components/common/Loader';
 import { EmptyState } from '../components/common/EmptyState';
 import { ProBooking } from '../types';
 
-type TabKey = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+type TabKey = 'all' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 
 const TABS: { key: TabKey; label: string; statuses: string[] }[] = [
+  { key: 'all', label: 'All', statuses: ['confirmed', 'in_progress', 'completed', 'cancelled', 'cancellation_pending'] },
   { key: 'upcoming', label: 'Upcoming', statuses: ['confirmed'] },
   { key: 'ongoing', label: 'Ongoing', statuses: ['in_progress'] },
   { key: 'completed', label: 'Completed', statuses: ['completed'] },
@@ -28,7 +29,7 @@ export const BookingsScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
   const { items, status } = useAppSelector((s) => s.bookings);
-  const [activeTab, setActiveTab] = useState<TabKey>('upcoming');
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { dispatch(fetchProBookings()); }, []);

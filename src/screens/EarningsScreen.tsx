@@ -57,13 +57,15 @@ export const EarningsScreen = () => {
   const selectedMonthName = selectedMonth?.month || 'This Month';
 
   // Calculate breakdown for selected month
-  // NOTE: selectedMonthEarnings is already the professional's payout (after 10% platform fee)
-  // selectedMonthCommission is what the platform already took
-  // So we should NOT deduct platform fee again!
-  const grossEarnings = selectedMonthEarnings; // This is already after 10% platform fee
-  const gstAmount = grossEarnings * 0.18; // 18% GST on the payout amount
-  const totalDeductions = gstAmount; // Only GST is deducted from the payout
-  const netEarnings = grossEarnings - gstAmount;
+  // selectedMonthEarnings = professional's payout (90% of total revenue after platform fee)
+  // selectedMonthCommission = platform's commission (10% of total revenue)
+  // Total revenue = what customer actually paid (base charges + additional charges)
+  const totalRevenue = selectedMonthEarnings + selectedMonthCommission;
+  const platformFee = selectedMonthCommission; // 10% of total revenue (base + additional)
+  const grossEarnings = selectedMonthEarnings; // Professional's share (90% of total)
+  const gstAmount = grossEarnings * 0.18; // 18% GST on professional's earnings
+  const totalDeductions = platformFee + gstAmount; // Platform fee + GST
+  const netEarnings = totalRevenue - platformFee - gstAmount;
 
   // Generate last 7 days data for chart (mock data - replace with real API)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -130,9 +132,12 @@ export const EarningsScreen = () => {
             onPress={() => navigation.navigate('Payouts')}
           >
             <View>
-              <Text style={styles.mainAmount}>{formatCurrency(selectedMonthEarnings)}</Text>
+              <Text style={styles.mainAmount}>{formatCurrency(totalRevenue)}</Text>
               <Text style={styles.mainLabel}>
-                {selectedMonthIndex === 0 ? 'Earned this month' : `Earned in ${selectedMonthName}`}
+                {selectedMonthIndex === 0 ? 'Total revenue this month' : `Total revenue in ${selectedMonthName}`}
+              </Text>
+              <Text style={styles.netLabel}>
+                Net: {formatCurrency(netEarnings)}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
@@ -169,6 +174,25 @@ export const EarningsScreen = () => {
           <Text style={styles.breakdownTitle}>
             {selectedMonthIndex === 0 ? "This month's breakdown" : `${selectedMonthName} breakdown`}
           </Text>
+
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabel}>Total revenue (customer paid)</Text>
+            <Text style={styles.breakdownValue}>{formatCurrency(totalRevenue)}</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.breakdownRow}>
+            <View style={styles.breakdownLabelWithIcon}>
+              <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
+              <Text style={styles.breakdownLabel}>Platform fee (10%)</Text>
+            </View>
+            <Text style={[styles.breakdownValue, styles.deductionValue]}>
+              -{formatCurrency(platformFee)}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
 
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>Gross earnings</Text>
@@ -416,6 +440,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+  netLabel: {
+    fontSize: 14,
+    color: Colors.success,
+    fontWeight: '700',
+    marginTop: 6,
   },
   chartContainer: {
     flexDirection: 'row',
