@@ -87,10 +87,10 @@ export const BookingsScreen = () => {
       {/* Footer */}
       <View style={styles.cardFooter}>
         <View>
-          <Text style={styles.jobValue}>Job Value</Text>
-          <Text style={styles.amount}>{formatCurrency(item.total)}</Text>
+          <Text style={styles.jobValue}>Customer Paid</Text>
+          <Text style={styles.amount}>{formatCurrency(item.finalTotal)}</Text>
           {item.additionalChargesTotal > 0 && (
-            <Text style={styles.extraCharges}>+{formatCurrency(item.additionalChargesTotal)} extra</Text>
+            <Text style={styles.extraCharges}>Incl. {formatCurrency(item.additionalChargesTotal)} extras</Text>
           )}
         </View>
         <View style={styles.footerRight}>

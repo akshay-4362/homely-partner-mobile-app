@@ -226,7 +226,7 @@ export const HomeScreen = () => {
                   </View>
                 </View>
                 <View style={styles.bookingRight}>
-                  <Text style={styles.bookingAmount}>{formatCurrency(b.total)}</Text>
+                  <Text style={styles.bookingAmount}>{formatCurrency(b.finalTotal)}</Text>
                   <Badge status={b.status} label={b.status} />
                 </View>
               </TouchableOpacity>
