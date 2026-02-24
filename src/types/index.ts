@@ -87,6 +87,9 @@ export interface ProfessionalDocument {
 
 export interface ProfessionalAccountingSummary {
   totalEarnings: number;
+  totalCommission: number;
+  serviceTaxes: number;
+  totalPaid: number;
   pendingPayout: number;
   paidOut: number;
   totalBookings: number;

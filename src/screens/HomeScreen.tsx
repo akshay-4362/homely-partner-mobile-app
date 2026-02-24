@@ -141,8 +141,8 @@ export const HomeScreen = () => {
             bg={Colors.primaryBg}
           />
           <KpiCard
-            label="Total Earned"
-            value={summary ? formatCurrency(summary.totalEarnings) : '—'}
+            label="Customer Paid"
+            value={summary ? formatCurrency(summary.totalPaid) : '—'}
             icon="wallet-outline"
             color={Colors.success}
             bg={Colors.successBg}
