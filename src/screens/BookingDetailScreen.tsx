@@ -59,21 +59,12 @@ export const BookingDetailScreen = () => {
   };
 
   const initiateJobStart = () => {
-    // Check if profile picture exists
-    if (!user?.profilePicture) {
-      Alert.alert(
-        'Profile Picture Required',
-        'Please upload a profile picture in your profile settings before starting jobs.',
-        [
-          { text: 'Go to Profile', onPress: () => navigation.navigate('Profile') },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
-      return;
-    }
-
-    // Show face verification modal
-    setFaceVerificationModal(true);
+    // Face verification disabled - proceed directly
+    setFaceVerified(true);
+    Alert.alert(
+      'Ready to Start',
+      'You can now enter the start OTP from the customer to begin the job.'
+    );
   };
 
   const handleFaceVerificationSuccess = () => {
@@ -88,14 +79,7 @@ export const BookingDetailScreen = () => {
   const handleStatusChange = async (newStatus: string) => {
     setError('');
 
-    // Require face verification before starting job
-    if (newStatus === 'in_progress' && !faceVerified) {
-      Alert.alert(
-        'Identity Verification Required',
-        'Please verify your identity by taking a selfie before starting the job.'
-      );
-      return;
-    }
+    // Face verification disabled - skip verification check
 
     if ((newStatus === 'in_progress' || newStatus === 'completed') && !otp.trim()) {
       setError('Please enter the OTP');
@@ -227,31 +211,9 @@ export const BookingDetailScreen = () => {
           )}
         </Card>
 
-        {/* OTP Section - Start Job */}
-        {isConfirmed && !faceVerified && (
+        {/* OTP Section - Start Job (Face verification disabled) */}
+        {isConfirmed && (
           <Card style={styles.otpCard}>
-            <View style={styles.verificationRequired}>
-              <Ionicons name="shield-checkmark-outline" size={48} color={Colors.primary} />
-              <Text style={styles.sectionTitle}>Identity Verification Required</Text>
-              <Text style={styles.otpHint}>
-                For security purposes, please verify your identity with a selfie before starting this job.
-              </Text>
-              <Button
-                label="Verify Identity"
-                onPress={initiateJobStart}
-                fullWidth
-                style={{ marginTop: Spacing.md }}
-              />
-            </View>
-          </Card>
-        )}
-
-        {isConfirmed && faceVerified && (
-          <Card style={styles.otpCard}>
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
-              <Text style={styles.verifiedText}>Identity Verified</Text>
-            </View>
             <Text style={styles.sectionTitle}>Start Job</Text>
             <Text style={styles.otpHint}>Ask customer for the 6-digit start OTP</Text>
             <TextInput
