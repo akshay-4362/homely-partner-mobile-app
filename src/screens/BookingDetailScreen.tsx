@@ -211,38 +211,6 @@ export const BookingDetailScreen = () => {
           )}
         </Card>
 
-        {/* Display Start OTP for Professional */}
-        {isConfirmed && booking.startOtp && (
-          <Card style={styles.otpDisplayCard}>
-            <View style={styles.otpDisplayHeader}>
-              <Ionicons name="key-outline" size={24} color={Colors.primary} />
-              <Text style={styles.otpDisplayTitle}>Customer's Start OTP</Text>
-            </View>
-            <View style={styles.otpCodeBox}>
-              <Text style={styles.otpCode}>{booking.startOtp}</Text>
-            </View>
-            <Text style={styles.otpDisplayHint}>
-              Ask customer to provide this OTP to verify job start
-            </Text>
-          </Card>
-        )}
-
-        {/* Display Completion OTP for Professional */}
-        {isInProgress && booking.completionOtp && (
-          <Card style={styles.otpDisplayCard}>
-            <View style={styles.otpDisplayHeader}>
-              <Ionicons name="checkmark-circle-outline" size={24} color={Colors.success} />
-              <Text style={styles.otpDisplayTitle}>Customer's Completion OTP</Text>
-            </View>
-            <View style={styles.otpCodeBox}>
-              <Text style={styles.otpCode}>{booking.completionOtp}</Text>
-            </View>
-            <Text style={styles.otpDisplayHint}>
-              Ask customer to provide this OTP to verify job completion
-            </Text>
-          </Card>
-        )}
-
         {/* OTP Section - Start Job (Face verification disabled) */}
         {isConfirmed && (
           <Card style={styles.otpCard}>
@@ -573,44 +541,6 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   infoText: { fontSize: 14, color: Colors.textSecondary, flex: 1 },
   otpCard: {},
-  otpDisplayCard: {
-    backgroundColor: Colors.primaryBg,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-  },
-  otpDisplayHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  otpDisplayTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  otpCodeBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    borderStyle: 'dashed',
-  },
-  otpCode: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: Colors.primary,
-    letterSpacing: 8,
-  },
-  otpDisplayHint: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
   otpHint: { fontSize: 12, color: Colors.textSecondary, marginBottom: Spacing.md },
   otpDisplay: {
