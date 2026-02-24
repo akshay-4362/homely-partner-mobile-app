@@ -17,6 +17,7 @@ import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { ProBooking, AdditionalCharge, MediaItem } from '../types';
 import { FaceVerificationModal } from '../components/FaceVerificationModal';
+import { useSocket } from '../hooks/useSocket';
 
 const CHARGE_CATEGORIES = ['materials', 'extra_work', 'transport', 'other'];
 
@@ -45,11 +46,65 @@ export const BookingDetailScreen = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
   const [mediaLabel, setMediaLabel] = useState('');
 
+  // Socket connection for real-time updates
+  const socket = useSocket();
+
   useEffect(() => {
     if (booking.status === 'in_progress' || booking.status === 'completed') {
       loadCharges();
     }
-  }, []);
+
+    // Set up socket listeners for real-time charge updates
+    if (socket) {
+      // Listen for charge approvals
+      const handleChargeApproved = (data: any) => {
+        if (data.bookingId === booking.id) {
+          console.log('[Socket] Charge approved:', data);
+          // Refresh charges immediately
+          loadCharges();
+          // Show alert to professional
+          Alert.alert(
+            'Charge Approved! ✅',
+            `Customer approved your ₹${data.charge?.amount} charge for ${data.charge?.description}`
+          );
+        }
+      };
+
+      // Listen for charge rejections
+      const handleChargeRejected = (data: any) => {
+        if (data.bookingId === booking.id) {
+          console.log('[Socket] Charge rejected:', data);
+          // Refresh charges immediately
+          loadCharges();
+          // Show alert to professional
+          Alert.alert(
+            'Charge Rejected',
+            `Customer rejected your ₹${data.charge?.amount} charge for ${data.charge?.description}`
+          );
+        }
+      };
+
+      // Listen for general booking updates
+      const handleBookingUpdated = (data: any) => {
+        if (data.bookingId === booking.id) {
+          console.log('[Socket] Booking updated:', data.type);
+          // Refresh charges for any booking update
+          loadCharges();
+        }
+      };
+
+      socket.on('charge_approved', handleChargeApproved);
+      socket.on('charge_rejected', handleChargeRejected);
+      socket.on('booking_updated', handleBookingUpdated);
+
+      // Cleanup listeners on unmount
+      return () => {
+        socket.off('charge_approved', handleChargeApproved);
+        socket.off('charge_rejected', handleChargeRejected);
+        socket.off('booking_updated', handleBookingUpdated);
+      };
+    }
+  }, [booking.id, socket]);
 
   const loadCharges = async () => {
     try {
@@ -81,13 +136,14 @@ export const BookingDetailScreen = () => {
 
     // Face verification disabled - skip verification check
 
-    if ((newStatus === 'in_progress' || newStatus === 'completed') && !otp.trim()) {
+    const trimmedOtp = otp.trim();
+    if ((newStatus === 'in_progress' || newStatus === 'completed') && !trimmedOtp) {
       setError('Please enter the OTP');
       return;
     }
 
     setLoading(true);
-    const res = await dispatch(updateProBookingStatus({ bookingId: booking.id, status: newStatus, otp: otp || undefined }));
+    const res = await dispatch(updateProBookingStatus({ bookingId: booking.id, status: newStatus, otp: trimmedOtp || undefined }));
     setLoading(false);
     if (res.meta.requestStatus === 'fulfilled') {
       Alert.alert('Success', `Job updated to ${newStatus.replace('_', ' ')}`);
@@ -97,15 +153,46 @@ export const BookingDetailScreen = () => {
     }
   };
 
-  const pickMedia = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permission needed'); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+  const pickMediaOptions = () => {
+    Alert.alert(
+      'Add Photo/Video',
+      'Choose an option',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => captureMedia('photo'),
+        },
+        {
+          text: 'Record Video',
+          onPress: () => captureMedia('video'),
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: () => pickMedia(),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const captureMedia = async (type: 'photo' | 'video') => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Camera permission is required to take photos/videos');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: type === 'video' ? ['videos'] : ['images'],
       quality: 0.7,
       base64: true,
-      allowsMultipleSelection: false,
+      allowsEditing: true,
+      videoMaxDuration: type === 'video' ? 30 : undefined, // 30 seconds max for videos
     });
+
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       const isVideo = asset.type === 'video';
@@ -114,7 +201,35 @@ export const BookingDetailScreen = () => {
         {
           dataUrl: `data:${isVideo ? 'video/mp4' : 'image/jpeg'};base64,${asset.base64}`,
           type: isVideo ? 'video' : 'photo',
-          label: mediaLabel || 'Photo',
+          label: mediaLabel || (isVideo ? 'Video' : 'Photo'),
+        },
+      ]);
+    }
+  };
+
+  const pickMedia = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Gallery permission is required to select photos/videos');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      quality: 0.7,
+      base64: true,
+      allowsMultipleSelection: false,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const isVideo = asset.type === 'video';
+      setSelectedMedia((prev) => [
+        ...prev,
+        {
+          dataUrl: `data:${isVideo ? 'video/mp4' : 'image/jpeg'};base64,${asset.base64}`,
+          type: isVideo ? 'video' : 'photo',
+          label: mediaLabel || (isVideo ? 'Video' : 'Photo'),
         },
       ]);
     }
@@ -402,7 +517,7 @@ export const BookingDetailScreen = () => {
                   onChangeText={setMediaLabel}
                   placeholderTextColor={Colors.textTertiary}
                 />
-                <Button label="Pick Photo/Video" onPress={pickMedia} variant="outline" fullWidth />
+                <Button label="Add Photo/Video" onPress={pickMediaOptions} variant="outline" fullWidth />
               </>
             )}
 
