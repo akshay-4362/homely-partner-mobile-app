@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, StatusBar, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
@@ -59,7 +60,7 @@ export const PayoutsScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.nav}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -90,7 +91,7 @@ export const PayoutsScreen = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         ListEmptyComponent={<EmptyState icon="card-outline" title="No payouts yet" subtitle="Completed jobs will appear here" />}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.md,
   },
   backBtn: { padding: 4 },
   navTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 4 },
   summaryValue: { fontSize: 22, fontWeight: '800' },
-  list: { paddingHorizontal: Spacing.xl, gap: Spacing.md, paddingBottom: 24 },
+  list: { paddingHorizontal: Spacing.xl, gap: Spacing.md, paddingBottom: Platform.OS === 'ios' ? 100 : 80 },
   card: {
     backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.lg,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,

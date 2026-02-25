@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
-} from 'react-native';
+  Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
@@ -61,7 +62,7 @@ export const TrainingScreen = () => {
   if (loading) return <Loader text="Loading training..." />;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -129,7 +130,7 @@ export const TrainingScreen = () => {
         }
         renderItem={({ item }) => <ModuleCard item={item} />}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 56, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.lg,
+    paddingTop: Spacing.lg, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.lg,
     backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: Colors.primary },
   tabText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
   tabTextActive: { color: '#fff' },
-  list: { paddingHorizontal: Spacing.xl, paddingBottom: 32, gap: 12 },
+  list: { paddingHorizontal: Spacing.xl, paddingBottom: Platform.OS === 'ios' ? 100 : 80, gap: 12 },
   moduleCard: {
     flexDirection: 'row', backgroundColor: Colors.surface, borderRadius: BorderRadius.lg,
     overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 },

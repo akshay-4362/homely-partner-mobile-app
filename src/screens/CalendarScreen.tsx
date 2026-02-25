@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, StatusBar,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, StatusBar, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
@@ -143,7 +144,7 @@ export const CalendarScreen = () => {
   const selectedSlot = selectedDate ? allSlots.find((s) => s.day === selectedDate) : null;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       {/* Nav */}
       <View style={styles.nav}>
@@ -236,7 +237,7 @@ export const CalendarScreen = () => {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.md,
   },
   backBtn: { padding: 4 },
   navTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },

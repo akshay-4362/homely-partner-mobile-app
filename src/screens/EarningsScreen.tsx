@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
-} from 'react-native';
+  Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
@@ -57,54 +58,7 @@ export const EarningsScreen = () => {
 
   useEffect(() => { load(); }, []);
 
-  // Load daily data when selected month changes
-  useEffect(() => {
-    loadDailyData();
-  }, [selectedMonthIndex, monthlyData]);
-
-  const loadDailyData = async () => {
-    try {
-      const selectedMonth = monthlyData[selectedMonthIndex];
-      if (!selectedMonth) return;
-
-      // Parse month string (e.g., "2026-02") to get start and end dates
-      const [year, month] = selectedMonth.month.split('-');
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0); // Last day of month
-
-      const data = await accountingApi.getDailyEarnings(
-        startDate.toISOString(),
-        endDate.toISOString()
-      );
-
-      // Convert to chart format
-      const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        const dateStr = date.toISOString().split('T')[0];
-
-        // Find matching day in API data
-        const dayData = Array.isArray(data)
-          ? data.find((d: any) => d.date === dateStr)
-          : null;
-
-        return {
-          day: date.getDate(),
-          amount: dayData?.earnings || 0,
-        };
-      });
-
-      setDailyData(last7Days);
-    } catch (error) {
-      console.error('Failed to load daily data:', error);
-      // Fallback to empty data
-      setDailyData(Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return { day: date.getDate(), amount: 0 };
-      }));
-    }
-  };
+  // No need for daily data - we'll use monthly data for the chart
 
   const debouncedRefresh = useDebouncedRefresh(loadForced);
 
@@ -139,14 +93,19 @@ export const EarningsScreen = () => {
   const totalDeductions = serviceTax + platformFee + gstAmount; // All deductions
   const netEarnings = customerPaid - totalDeductions;
 
-  // Use real daily data from API
-  const last7Days = dailyData.length > 0 ? dailyData : Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    return { day: date.getDate(), amount: 0 };
+  // Prepare monthly chart data (show last 6 months)
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyChartData = monthlyData.map((m) => {
+    const [year, month] = m.month.split('-');
+    const monthIndex = parseInt(month) - 1;
+    return {
+      label: monthNames[monthIndex],
+      amount: m.totalPaid || 0,
+      monthKey: m.month,
+    };
   });
 
-  const maxDailyAmount = Math.max(...last7Days.map(d => d.amount), 1);
+  const maxMonthlyAmount = Math.max(...monthlyChartData.map(d => d.amount), 1);
 
   // Categorize payouts
   const upcomingPayouts = payouts.filter(p => p.status === 'pending');
@@ -154,7 +113,7 @@ export const EarningsScreen = () => {
   const paidPayouts = payouts.filter(p => p.status === 'paid');
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
@@ -449,7 +408,7 @@ export const EarningsScreen = () => {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -459,7 +418,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   scroll: {
-    paddingTop: 56,
+    paddingTop: Spacing.lg,
     paddingHorizontal: Spacing.xl,
     paddingBottom: 100,
   },

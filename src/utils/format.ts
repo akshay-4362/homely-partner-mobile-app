@@ -20,6 +20,12 @@ export const formatDateOnly = (date: string | Date): string => {
   }).format(new Date(date));
 };
 
+export const formatTime = (date: string | Date): string => {
+  return new Intl.DateTimeFormat('en-IN', {
+    timeStyle: 'short',
+  }).format(new Date(date));
+};
+
 export const timeAgo = (date: string | Date): string => {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
   if (seconds < 60) return `${seconds}s ago`;

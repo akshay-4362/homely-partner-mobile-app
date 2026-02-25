@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
-} from 'react-native';
+  Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -76,7 +77,7 @@ export const CreditsScreen = () => {
   if (status === 'loading' && !stats) return <Loader text="Loading credits..." />;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -152,7 +153,7 @@ export const CreditsScreen = () => {
         onClose={() => setShowPurchaseModal(false)}
         onSuccess={handlePurchaseSuccess}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 56, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.lg,
+    paddingTop: Spacing.lg, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.lg,
     backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },

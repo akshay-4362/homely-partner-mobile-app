@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Modal, FlatList, Image, Linking, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -403,7 +404,7 @@ export const BookingDetailScreen = () => {
   const isCancelled = booking.status === 'cancelled' || booking.status === 'cancellation_pending';
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Nav */}
       <View style={styles.nav}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -886,7 +887,7 @@ export const BookingDetailScreen = () => {
         onSuccess={handleFaceVerificationSuccess}
         onCancel={() => setFaceVerificationModal(false)}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -894,7 +895,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.md,
     backgroundColor: Colors.background,
   },
   backBtn: { padding: 4 },
@@ -964,7 +965,7 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: Spacing.xl, paddingBottom: 40, minHeight: 300,
+    padding: Spacing.xl, paddingBottom: Platform.OS === 'ios' ? 100 : 80, minHeight: 300,
   },
   modalHandle: { width: 40, height: 4, backgroundColor: Colors.gray300, borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.lg },
   modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },

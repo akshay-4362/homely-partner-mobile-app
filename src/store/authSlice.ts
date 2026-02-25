@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authApi } from '../api/authApi';
-import { setTokens, clearTokens, setUser, getUser, getAccessToken, getRefreshToken } from '../utils/tokenStorage';
+import { setTokens, clearTokens, setUser, getUser, getAccessToken, getRefreshToken, clearUser } from '../utils/tokenStorage';
 import { User } from '../types';
 
 interface AuthState {
@@ -70,6 +70,7 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.refreshToken = null;
       clearTokens();
+      clearUser();
     },
     clearError(state) {
       state.error = null;

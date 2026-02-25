@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAppSelector } from '../hooks/useAppSelector';
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.md,
     backgroundColor: Colors.surface,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
   headerAvatarText: { fontSize: 16, fontWeight: '700', color: Colors.primary },
   headerName: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
   headerService: { fontSize: 11, color: Colors.textSecondary },
-  list: { padding: Spacing.xl, gap: Spacing.md, paddingBottom: 8 },
+  list: { padding: Spacing.xl, gap: Spacing.md, paddingBottom: Platform.OS === 'ios' ? 100 : 80 },
   msgRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   msgRowMe: { flexDirection: 'row-reverse' },
   msgAvatar: {

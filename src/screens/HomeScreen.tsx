@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, StatusBar,
+  RefreshControl, StatusBar, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
@@ -97,14 +98,14 @@ export const HomeScreen = () => {
   }, [bookings]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1, marginRight: 12 }}>
           <Text style={styles.greeting}>Good morning,</Text>
-          <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
+          <Text style={styles.name} numberOfLines={1}>{user?.firstName} {user?.lastName}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <CreditBalanceWidget />
@@ -304,7 +305,7 @@ export const HomeScreen = () => {
           </Card>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -325,12 +326,6 @@ const TodayJobCard = ({ job, onPress }: { job: TodayBooking; onPress: () => void
     <View style={styles.todayMid}>
       <Text style={styles.todayName}>{job.customerName}</Text>
       <Text style={styles.todayService}>{job.serviceName}</Text>
-      {job.startOtp && job.status === 'confirmed' && (
-        <View style={styles.otpBadge}>
-          <Text style={styles.otpLabel}>Start OTP: </Text>
-          <Text style={styles.otpValue}>{job.startOtp}</Text>
-        </View>
-      )}
     </View>
     <Text style={styles.todayAmt}>{formatCurrency(job.earnings)}</Text>
   </TouchableOpacity>
@@ -340,7 +335,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.xl, paddingTop: 0, paddingBottom: Spacing.md,
     backgroundColor: Colors.background,
   },
   greeting: { fontSize: 13, color: Colors.textSecondary },
@@ -351,7 +346,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.error, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
   },
   badgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 24 },
+  scroll: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: 90,
+  },
   statusBanner: {
     flexDirection: 'row', alignItems: 'center', padding: 12,
     borderRadius: BorderRadius.md, marginBottom: Spacing.lg, gap: 8,
@@ -412,12 +410,6 @@ const styles = StyleSheet.create({
   todayName: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
   todayService: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
   todayAmt: { fontSize: 14, fontWeight: '700', color: Colors.success },
-  otpBadge: {
-    flexDirection: 'row', marginTop: 4, backgroundColor: Colors.primaryBg,
-    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start',
-  },
-  otpLabel: { fontSize: 10, color: Colors.textSecondary },
-  otpValue: { fontSize: 10, fontWeight: '700', color: Colors.primary },
   pendingCard: { borderWidth: 1, borderColor: Colors.warningBg },
   pendingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   pendingText: { fontSize: 14, color: Colors.textPrimary, fontWeight: '500', flex: 1 },

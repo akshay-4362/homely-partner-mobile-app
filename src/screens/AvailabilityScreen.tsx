@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, StatusBar,
-} from 'react-native';
+  Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { proApi } from '../api/proApi';
@@ -91,7 +92,7 @@ export const AvailabilityScreen = () => {
     }, 0);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       {/* Nav */}
       <View style={styles.nav}>
@@ -141,7 +142,7 @@ export const AvailabilityScreen = () => {
 
         <Button label="Save Availability" onPress={save} loading={saving} fullWidth size="lg" style={styles.saveBtn} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.md,
   },
   backBtn: { padding: 4 },
   navTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },

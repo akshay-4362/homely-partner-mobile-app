@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   KeyboardAvoidingView, Platform, Image, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { login, register, clearError } from '../store/authSlice';
@@ -33,8 +34,9 @@ export const AuthScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={styles.flex} edges={['top']}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoWrap}>
@@ -134,14 +136,15 @@ export const AuthScreen = () => {
             <Text style={styles.infoItem}>Manage your availability & calendar</Text>
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Colors.background },
-  scroll: { padding: Spacing.xl, paddingTop: 60 },
+  scroll: { padding: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Platform.OS === 'ios' ? 100 : 80 },
   header: { alignItems: 'center', marginBottom: Spacing.xxxl },
   logoWrap: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   logoCircle: {

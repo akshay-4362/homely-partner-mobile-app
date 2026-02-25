@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, StatusBar,
+  RefreshControl, StatusBar, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
@@ -116,7 +117,7 @@ export const BookingsScreen = () => {
   if (status === 'loading' && items.length === 0) return <Loader text="Loading bookings..." />;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       {/* Header */}
@@ -172,7 +173,7 @@ export const BookingsScreen = () => {
           />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.md,
     backgroundColor: Colors.background,
   },
   headerTitle: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
   tabCountActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
   tabCountText: { fontSize: 10, fontWeight: '700', color: Colors.textSecondary },
   tabCountTextActive: { color: Colors.textInverse },
-  list: { paddingHorizontal: Spacing.xl, paddingBottom: 24, gap: Spacing.md },
+  list: { paddingHorizontal: Spacing.xl, paddingBottom: Platform.OS === 'ios' ? 100 : 80, gap: Spacing.md },
   card: {
     backgroundColor: Colors.surface, borderRadius: BorderRadius.xl,
     padding: Spacing.lg,

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, Modal, TextInput, Alert,
-} from 'react-native';
+  Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
@@ -119,7 +120,7 @@ export const HelpCenterScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -309,7 +310,7 @@ export const HelpCenterScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -320,7 +321,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
-    paddingTop: 56,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
     backgroundColor: Colors.background,
   },
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   emergencyText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: 24 },
+  scroll: { paddingHorizontal: Spacing.xl, paddingBottom: Platform.OS === 'ios' ? 100 : 80 },
   contactCard: {
     borderLeftWidth: 3,
     borderLeftColor: Colors.primary,

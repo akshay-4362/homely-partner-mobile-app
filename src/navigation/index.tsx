@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { Colors } from '../theme/colors';
 import { CustomDrawer } from '../components/CustomDrawer';
@@ -42,41 +43,44 @@ const BookingStackNav = () => (
   </BookingStack.Navigator>
 );
 
-const MainTabs = ({ navigation }: any) => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: route.name === 'Home',
-      headerStyle: {
-        backgroundColor: Colors.surface,
-        elevation: 0,
-        shadowOpacity: 0,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-      },
-      headerTitle: 'Homelyo Professional',
-      headerTitleStyle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: Colors.textPrimary,
-      },
-      headerLeft: () => (
-        <TouchableOpacity
-          onPress={() => navigation.openDrawer()}
-          style={{ marginLeft: 16, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Ionicons name="menu" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-      ),
-      tabBarActiveTintColor: Colors.primary,
-      tabBarInactiveTintColor: Colors.gray400,
-      tabBarStyle: {
-        backgroundColor: Colors.surface,
-        borderTopColor: Colors.border,
-        borderTopWidth: 1,
-        paddingTop: 6,
-        paddingBottom: Platform.OS === 'ios' ? 20 : 6,
-        height: Platform.OS === 'ios' ? 80 : 60,
-      },
+const MainTabs = ({ navigation }: any) => {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: route.name === 'Home',
+        headerStyle: {
+          backgroundColor: Colors.surface,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.border,
+        },
+        headerTitle: 'Homelyo Professional',
+        headerTitleStyle: {
+          fontSize: 18,
+          fontWeight: '700',
+          color: Colors.textPrimary,
+        },
+        headerLeft: () => (
+          <TouchableOpacity
+            onPress={() => navigation.openDrawer()}
+            style={{ marginLeft: 16, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="menu" size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        ),
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.gray400,
+        tabBarStyle: {
+          backgroundColor: Colors.surface,
+          borderTopColor: Colors.border,
+          borderTopWidth: 1,
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
+          height: 60 + Math.max(insets.bottom, 8),
+        },
       tabBarLabelStyle: {
         fontSize: 10,
         fontWeight: '600' as const,
@@ -103,7 +107,8 @@ const MainTabs = ({ navigation }: any) => (
     <Tab.Screen name="Earnings" component={EarningsScreen} />
     <Tab.Screen name="Profile" component={ProfileScreen} />
   </Tab.Navigator>
-);
+  );
+};
 
 const DrawerNav = () => (
   <Drawer.Navigator

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, RefreshControl,
-} from 'react-native';
+  Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { notificationApi } from '../api/notificationApi';
@@ -66,7 +67,7 @@ export const NotificationsScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.nav}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -90,7 +91,7 @@ export const NotificationsScreen = () => {
           <EmptyState icon="notifications-outline" title="No notifications" subtitle="You're all caught up!" />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -98,12 +99,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingTop: 56, paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.md,
   },
   backBtn: { padding: 4 },
   navTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
   unreadCount: { fontSize: 11, color: Colors.primary, fontWeight: '600' },
-  list: { paddingHorizontal: Spacing.xl, gap: Spacing.sm, paddingBottom: 24 },
+  list: { paddingHorizontal: Spacing.xl, gap: Spacing.sm, paddingBottom: Platform.OS === 'ios' ? 100 : 80 },
   card: {
     flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md,
     backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.lg,

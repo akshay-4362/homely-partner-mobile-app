@@ -5,44 +5,40 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Switch,
   Alert,
   StatusBar,
-} from 'react-native';
+  Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
-import { useAppSelector } from '../hooks/useAppSelector';
 import { proApi } from '../api/proApi';
-import { formatTime, formatDateOnly } from '../utils/format';
 
 interface DaySchedule {
-  day: string; // 'monday', 'tuesday', etc.
-  hours: boolean[]; // 16 hours: 8 AM to 11 PM (index 0 = 8 AM, 15 = 11 PM)
+  day: string;
+  hours: boolean[]; // 24 hours
 }
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const HOURS = Array.from({ length: 16 }, (_, i) => 8 + i); // 8 AM to 11 PM
+const DAYS_SHORT = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 export const UnifiedCalendarScreen = () => {
-  const { items: bookings } = useAppSelector((s) => s.bookings);
-  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'calendar' | 'routine-edit'>('calendar');
-  const [selectedDayIndex, setSelectedDayIndex] = useState(0); // For routine editor
   const [weeklySchedule, setWeeklySchedule] = useState<DaySchedule[]>(
-    DAYS.map((day) => ({
-      day: day.toLowerCase(),
-      hours: Array(16).fill(true), // Default all available
+    Array(7).fill(null).map((_, idx) => ({
+      day: DAYS_SHORT[idx].toLowerCase(),
+      hours: Array(24).fill(true), // Default all available
     }))
   );
+  const [showHoursEditor, setShowHoursEditor] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Generate week dates for strip (current week + 2 weeks forward)
+  // Generate next 7 days for strip
   const weekDates = useMemo(() => {
     const dates = [];
     const today = new Date();
-    for (let i = 0; i < 21; i++) {
+    for (let i = 0; i < 7; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       dates.push(date);
@@ -56,25 +52,38 @@ export const UnifiedCalendarScreen = () => {
 
   const loadSchedule = async () => {
     try {
-      setLoading(true);
       const profile = await proApi.fetchProfile();
-      // If profile has weeklySchedule, load it
-      if (profile.weeklySchedule) {
-        setWeeklySchedule(profile.weeklySchedule);
+      if (profile.weeklySchedule && Array.isArray(profile.weeklySchedule)) {
+        // Convert from backend format (13 hours) to full day (24 hours)
+        const fullSchedule = profile.weeklySchedule.map((day: any) => {
+          const fullHours = Array(24).fill(false);
+          // Backend hours are 8 AM - 8 PM (indices 0-12 = hours 8-20)
+          if (day.hours && Array.isArray(day.hours)) {
+            day.hours.forEach((available: boolean, idx: number) => {
+              if (idx < 13) {
+                fullHours[8 + idx] = available; // Map to actual hour
+              }
+            });
+          }
+          return { ...day, hours: fullHours };
+        });
+        setWeeklySchedule(fullSchedule);
       }
     } catch (error) {
       console.error('Failed to load schedule:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const saveSchedule = async () => {
     try {
       setSaving(true);
-      await proApi.updateAvailability({ weeklySchedule });
+      // Convert back to backend format (8 AM - 8 PM only)
+      const backendSchedule = weeklySchedule.map(day => ({
+        day: day.day,
+        hours: day.hours.slice(8, 21), // Extract hours 8-20 (13 hours)
+      }));
+      await proApi.updateAvailability({ weeklySchedule: backendSchedule });
       Alert.alert('Success', 'Availability updated successfully');
-      setViewMode('calendar');
     } catch (error) {
       Alert.alert('Error', 'Failed to update availability');
     } finally {
@@ -82,582 +91,306 @@ export const UnifiedCalendarScreen = () => {
     }
   };
 
-  // Calculate total hours
-  const totalHours = useMemo(() => {
-    return weeklySchedule.reduce((sum, day) => {
-      return sum + day.hours.filter(Boolean).length;
-    }, 0);
-  }, [weeklySchedule]);
+  // Get selected day's schedule
+  const selectedDayIndex = selectedDate.getDay(); // 0 = Sunday
+  const selectedDaySchedule = weeklySchedule[selectedDayIndex];
 
-  const monthlyHours = totalHours * 4; // Approximate monthly hours
+  // Count hours marked available for selected day
+  const hoursAvailable = useMemo(() => {
+    if (!selectedDaySchedule || !selectedDaySchedule.hours) return 0;
+    return selectedDaySchedule.hours.filter(Boolean).length;
+  }, [selectedDaySchedule]);
 
-  // Get bookings for selected date
-  const dayBookings = useMemo(() => {
-    const dateStr = selectedDate.toISOString().split('T')[0];
-    return bookings.filter((b) => {
-      const bookingDate = new Date(b.scheduledAt).toISOString().split('T')[0];
-      return bookingDate === dateStr && b.status !== 'cancelled';
-    });
-  }, [selectedDate, bookings]);
-
-  // Check if a date has availability
+  // Check if date has any availability
   const hasAvailability = (date: Date) => {
-    const dayIndex = date.getDay(); // 0 = Sunday, 6 = Saturday
-    const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Convert to Monday = 0
-    const daySchedule = weeklySchedule[adjustedIndex];
-    return daySchedule?.hours.some((h) => h) || false;
+    const dayIdx = date.getDay();
+    const schedule = weeklySchedule[dayIdx];
+    return schedule?.hours?.some(h => h) || false;
   };
 
-  // Toggle hour availability
-  const toggleHour = (dayIndex: number, hourIndex: number) => {
-    setWeeklySchedule((prev) => {
+  // Toggle hour
+  const toggleHour = (hourIdx: number) => {
+    setWeeklySchedule(prev => {
       const updated = [...prev];
-      updated[dayIndex] = {
-        ...updated[dayIndex],
-        hours: [...updated[dayIndex].hours],
+      updated[selectedDayIndex] = {
+        ...updated[selectedDayIndex],
+        hours: [...updated[selectedDayIndex].hours],
       };
-      updated[dayIndex].hours[hourIndex] = !updated[dayIndex].hours[hourIndex];
+      updated[selectedDayIndex].hours[hourIdx] = !updated[selectedDayIndex].hours[hourIdx];
       return updated;
     });
   };
 
-  // Quick actions
-  const applyWeekdays9to5 = () => {
-    setWeeklySchedule((prev) => {
-      return prev.map((day, idx) => {
-        if (idx < 5) {
-          // Monday-Friday
-          const hours = Array(16).fill(false);
-          // 9 AM to 5 PM (hours[1] to hours[9])
-          for (let i = 1; i <= 9; i++) {
-            hours[i] = true;
-          }
-          return { ...day, hours };
-        }
-        return day;
-      });
+  // Format date for display
+  const formatSelectedDate = () => {
+    return selectedDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
     });
   };
-
-  const applyWeekends8to8 = () => {
-    setWeeklySchedule((prev) => {
-      return prev.map((day, idx) => {
-        if (idx >= 5) {
-          // Saturday-Sunday
-          const hours = Array(16).fill(false);
-          // 8 AM to 8 PM (hours[0] to hours[12])
-          for (let i = 0; i <= 12; i++) {
-            hours[i] = true;
-          }
-          return { ...day, hours };
-        }
-        return day;
-      });
-    });
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      </View>
-    );
-  }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Calendar & Routine</Text>
-        <View style={styles.hoursBadge}>
-          <Ionicons name="flash" size={16} color={Colors.primary} />
-          <Text style={styles.hoursBadgeText}>{totalHours}h</Text>
-        </View>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.changeRoutineBtn} onPress={saveSchedule}>
+          <Text style={styles.changeRoutineText}>
+            {saving ? 'Saving...' : 'Save routine'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Weekly Strip */}
+        {/* Date Strip */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.weekStrip}
+          contentContainerStyle={styles.dateStrip}
         >
           {weekDates.map((date, idx) => {
             const isSelected =
-              date.toISOString().split('T')[0] ===
-              selectedDate.toISOString().split('T')[0];
-            const isToday =
-              date.toISOString().split('T')[0] ===
-              new Date().toISOString().split('T')[0];
+              date.toDateString() === selectedDate.toDateString();
             const available = hasAvailability(date);
+            const dayName = DAYS_SHORT[date.getDay()];
 
             return (
               <TouchableOpacity
                 key={idx}
-                style={[
-                  styles.dateChip,
-                  isSelected && styles.dateChipSelected,
-                  isToday && styles.dateChipToday,
-                ]}
+                style={[styles.dateChip, isSelected && styles.dateChipSelected]}
                 onPress={() => setSelectedDate(date)}
               >
-                <Text
-                  style={[
-                    styles.dateDayName,
-                    isSelected && styles.dateTextSelected,
-                  ]}
-                >
-                  {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                <Text style={[styles.dayName, isSelected && styles.dayNameSelected]}>
+                  {dayName}
                 </Text>
-                <Text
-                  style={[
-                    styles.dateDayNumber,
-                    isSelected && styles.dateTextSelected,
-                  ]}
-                >
+                <Text style={[styles.dayNumber, isSelected && styles.dayNumberSelected]}>
                   {date.getDate()}
                 </Text>
-                <View
-                  style={[
-                    styles.availabilityDot,
-                    { backgroundColor: available ? Colors.success : Colors.gray300 },
-                  ]}
+                <Ionicons
+                  name={available ? 'checkmark' : 'close'}
+                  size={16}
+                  color={available ? Colors.success : Colors.error}
+                  style={styles.availIcon}
                 />
               </TouchableOpacity>
             );
           })}
         </ScrollView>
 
-        {viewMode === 'calendar' ? (
-          <>
-            {/* Selected Date Schedule */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                {selectedDate.toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Text>
+        {/* Selected Date Info */}
+        <View style={styles.dateInfo}>
+          <Text style={styles.dateTitle}>{formatSelectedDate()}</Text>
+          <Text style={styles.hoursText}>
+            {hoursAvailable} hours marked available
+          </Text>
+        </View>
 
-              {dayBookings.length > 0 ? (
-                <View style={styles.bookingsList}>
-                  {dayBookings.map((booking) => (
-                    <View key={booking.id} style={styles.bookingCard}>
-                      <View style={styles.bookingTime}>
-                        <Ionicons name="time-outline" size={16} color={Colors.primary} />
-                        <Text style={styles.bookingTimeText}>
-                          {formatTime(booking.scheduledAt)}
-                        </Text>
-                      </View>
-                      <Text style={styles.bookingCustomer}>{booking.customerName}</Text>
-                      <Text style={styles.bookingService}>{booking.serviceName}</Text>
-                    </View>
-                  ))}
+        {/* Available Status */}
+        <View style={styles.statusCard}>
+          <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+          <Text style={styles.statusText}>Available</Text>
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={Colors.textSecondary}
+            style={styles.chevronIcon}
+          />
+        </View>
+
+        {/* Update Hours Section */}
+        <TouchableOpacity
+          style={styles.updateSection}
+          onPress={() => setShowHoursEditor(!showHoursEditor)}
+        >
+          <View style={styles.updateHeader}>
+            <Ionicons name="remove" size={20} color={Colors.textSecondary} />
+            <Text style={styles.updateTitle}>Update your available hours</Text>
+          </View>
+          <Ionicons
+            name={showHoursEditor ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={Colors.textSecondary}
+          />
+        </TouchableOpacity>
+
+        {/* Hourly Slots */}
+        {showHoursEditor && (
+          <View style={styles.hoursContainer}>
+            {Array.from({ length: 24 }, (_, hour) => {
+              const nextHour = (hour + 1) % 24;
+              const formatHour = (h: number) => {
+                const period = h < 12 ? 'AM' : 'PM';
+                const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                return `${displayHour.toString().padStart(2, '0')}:00 ${period}`;
+              };
+
+              const timeLabel = `${formatHour(hour)} - ${formatHour(nextHour)}`;
+              const isAvailable = selectedDaySchedule?.hours?.[hour] || false;
+
+              return (
+                <View key={hour} style={styles.hourRow}>
+                  <Text style={styles.hourLabel}>{timeLabel}</Text>
+                  <Switch
+                    value={isAvailable}
+                    onValueChange={() => toggleHour(hour)}
+                    trackColor={{ false: Colors.gray300, true: '#4CD964' }}
+                    thumbColor="#fff"
+                    ios_backgroundColor={Colors.gray300}
+                  />
                 </View>
-              ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="calendar-outline" size={32} color={Colors.gray300} />
-                  <Text style={styles.emptyStateText}>No bookings scheduled</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Change Routine Button */}
-            <TouchableOpacity
-              style={styles.changeRoutineBtn}
-              onPress={() => setViewMode('routine-edit')}
-            >
-              <Ionicons name="settings-outline" size={20} color={Colors.primary} />
-              <Text style={styles.changeRoutineBtnText}>Change Routine</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            {/* Routine Editor */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Edit Weekly Routine</Text>
-
-              {/* Day Selector Tabs */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.dayTabs}
-              >
-                {DAYS.map((day, idx) => {
-                  const isWeekend = idx >= 5;
-                  return (
-                    <TouchableOpacity
-                      key={idx}
-                      style={[
-                        styles.dayTab,
-                        selectedDayIndex === idx && styles.dayTabActive,
-                        isWeekend && styles.dayTabWeekend,
-                      ]}
-                      onPress={() => setSelectedDayIndex(idx)}
-                    >
-                      <Text
-                        style={[
-                          styles.dayTabText,
-                          selectedDayIndex === idx && styles.dayTabTextActive,
-                        ]}
-                      >
-                        {day}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              {/* Hourly Grid */}
-              <View style={styles.hourlyGrid}>
-                {HOURS.map((hour, idx) => {
-                  const isAvailable = weeklySchedule[selectedDayIndex].hours[idx];
-                  const timeStr = hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`;
-
-                  return (
-                    <View key={idx} style={styles.hourRow}>
-                      <Text style={styles.hourLabel}>{timeStr}</Text>
-                      <Switch
-                        value={isAvailable}
-                        onValueChange={() => toggleHour(selectedDayIndex, idx)}
-                        trackColor={{ false: Colors.gray300, true: Colors.primaryBg }}
-                        thumbColor={isAvailable ? Colors.primary : Colors.gray400}
-                      />
-                    </View>
-                  );
-                })}
-              </View>
-
-              {/* Quick Actions */}
-              <View style={styles.quickActions}>
-                <TouchableOpacity
-                  style={styles.quickActionBtn}
-                  onPress={applyWeekdays9to5}
-                >
-                  <Text style={styles.quickActionText}>9-5 Weekdays</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.quickActionBtn}
-                  onPress={applyWeekends8to8}
-                >
-                  <Text style={styles.quickActionText}>8-8 Weekends</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Hours Summary */}
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryText}>
-                  {totalHours} hours selected per week ({monthlyHours}h/month)
-                </Text>
-                {monthlyHours < 270 && (
-                  <View style={styles.warningBanner}>
-                    <Ionicons name="warning" size={16} color={Colors.error} />
-                    <Text style={styles.warningText}>
-                      Mark at least 270 hours available per month
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Save Buttons */}
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={() => setViewMode('calendar')}
-                >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.saveBtn}
-                  onPress={saveSchedule}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.saveBtnText}>Save Routine</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </>
+              );
+            })}
+          </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  loader: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: 16,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
+    backgroundColor: '#fff',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-  hoursBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.primaryBg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.lg,
-  },
-  hoursBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  weekStrip: {
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-  },
-  dateChip: {
-    width: 60,
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  dateChipSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  dateChipToday: {
-    borderColor: Colors.primary,
-    borderWidth: 2,
-  },
-  dateDayName: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  dateDayNumber: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  dateTextSelected: {
-    color: '#fff',
-  },
-  availabilityDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 6,
-  },
-  section: {
-    padding: Spacing.xl,
-    gap: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  bookingsList: {
-    gap: Spacing.md,
-  },
-  bookingCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  bookingTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  bookingTimeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  bookingCustomer: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  bookingService: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: Spacing.sm,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+  backBtn: {
+    padding: 8,
   },
   changeRoutineBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.xl,
-    marginBottom: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryBg,
-  },
-  changeRoutineBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  dayTabs: {
-    gap: Spacing.sm,
-  },
-  dayTab: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
+    backgroundColor: '#fff',
   },
-  dayTabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  dayTabWeekend: {
-    backgroundColor: '#FFF5E6',
-  },
-  dayTabText: {
+  changeRoutineText: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
-  dayTabTextActive: {
-    color: '#fff',
+  dateStrip: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+    paddingVertical: Spacing.lg,
   },
-  hourlyGrid: {
-    backgroundColor: Colors.surface,
+  dateChip: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    backgroundColor: '#fff',
+    minWidth: 60,
+  },
+  dateChipSelected: {
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  dayName: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  dayNameSelected: {
+    color: Colors.textPrimary,
+    fontWeight: '600',
+  },
+  dayNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  dayNumberSelected: {
+    color: Colors.textPrimary,
+  },
+  availIcon: {
+    marginTop: 2,
+  },
+  dateInfo: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.lg,
+  },
+  dateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  hoursText: {
+    fontSize: 14,
+    color: Colors.success,
+    fontWeight: '500',
+  },
+  statusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: Colors.border,
     gap: Spacing.sm,
+  },
+  statusText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  chevronIcon: {
+    marginLeft: 'auto',
+  },
+  updateSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    backgroundColor: '#F7F5FF',
+  },
+  updateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  updateTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  hoursContainer: {
+    backgroundColor: '#F7F5FF',
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
   },
   hourRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   hourLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.textPrimary,
     fontWeight: '500',
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  quickActionBtn: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-  },
-  quickActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  summaryCard: {
-    backgroundColor: Colors.primaryBg,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  summaryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  warningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.errorBg,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-  },
-  warningText: {
-    fontSize: 12,
-    color: Colors.error,
-    fontWeight: '600',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  saveBtn: {
-    flex: 2,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
   },
 });
