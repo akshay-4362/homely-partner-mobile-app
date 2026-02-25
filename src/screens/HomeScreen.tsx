@@ -79,7 +79,8 @@ export const HomeScreen = () => {
   const inProgressCount = bookings.filter((b) => b.status === 'in_progress').length;
   const todayStr = new Date().toDateString();
   const todayBookings = bookings.filter(
-    (b) => new Date(b.scheduledAt).toDateString() === todayStr
+    (b) => new Date(b.scheduledAt).toDateString() === todayStr &&
+    b.status !== 'completed' && b.status !== 'cancelled'
   );
 
   const unreadNotifs = notifications.filter((n) => !n.read).length;
@@ -271,7 +272,6 @@ export const HomeScreen = () => {
           <View style={styles.quickActions}>
             {[
               { icon: 'calendar', label: 'Calendar', screen: 'Calendar' },
-              { icon: 'time', label: 'Availability', screen: 'Availability' },
               { icon: 'card', label: 'Payouts', screen: 'Payouts' },
               { icon: 'stats-chart', label: 'My Hub', screen: 'MyHub' },
             ].map((a) => (
