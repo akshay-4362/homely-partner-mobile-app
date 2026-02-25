@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, StatusBar,
@@ -82,6 +82,19 @@ export const HomeScreen = () => {
   );
 
   const unreadNotifs = notifications.filter((n) => !n.read).length;
+
+  const upcomingBookings = useMemo(() => {
+    const now = new Date();
+    return bookings
+      .filter((b) =>
+        new Date(b.scheduledAt) >= now &&
+        (b.status === 'confirmed' || b.status === 'in_progress')
+      )
+      .sort((a, b) =>
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+      )
+      .slice(0, 5);
+  }, [bookings]);
 
   return (
     <View style={styles.container}>
@@ -212,20 +225,20 @@ export const HomeScreen = () => {
           </TouchableOpacity>
         )}
 
-        {/* Recent Bookings */}
+        {/* Upcoming Bookings */}
         <View style={styles.section}>
           <SectionHeader
-            title="Recent Jobs"
+            title="Upcoming Jobs"
             action="View All"
             onAction={() => navigation.navigate('Jobs')}
           />
-          {bookings.length === 0 ? (
+          {upcomingBookings.length === 0 ? (
             <View style={styles.emptyBox}>
               <Ionicons name="briefcase-outline" size={32} color={Colors.gray300} />
-              <Text style={styles.emptyText}>No bookings yet</Text>
+              <Text style={styles.emptyText}>No upcoming jobs</Text>
             </View>
           ) : (
-            bookings.slice(0, 5).map((b) => (
+            upcomingBookings.map((b) => (
               <TouchableOpacity
                 key={b.id}
                 style={styles.bookingRow}

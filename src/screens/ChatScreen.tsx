@@ -82,8 +82,9 @@ export const ChatScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={90}
+      keyboardShouldPersistTaps="handled"
     >
       <StatusBar barStyle="dark-content" />
       {/* Header */}

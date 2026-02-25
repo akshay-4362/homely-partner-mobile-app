@@ -20,6 +20,13 @@ export const accountingApi = {
     return data.data || data;
   },
 
+  getDailyEarnings: async (startDate: string, endDate: string) => {
+    const { data } = await client.get('/accounting/professional/daily', {
+      params: { startDate, endDate },
+    });
+    return data.data || data;
+  },
+
   getTodayBookings: async () => {
     const { data } = await client.get('/accounting/professional/today');
     return data.data || data;

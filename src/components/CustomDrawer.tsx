@@ -62,8 +62,7 @@ export const CustomDrawer: React.FC<DrawerContentComponentProps> = (props) => {
     { label: 'Home', icon: 'home', screen: 'Home' },
     { label: 'My Jobs', icon: 'briefcase', screen: 'Jobs' },
     { label: 'Earnings', icon: 'wallet', screen: 'Earnings' },
-    { label: 'Calendar', icon: 'calendar', screen: 'Calendar' },
-    { label: 'Availability', icon: 'time', screen: 'Availability' },
+    { label: 'Calendar & Routine', icon: 'calendar', screen: 'Calendar' },
   ];
 
   const otherMenuItems: MenuItem[] = [
@@ -76,6 +75,8 @@ export const CustomDrawer: React.FC<DrawerContentComponentProps> = (props) => {
     },
     { label: 'Training', icon: 'school', screen: 'Training' },
     { label: 'My Hub', icon: 'stats-chart', screen: 'MyHub' },
+    { label: 'Reviews', icon: 'star', screen: 'Reviews' },
+    { label: 'Targets', icon: 'trophy', screen: 'Targets' },
     { label: 'Notifications', icon: 'notifications', screen: 'Notifications' },
     { label: 'Help Center', icon: 'help-circle', screen: 'HelpCenter' },
   ];

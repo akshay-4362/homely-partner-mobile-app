@@ -25,6 +25,9 @@ import { TrainingScreen } from '../screens/TrainingScreen';
 import { HelpCenterScreen } from '../screens/HelpCenterScreen';
 import { TicketDetailScreen } from '../screens/TicketDetailScreen';
 import { MyHubScreen } from '../screens/MyHubScreen';
+import { ReviewsScreen } from '../screens/ReviewsScreen';
+import { TargetsScreen } from '../screens/TargetsScreen';
+import { UnifiedCalendarScreen } from '../screens/UnifiedCalendarScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -114,8 +117,7 @@ const DrawerNav = () => (
     }}
   >
     <Drawer.Screen name="MainTabs" component={MainTabs} />
-    <Drawer.Screen name="Availability" component={AvailabilityScreen} />
-    <Drawer.Screen name="Calendar" component={EnhancedCalendarScreen} />
+    <Drawer.Screen name="Calendar" component={UnifiedCalendarScreen} />
     <Drawer.Screen name="Payouts" component={PayoutsScreen} />
     <Drawer.Screen name="Notifications" component={NotificationsScreen} />
     <Drawer.Screen name="Credits" component={CreditsScreen} />
@@ -123,6 +125,8 @@ const DrawerNav = () => (
     <Drawer.Screen name="HelpCenter" component={HelpCenterScreen} />
     <Drawer.Screen name="TicketDetail" component={TicketDetailScreen} />
     <Drawer.Screen name="MyHub" component={MyHubScreen} />
+    <Drawer.Screen name="Reviews" component={ReviewsScreen} />
+    <Drawer.Screen name="Targets" component={TargetsScreen} />
   </Drawer.Navigator>
 );
 

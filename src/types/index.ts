@@ -20,11 +20,15 @@ export interface ProBooking {
   bookingNumber: string;
   serviceName: string;
   customerName: string;
+  customerPhone?: string;
   scheduledAt: string;
   status: string;
   city?: string;
   paymentMethod?: 'pay_now' | 'pay_later';
   paymentStatus?: string;
+  paidAt?: string;
+  paymentAmount?: number;
+  paymentIntentId?: string;
   addressLine?: string;
   addressFull?: string;
   lat?: number;

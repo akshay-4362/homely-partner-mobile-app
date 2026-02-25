@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, Modal, FlatList, Image, Linking,
+  TextInput, Alert, Modal, FlatList, Image, Linking, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -45,6 +45,9 @@ export const BookingDetailScreen = () => {
   const [mediaPhase, setMediaPhase] = useState<'before' | 'after'>('before');
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
   const [mediaLabel, setMediaLabel] = useState('');
+
+  // Payment method for completion (cash vs online)
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('online');
 
   // Socket connection for real-time updates
   const socket = useSocket();
@@ -134,28 +137,108 @@ export const BookingDetailScreen = () => {
   const handleStatusChange = async (newStatus: string) => {
     setError('');
 
-    // Face verification disabled - skip verification check
-
+    // Only require OTP for starting job, not for completion
     const trimmedOtp = otp.trim();
-    if ((newStatus === 'in_progress' || newStatus === 'completed') && !trimmedOtp) {
-      setError('Please enter the OTP');
+    if (newStatus === 'in_progress' && !trimmedOtp) {
+      setError('Please enter the start OTP from customer');
+      return;
+    }
+
+    // For completion with cash payment (pay_later only), show confirmation
+    if (newStatus === 'completed' && booking.paymentMethod === 'pay_later' && paymentMethod === 'cash') {
+      Alert.alert(
+        'Confirm Cash Payment',
+        `Did you receive ₹${booking.finalTotal || booking.total} in cash from the customer?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Yes, Received',
+            onPress: () => completeWithCash()
+          },
+        ]
+      );
       return;
     }
 
     setLoading(true);
-    const res = await dispatch(updateProBookingStatus({ bookingId: booking.id, status: newStatus, otp: trimmedOtp || undefined }));
+    const res = await dispatch(updateProBookingStatus({
+      bookingId: booking.id,
+      status: newStatus,
+      otp: newStatus === 'in_progress' ? trimmedOtp : undefined,
+      cashPayment: newStatus === 'completed' && paymentMethod === 'cash'
+    }));
     setLoading(false);
     if (res.meta.requestStatus === 'fulfilled') {
-      Alert.alert('Success', `Job updated to ${newStatus.replace('_', ' ')}`);
-      navigation.goBack();
+      if (newStatus === 'completed') {
+        // Show completion modal with Reviews option
+        Alert.alert(
+          'Job Completed! ✓',
+          'Customer will be asked to rate your service.',
+          [
+            {
+              text: 'View My Reviews',
+              onPress: () => {
+                navigation.goBack();
+                setTimeout(() => {
+                  (navigation as any).navigate('Reviews');
+                }, 100);
+              }
+            },
+            {
+              text: 'Done',
+              onPress: () => navigation.goBack(),
+              style: 'cancel'
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Success', `Job updated to ${newStatus.replace('_', ' ')}`);
+        navigation.goBack();
+      }
     } else {
       setError((res.payload as string) || 'Failed to update status');
     }
   };
 
-  const pickMediaOptions = () => {
+  const completeWithCash = async () => {
+    setLoading(true);
+    const res = await dispatch(updateProBookingStatus({
+      bookingId: booking.id,
+      status: 'completed',
+      cashPayment: true
+    }));
+    setLoading(false);
+    if (res.meta.requestStatus === 'fulfilled') {
+      // Show completion modal with Reviews option
+      Alert.alert(
+        'Job Completed! ✓',
+        'Cash payment received. Customer will be asked to rate your service.',
+        [
+          {
+            text: 'View My Reviews',
+            onPress: () => {
+              navigation.goBack();
+              setTimeout(() => {
+                (navigation as any).navigate('Reviews');
+              }, 100);
+            }
+          },
+          {
+            text: 'Done',
+            onPress: () => navigation.goBack(),
+            style: 'cancel'
+          }
+        ]
+      );
+    } else {
+      setError((res.payload as string) || 'Failed to complete job');
+    }
+  };
+
+  const openPhotoUpload = (phase: 'before' | 'after') => {
+    setMediaPhase(phase);
     Alert.alert(
-      'Add Photo/Video',
+      'Add Photo',
       'Choose an option',
       [
         {
@@ -163,12 +246,30 @@ export const BookingDetailScreen = () => {
           onPress: () => captureMedia('photo'),
         },
         {
+          text: 'Choose from Gallery',
+          onPress: () => pickMediaFromGallery('photo'),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const openVideoUpload = (phase: 'before' | 'after') => {
+    setMediaPhase(phase);
+    Alert.alert(
+      'Add Video',
+      'Choose an option',
+      [
+        {
           text: 'Record Video',
           onPress: () => captureMedia('video'),
         },
         {
           text: 'Choose from Gallery',
-          onPress: () => pickMedia(),
+          onPress: () => pickMediaFromGallery('video'),
         },
         {
           text: 'Cancel',
@@ -196,6 +297,7 @@ export const BookingDetailScreen = () => {
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       const isVideo = asset.type === 'video';
+      setMediaModal(true);
       setSelectedMedia((prev) => [
         ...prev,
         {
@@ -207,7 +309,7 @@ export const BookingDetailScreen = () => {
     }
   };
 
-  const pickMedia = async () => {
+  const pickMediaFromGallery = async (type: 'photo' | 'video') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Gallery permission is required to select photos/videos');
@@ -215,7 +317,7 @@ export const BookingDetailScreen = () => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
+      mediaTypes: type === 'video' ? ['videos'] : ['images'],
       quality: 0.7,
       base64: true,
       allowsMultipleSelection: false,
@@ -223,7 +325,8 @@ export const BookingDetailScreen = () => {
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      const isVideo = asset.type === 'video';
+      const isVideo = type === 'video';
+      setMediaModal(true);
       setSelectedMedia((prev) => [
         ...prev,
         {
@@ -276,6 +379,24 @@ export const BookingDetailScreen = () => {
     Linking.openURL(url);
   };
 
+  const openMapsApp = () => {
+    const scheme = Platform.select({ ios: 'maps:', android: 'geo:' });
+    const url = Platform.select({
+      ios: `${scheme}${booking.lat},${booking.lng}`,
+      android: `${scheme}${booking.lat},${booking.lng}?q=${booking.lat},${booking.lng}`,
+    });
+    if (url) {
+      Linking.openURL(url).catch(() => {
+        // Fallback to browser maps
+        openMap();
+      });
+    }
+  };
+
+  const callCustomer = () => {
+    Linking.openURL(`tel:${booking.customerPhone}`);
+  };
+
   const isConfirmed = booking.status === 'confirmed';
   const isInProgress = booking.status === 'in_progress';
   const isCompleted = booking.status === 'completed';
@@ -313,7 +434,7 @@ export const BookingDetailScreen = () => {
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
-            <Text style={styles.infoText}>{formatDate(booking.scheduledAt)}</Text>
+            <Text style={styles.infoText}>Booking Date: {formatDate(booking.scheduledAt)}</Text>
           </View>
           {booking.addressLine && (
             <TouchableOpacity style={styles.infoRow} onPress={openMap}>
@@ -324,6 +445,53 @@ export const BookingDetailScreen = () => {
               <Ionicons name="open-outline" size={14} color={Colors.primary} />
             </TouchableOpacity>
           )}
+        </Card>
+
+        {/* Location Section */}
+        <Card style={styles.locationCard}>
+          <Text style={styles.sectionTitle}>Job Location</Text>
+
+          {/* Map Preview */}
+          {booking.lat && booking.lng && (
+            <TouchableOpacity onPress={openMapsApp} activeOpacity={0.8}>
+              <Image
+                source={{
+                  uri: `https://maps.googleapis.com/maps/api/staticmap?center=${booking.lat},${booking.lng}&zoom=15&size=600x200&markers=color:red%7C${booking.lat},${booking.lng}&key=AIzaSyDummy_Replace_With_Real_Key`,
+                }}
+                style={styles.mapImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* Full Address */}
+          <View style={styles.addressRow}>
+            <Ionicons name="location" size={20} color={Colors.primary} />
+            <Text style={styles.addressText}>
+              {booking.addressFull || booking.addressLine}
+            </Text>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={openMapsApp}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="map" size={20} color="#fff" />
+              <Text style={styles.actionBtnText}>Open in Maps</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={callCustomer}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="call" size={20} color="#fff" />
+              <Text style={styles.actionBtnText}>Call Customer</Text>
+            </TouchableOpacity>
+          </View>
         </Card>
 
         {/* OTP Section - Start Job (Face verification disabled) */}
@@ -355,43 +523,106 @@ export const BookingDetailScreen = () => {
           <>
             <Card style={styles.otpCard}>
               <Text style={styles.sectionTitle}>Complete Job</Text>
-              <Text style={styles.otpHint}>Enter the 6-digit completion OTP from customer</Text>
-              <TextInput
-                style={styles.otpInput}
-                placeholder="Enter 6-digit OTP from customer"
-                keyboardType="number-pad"
-                maxLength={6}
-                value={otp}
-                onChangeText={setOtp}
-                placeholderTextColor={Colors.textTertiary}
-              />
+              <Text style={styles.otpHint}>Mark this job as completed when service is finished</Text>
+
+              {/* Payment method selection for pay_later bookings */}
+              {booking.paymentMethod === 'pay_later' && (
+                <View style={styles.paymentMethodSection}>
+                  <Text style={styles.paymentMethodLabel}>How did customer pay?</Text>
+                  <View style={styles.paymentMethodOptions}>
+                    <TouchableOpacity
+                      style={[
+                        styles.paymentMethodOption,
+                        paymentMethod === 'cash' && styles.paymentMethodOptionActive
+                      ]}
+                      onPress={() => setPaymentMethod('cash')}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[
+                        styles.paymentMethodRadio,
+                        paymentMethod === 'cash' && styles.paymentMethodRadioActive
+                      ]}>
+                        {paymentMethod === 'cash' && <View style={styles.paymentMethodRadioDot} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.paymentMethodText}>Cash</Text>
+                        <Text style={styles.paymentMethodSubtext}>I received ₹{booking.finalTotal || booking.total}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.paymentMethodOption,
+                        paymentMethod === 'online' && styles.paymentMethodOptionActive
+                      ]}
+                      onPress={() => setPaymentMethod('online')}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[
+                        styles.paymentMethodRadio,
+                        paymentMethod === 'online' && styles.paymentMethodRadioActive
+                      ]}>
+                        {paymentMethod === 'online' && <View style={styles.paymentMethodRadioDot} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.paymentMethodText}>Online Payment</Text>
+                        <Text style={styles.paymentMethodSubtext}>Process via app</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
               <Button
-                label="Complete Job"
+                label="Mark Job Completed"
                 onPress={() => handleStatusChange('completed')}
                 loading={loading}
                 fullWidth
+                icon="checkmark-circle"
                 style={{ marginTop: Spacing.md }}
               />
             </Card>
 
             {/* Media Upload */}
             <Card>
-              <Text style={styles.sectionTitle}>Job Photos</Text>
+              <Text style={styles.sectionTitle}>Job Media</Text>
+
+              {/* Before Media */}
+              <Text style={styles.mediaGroupLabel}>Before ({booking.beforeMedia?.length || 0})</Text>
               <View style={styles.mediaRow}>
                 <TouchableOpacity
                   style={styles.mediaBtn}
-                  onPress={() => { setMediaPhase('before'); setMediaModal(true); }}
+                  onPress={() => openPhotoUpload('before')}
                 >
                   <Ionicons name="camera" size={20} color={Colors.primary} />
-                  <Text style={styles.mediaBtnText}>Before Photos ({booking.beforeMedia?.length || 0})</Text>
+                  <Text style={styles.mediaBtnText}>Upload Photo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.mediaBtn}
-                  onPress={() => { setMediaPhase('after'); setMediaModal(true); }}
+                  onPress={() => openVideoUpload('before')}
+                >
+                  <Ionicons name="videocam" size={20} color={Colors.primary} />
+                  <Text style={styles.mediaBtnText}>Upload Video</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* After Media */}
+              <Text style={[styles.mediaGroupLabel, { marginTop: Spacing.md }]}>After ({booking.afterMedia?.length || 0})</Text>
+              <View style={styles.mediaRow}>
+                <TouchableOpacity
+                  style={styles.mediaBtn}
+                  onPress={() => openPhotoUpload('after')}
                 >
                   <Ionicons name="camera" size={20} color={Colors.success} />
-                  <Text style={[styles.mediaBtnText, { color: Colors.success }]}>After Photos ({booking.afterMedia?.length || 0})</Text>
+                  <Text style={[styles.mediaBtnText, { color: Colors.success }]}>Upload Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.mediaBtn}
+                  onPress={() => openVideoUpload('after')}
+                >
+                  <Ionicons name="videocam" size={20} color={Colors.success} />
+                  <Text style={[styles.mediaBtnText, { color: Colors.success }]}>Upload Video</Text>
                 </TouchableOpacity>
               </View>
             </Card>
@@ -457,21 +688,40 @@ export const BookingDetailScreen = () => {
         )}
 
         {/* Payment Summary */}
-        <Card>
-          <Text style={styles.sectionTitle}>Payment Summary</Text>
-          <View style={styles.payRow}>
-            <Text style={styles.payLabel}>Job Value</Text>
-            <Text style={styles.payValue}>{formatCurrency(booking.total)}</Text>
-          </View>
-          {booking.additionalChargesTotal > 0 && (
+        <Card style={styles.paymentSummaryCard}>
+          <Text style={styles.sectionTitle}>Job Summary</Text>
+
+          <View style={styles.paymentBox}>
             <View style={styles.payRow}>
-              <Text style={styles.payLabel}>Additional Charges</Text>
-              <Text style={styles.payValue}>{formatCurrency(booking.additionalChargesTotal)}</Text>
+              <Text style={styles.payLabel}>Base Charge</Text>
+              <Text style={styles.payValue}>{formatCurrency(booking.total - (booking.additionalChargesTotal || 0))}</Text>
             </View>
-          )}
-          <View style={[styles.payRow, styles.payTotal]}>
-            <Text style={styles.payTotalLabel}>Total</Text>
-            <Text style={styles.payTotalValue}>{formatCurrency(booking.finalTotal || booking.total)}</Text>
+
+            {booking.additionalChargesTotal > 0 && (
+              <View style={styles.payRow}>
+                <Text style={styles.payLabel}>Extra Charges</Text>
+                <Text style={styles.payValue}>{formatCurrency(booking.additionalChargesTotal)}</Text>
+              </View>
+            )}
+
+            <View style={styles.payDivider} />
+
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Subtotal</Text>
+              <Text style={styles.payValue}>{formatCurrency(booking.total)}</Text>
+            </View>
+
+            <View style={styles.payRow}>
+              <Text style={styles.payLabel}>Tax (18%)</Text>
+              <Text style={styles.payValue}>{formatCurrency(Math.round(booking.total * 0.18))}</Text>
+            </View>
+
+            <View style={styles.payDivider} />
+
+            <View style={[styles.payRow, styles.payTotal]}>
+              <Text style={styles.payTotalLabel}>Total</Text>
+              <Text style={styles.payTotalValue}>{formatCurrency(booking.finalTotal || booking.total)}</Text>
+            </View>
           </View>
           {isCompleted && booking.creditDeducted && (
             <View style={styles.payRow}>
@@ -535,16 +785,18 @@ export const BookingDetailScreen = () => {
           <ScrollView>
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Add Charges</Text>
+              <Text style={styles.modalTitle}>Add Parts & Materials</Text>
               {newCharges.map((c, i) => (
                 <View key={i} style={styles.chargeItem}>
+                  <Text style={styles.fieldLabel}>Part/Material Description</Text>
                   <TextInput
                     style={styles.otpInput}
-                    placeholder="Description (e.g. Extra parts)"
+                    placeholder="e.g. Replaced water pump"
                     value={c.description}
                     onChangeText={(v) => setNewCharges((prev) => prev.map((x, idx) => idx === i ? { ...x, description: v } : x))}
                     placeholderTextColor={Colors.textTertiary}
                   />
+                  <Text style={styles.fieldLabel}>Price</Text>
                   <TextInput
                     style={styles.otpInput}
                     placeholder="Amount (₹)"
@@ -574,7 +826,7 @@ export const BookingDetailScreen = () => {
                   style={styles.addMoreBtn}
                 >
                   <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
-                  <Text style={styles.addMoreText}>Add Another</Text>
+                  <Text style={styles.addMoreText}>Add Part</Text>
                 </TouchableOpacity>
               )}
               <View style={styles.modalActions}>
@@ -675,6 +927,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBg, padding: Spacing.md, borderRadius: BorderRadius.md,
   },
   mediaBtnText: { fontSize: 12, color: Colors.primary, fontWeight: '600' },
+  mediaGroupLabel: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary, marginBottom: Spacing.sm },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary, marginBottom: 4, marginTop: 6 },
   chargesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
   viewCharges: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
   chargesSummary: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
@@ -691,6 +945,21 @@ const styles = StyleSheet.create({
   payTotal: { borderTopWidth: 1, borderTopColor: Colors.divider, marginTop: 4 },
   payTotalLabel: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
   payTotalValue: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary },
+  paymentSummaryCard: {
+    marginBottom: Spacing.lg,
+  },
+  paymentBox: {
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.background,
+  },
+  payDivider: {
+    height: 1,
+    backgroundColor: Colors.gray200,
+    marginVertical: Spacing.sm,
+  },
   payMethodRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, marginTop: 4, borderTopWidth: 1, borderTopColor: Colors.divider },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: {
@@ -736,5 +1005,102 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.success,
+  },
+  locationCard: {
+    marginBottom: Spacing.lg,
+  },
+  mapImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.gray100,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+  },
+  addressText: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    lineHeight: 20,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  actionBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  paymentMethodSection: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  paymentMethodLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  paymentMethodOptions: {
+    gap: Spacing.sm,
+  },
+  paymentMethodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    backgroundColor: Colors.surface,
+    gap: Spacing.md,
+  },
+  paymentMethodOptionActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+  },
+  paymentMethodRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Colors.gray300,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentMethodRadioActive: {
+    borderColor: Colors.primary,
+  },
+  paymentMethodRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.primary,
+  },
+  paymentMethodText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  paymentMethodSubtext: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
 });

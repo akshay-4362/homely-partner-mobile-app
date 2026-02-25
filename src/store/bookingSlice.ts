@@ -25,11 +25,15 @@ const mapBooking = (b: any): ProBooking => ({
   customerName: b.customer
     ? `${b.customer.firstName} ${b.customer.lastName}`
     : b.customerName || 'Customer',
+  customerPhone: b.customer?.phone || b.customerPhone,
   scheduledAt: b.scheduledAt,
   status: b.status,
   city: b.address?.city || b.city,
   paymentMethod: b.paymentMethod,
   paymentStatus: b.payment?.status || b.paymentStatus,
+  paidAt: b.payment?.paidAt || b.paidAt,
+  paymentAmount: b.payment?.amount || b.paymentAmount,
+  paymentIntentId: b.payment?.stripePaymentIntentId || b.paymentIntentId,
   addressLine: b.address
     ? [b.address.line1, b.address.city].filter(Boolean).join(', ')
     : b.addressLine,
@@ -83,11 +87,11 @@ export const fetchProBookings = createAsyncThunk(
 export const updateProBookingStatus = createAsyncThunk(
   'bookings/updateStatus',
   async (
-    { bookingId, status, otp }: { bookingId: string; status: string; otp?: string },
+    { bookingId, status, otp, cashPayment }: { bookingId: string; status: string; otp?: string; cashPayment?: boolean },
     { rejectWithValue }
   ) => {
     try {
-      await proApi.updateBookingStatus(bookingId, status, otp);
+      await proApi.updateBookingStatus(bookingId, status, otp, cashPayment);
       return { bookingId, status };
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Failed to update status');

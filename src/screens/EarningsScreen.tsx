@@ -22,6 +22,7 @@ export const EarningsScreen = () => {
   const { summary, monthlyEarnings } = useAppSelector((s) => s.accounting);
 
   const [monthlyData, setMonthlyData] = useState<ProfessionalMonthlyEarning[]>([]);
+  const [dailyData, setDailyData] = useState<{ day: number; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // 0 = current month
@@ -56,6 +57,55 @@ export const EarningsScreen = () => {
 
   useEffect(() => { load(); }, []);
 
+  // Load daily data when selected month changes
+  useEffect(() => {
+    loadDailyData();
+  }, [selectedMonthIndex, monthlyData]);
+
+  const loadDailyData = async () => {
+    try {
+      const selectedMonth = monthlyData[selectedMonthIndex];
+      if (!selectedMonth) return;
+
+      // Parse month string (e.g., "2026-02") to get start and end dates
+      const [year, month] = selectedMonth.month.split('-');
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0); // Last day of month
+
+      const data = await accountingApi.getDailyEarnings(
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+
+      // Convert to chart format
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        const dateStr = date.toISOString().split('T')[0];
+
+        // Find matching day in API data
+        const dayData = Array.isArray(data)
+          ? data.find((d: any) => d.date === dateStr)
+          : null;
+
+        return {
+          day: date.getDate(),
+          amount: dayData?.earnings || 0,
+        };
+      });
+
+      setDailyData(last7Days);
+    } catch (error) {
+      console.error('Failed to load daily data:', error);
+      // Fallback to empty data
+      setDailyData(Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        return { day: date.getDate(), amount: 0 };
+      }));
+    }
+  };
+
   const debouncedRefresh = useDebouncedRefresh(loadForced);
 
   const onRefresh = async () => {
@@ -89,14 +139,11 @@ export const EarningsScreen = () => {
   const totalDeductions = serviceTax + platformFee + gstAmount; // All deductions
   const netEarnings = customerPaid - totalDeductions;
 
-  // Generate last 7 days data for chart (mock data - replace with real API)
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
+  // Use real daily data from API
+  const last7Days = dailyData.length > 0 ? dailyData : Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
-    return {
-      day: date.getDate(),
-      amount: Math.random() * 5000, // Replace with real data from API
-    };
+    return { day: date.getDate(), amount: 0 };
   });
 
   const maxDailyAmount = Math.max(...last7Days.map(d => d.amount), 1);
