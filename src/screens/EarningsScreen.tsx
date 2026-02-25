@@ -23,7 +23,6 @@ export const EarningsScreen = () => {
   const { summary, monthlyEarnings } = useAppSelector((s) => s.accounting);
 
   const [monthlyData, setMonthlyData] = useState<ProfessionalMonthlyEarning[]>([]);
-  const [dailyData, setDailyData] = useState<{ day: number; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // 0 = current month
@@ -36,7 +35,11 @@ export const EarningsScreen = () => {
       // Fetch 6 months data (not cached yet, can be added later if needed)
       const m = await accountingApi.getMonthlyEarnings(6);
       const monthlyList = m?.data || m?.months || m || [];
-      setMonthlyData(Array.isArray(monthlyList) ? monthlyList : []);
+      // Sort by month descending (most recent first)
+      const sortedData = Array.isArray(monthlyList)
+        ? monthlyList.sort((a, b) => b.month.localeCompare(a.month))
+        : [];
+      setMonthlyData(sortedData);
     } catch (err) {
       console.error('Failed to load earnings:', err);
     }
@@ -50,7 +53,11 @@ export const EarningsScreen = () => {
 
       const m = await accountingApi.getMonthlyEarnings(6);
       const monthlyList = m?.data || m?.months || m || [];
-      setMonthlyData(Array.isArray(monthlyList) ? monthlyList : []);
+      // Sort by month descending (most recent first)
+      const sortedData = Array.isArray(monthlyList)
+        ? monthlyList.sort((a, b) => b.month.localeCompare(a.month))
+        : [];
+      setMonthlyData(sortedData);
     } catch (err) {
       console.error('Failed to load earnings:', err);
     }
@@ -93,17 +100,19 @@ export const EarningsScreen = () => {
   const totalDeductions = serviceTax + platformFee + gstAmount; // All deductions
   const netEarnings = customerPaid - totalDeductions;
 
-  // Prepare monthly chart data (show last 6 months)
+  // Prepare monthly chart data (show last 6 months, oldest to newest for timeline)
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthlyChartData = monthlyData.map((m) => {
-    const [year, month] = m.month.split('-');
-    const monthIndex = parseInt(month) - 1;
-    return {
-      label: monthNames[monthIndex],
-      amount: m.totalPaid || 0,
-      monthKey: m.month,
-    };
-  });
+  const monthlyChartData = [...monthlyData]
+    .reverse() // Reverse to show oldest to newest (left to right)
+    .map((m) => {
+      const [year, month] = m.month.split('-');
+      const monthIndex = parseInt(month) - 1;
+      return {
+        label: monthNames[monthIndex],
+        amount: m.totalPaid || 0,
+        monthKey: m.month,
+      };
+    });
 
   const maxMonthlyAmount = Math.max(...monthlyChartData.map(d => d.amount), 1);
 
@@ -131,25 +140,33 @@ export const EarningsScreen = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.monthScrollContent}
           >
-            {monthlyData.map((month, index) => (
-              <TouchableOpacity
-                key={month.month}
-                style={[
-                  styles.monthChip,
-                  selectedMonthIndex === index && styles.monthChipActive
-                ]}
-                onPress={() => setSelectedMonthIndex(index)}
-              >
-                <Text
+            {monthlyData.map((month, index) => {
+              // Format: "2026-02" -> "Feb 2026"
+              const [year, monthNum] = month.month.split('-');
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const monthName = monthNames[parseInt(monthNum) - 1];
+              const displayText = `${monthName} ${year}`;
+
+              return (
+                <TouchableOpacity
+                  key={month.month}
                   style={[
-                    styles.monthChipText,
-                    selectedMonthIndex === index && styles.monthChipTextActive
+                    styles.monthChip,
+                    selectedMonthIndex === index && styles.monthChipActive
                   ]}
+                  onPress={() => setSelectedMonthIndex(index)}
                 >
-                  {month.month}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.monthChipText,
+                      selectedMonthIndex === index && styles.monthChipTextActive
+                    ]}
+                  >
+                    {displayText}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
@@ -171,27 +188,36 @@ export const EarningsScreen = () => {
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
 
-          {/* Bar Chart */}
+          {/* Bar Chart - Monthly */}
           <View style={styles.chartContainer}>
-            {last7Days.map((day, index) => {
-              const barHeight = (day.amount / maxDailyAmount) * 80;
-              const isToday = index === last7Days.length - 1;
+            {monthlyChartData.map((month, index) => {
+              const barHeight = (month.amount / maxMonthlyAmount) * 80;
+              // Reverse index to match monthlyData order (newest first)
+              const actualIndex = monthlyData.length - 1 - index;
+              const isSelected = selectedMonthIndex === actualIndex;
 
               return (
-                <View key={index} style={styles.barColumn}>
+                <TouchableOpacity
+                  key={month.monthKey}
+                  style={styles.barColumn}
+                  onPress={() => setSelectedMonthIndex(actualIndex)}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.barWrapper}>
                     <View
                       style={[
                         styles.bar,
                         {
-                          height: barHeight,
-                          backgroundColor: isToday ? Colors.primary : Colors.primaryBg,
+                          height: Math.max(barHeight, 4),
+                          backgroundColor: isSelected ? Colors.primary : Colors.primaryBg,
                         }
                       ]}
                     />
                   </View>
-                  <Text style={styles.barLabel}>{day.day}</Text>
-                </View>
+                  <Text style={[styles.barLabel, isSelected && { color: Colors.primary, fontWeight: '700' }]}>
+                    {month.label}
+                  </Text>
+                </TouchableOpacity>
               );
             })}
           </View>
