@@ -15,6 +15,8 @@ interface CreditState {
   error: string | null;
   purchaseStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   purchaseError: string | null;
+  lastFetched: number | null;
+  cacheTTL: number; // 5 minutes in milliseconds
 }
 
 const initialState: CreditState = {
@@ -26,6 +28,8 @@ const initialState: CreditState = {
   error: null,
   purchaseStatus: 'idle',
   purchaseError: null,
+  lastFetched: null,
+  cacheTTL: 5 * 60 * 1000, // 5 minutes
 };
 
 // Async thunks
@@ -127,6 +131,7 @@ const creditSlice = createSlice({
       .addCase(fetchCreditBalance.fulfilled, (state, action: PayloadAction<number>) => {
         state.status = 'succeeded';
         state.balance = action.payload;
+        state.lastFetched = Date.now();
         state.error = null;
       })
       .addCase(fetchCreditBalance.rejected, (state, action) => {
@@ -142,6 +147,7 @@ const creditSlice = createSlice({
         state.status = 'succeeded';
         state.stats = action.payload;
         state.balance = action.payload.currentBalance;
+        state.lastFetched = Date.now();
         state.error = null;
       })
       .addCase(fetchCreditStats.rejected, (state, action) => {

@@ -14,6 +14,7 @@ import { formatCurrency, formatDate } from '../utils/format';
 import { RootState, AppDispatch } from '../store';
 import { fetchCreditStats, fetchCreditTransactions } from '../store/creditSlice';
 import { CreditTransaction as CreditTransactionType } from '../api/creditApi';
+import { useAppSelector } from '../hooks/useAppSelector';
 
 type Tab = 'all' | 'recharges' | 'expenses' | 'penalties';
 
@@ -25,7 +26,12 @@ export const CreditsScreen = () => {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   const { stats, transactions, status } = useSelector((state: RootState) => state.credit);
+  const { items: bookings } = useAppSelector((s) => s.bookings);
   const balance = stats?.currentBalance || 0;
+
+  // Calculate job stats
+  const completedJobs = bookings.filter((b) => b.status === 'completed').length;
+  const cancelledJobs = bookings.filter((b) => b.status === 'cancelled').length;
 
   useEffect(() => {
     load();
@@ -90,6 +96,24 @@ export const CreditsScreen = () => {
               ~{Math.floor(stats.jobsRemaining / 2)} jobs remaining (₹{stats.creditPerJob * 2}/job)
             </Text>
           )}
+
+          {/* Job Stats */}
+          <View style={styles.jobStats}>
+            <View style={styles.statItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+              <Text style={styles.statValue}>{completedJobs}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <Ionicons name="close-circle" size={20} color={Colors.cancelled} />
+              <Text style={styles.statValue}>{cancelledJobs}</Text>
+              <Text style={styles.statLabel}>Cancelled</Text>
+            </View>
+          </View>
+
           <TouchableOpacity style={styles.rechargeBtn} onPress={handleAddCredits}>
             <Ionicons name="add-circle-outline" size={18} color="#fff" />
             <Text style={styles.rechargeBtnText}>Add Credits</Text>
@@ -182,6 +206,35 @@ const styles = StyleSheet.create({
   balanceLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '500', marginBottom: 8 },
   balanceAmount: { fontSize: 36, fontWeight: '800', color: '#fff', marginBottom: 4 },
   jobsRemaining: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginBottom: Spacing.md },
+  jobStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.lg,
+  },
+  statItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
   rechargeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: BorderRadius.full,

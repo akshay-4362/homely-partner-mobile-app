@@ -89,4 +89,10 @@ export const Typography = {
   bodySmall: { fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary },
   caption: { fontSize: 11, fontWeight: '500' as const, color: Colors.textTertiary },
   label: { fontSize: 12, fontWeight: '600' as const, color: Colors.textSecondary, letterSpacing: 0.5 },
+  size: {
+    small: 12,
+    medium: 14,
+    large: 16,
+    xlarge: 20,
+  },
 };

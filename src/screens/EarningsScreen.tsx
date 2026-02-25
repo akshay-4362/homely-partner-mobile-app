@@ -7,18 +7,20 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchPayouts } from '../store/payoutSlice';
+import { fetchAccountingSummary, fetchMonthlyEarnings } from '../store/accountingSlice';
 import { accountingApi } from '../api/accountingApi';
+import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { formatCurrency, formatDateOnly } from '../utils/format';
-import { ProfessionalAccountingSummary, ProfessionalMonthlyEarning } from '../types';
+import { ProfessionalMonthlyEarning } from '../types';
 import { Loader } from '../components/common/Loader';
 
 export const EarningsScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
   const { items: payouts, status: payoutsStatus } = useAppSelector((s) => s.payouts);
+  const { summary, monthlyEarnings } = useAppSelector((s) => s.accounting);
 
-  const [summary, setSummary] = useState<ProfessionalAccountingSummary | null>(null);
   const [monthlyData, setMonthlyData] = useState<ProfessionalMonthlyEarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,25 +28,39 @@ export const EarningsScreen = () => {
 
   const load = async () => {
     try {
-      const [s, m] = await Promise.all([
-        accountingApi.getSummary(),
-        accountingApi.getMonthlyEarnings(6), // Get last 6 months data
-      ]);
-      setSummary(s?.data || s);
+      dispatch(fetchAccountingSummary());
+      dispatch(fetchPayouts());
+
+      // Fetch 6 months data (not cached yet, can be added later if needed)
+      const m = await accountingApi.getMonthlyEarnings(6);
       const monthlyList = m?.data || m?.months || m || [];
       setMonthlyData(Array.isArray(monthlyList) ? monthlyList : []);
-      dispatch(fetchPayouts());
     } catch (err) {
       console.error('Failed to load earnings:', err);
     }
     setLoading(false);
   };
 
+  const loadForced = async () => {
+    try {
+      dispatch(fetchAccountingSummary(true));
+      dispatch(fetchPayouts(true));
+
+      const m = await accountingApi.getMonthlyEarnings(6);
+      const monthlyList = m?.data || m?.months || m || [];
+      setMonthlyData(Array.isArray(monthlyList) ? monthlyList : []);
+    } catch (err) {
+      console.error('Failed to load earnings:', err);
+    }
+  };
+
   useEffect(() => { load(); }, []);
+
+  const debouncedRefresh = useDebouncedRefresh(loadForced);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load();
+    await debouncedRefresh();
     setRefreshing(false);
   };
 

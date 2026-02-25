@@ -9,6 +9,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { timeAgo } from '../utils/format';
 import { Notification } from '../types';
 import { EmptyState } from '../components/common/EmptyState';
+import { Loader } from '../components/common/Loader';
 
 export const NotificationsScreen = () => {
   const navigation = useNavigation();
@@ -37,6 +38,10 @@ export const NotificationsScreen = () => {
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  if (loading && notifications.length === 0) {
+    return <Loader text="Loading notifications..." />;
+  }
 
   const renderItem = ({ item }: { item: Notification }) => (
     <TouchableOpacity

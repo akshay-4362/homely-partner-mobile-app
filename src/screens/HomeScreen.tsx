@@ -9,9 +9,11 @@ import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchProBookings } from '../store/bookingSlice';
 import { fetchPayouts } from '../store/payoutSlice';
+import { fetchAccountingSummary, fetchTodayBookings } from '../store/accountingSlice';
+import { fetchCreditBalance } from '../store/creditSlice';
 import { logout } from '../store/authSlice';
-import { accountingApi } from '../api/accountingApi';
 import { notificationApi } from '../api/notificationApi';
+import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
 import { Colors, Spacing, BorderRadius, Typography } from '../theme/colors';
 import { formatCurrency, formatDate } from '../utils/format';
 import { Badge } from '../components/common/Badge';
@@ -19,43 +21,58 @@ import { Card } from '../components/common/Card';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { CreditBalanceWidget } from '../components/CreditBalanceWidget';
 import { PendingTasksWidget } from '../components/PendingTasksWidget';
-import { TodayBooking, ProfessionalAccountingSummary, Notification } from '../types';
-import { creditApi } from '../api/creditApi';
+import { Notification } from '../types';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
   const { items: bookings, status } = useAppSelector((s) => s.bookings);
-  const [summary, setSummary] = useState<ProfessionalAccountingSummary | null>(null);
-  const [todayJobs, setTodayJobs] = useState<TodayBooking[]>([]);
+  const { summary, todayBookings: todayJobs } = useAppSelector((s) => s.accounting);
+  const { balance: creditBalance } = useAppSelector((s) => s.credit);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [creditBalance, setCreditBalance] = useState<number>(0);
 
   const loadData = async () => {
+    // Fetch from Redux (with caching)
     dispatch(fetchProBookings());
     dispatch(fetchPayouts());
+    dispatch(fetchAccountingSummary());
+    dispatch(fetchTodayBookings());
+    dispatch(fetchCreditBalance());
+
+    // Fetch notifications (not cached in Redux)
     try {
-      const [sumData, todayData, notifData, creditData] = await Promise.all([
-        accountingApi.getSummary(),
-        accountingApi.getTodayBookings(),
-        notificationApi.list(5),
-        creditApi.getCreditBalance(),
-      ]);
-      setSummary(sumData?.data || sumData);
-      const today = todayData?.data || todayData || [];
-      setTodayJobs(Array.isArray(today) ? today : []);
+      const notifData = await notificationApi.list(5);
       const notifs = notifData?.data || notifData || [];
       setNotifications(Array.isArray(notifs) ? notifs.slice(0, 5) : []);
-      const credits = creditData?.data || creditData;
-      setCreditBalance(credits?.balance || 0);
+    } catch {}
+  };
+
+  const loadDataForced = async () => {
+    // Force refresh all data
+    dispatch(fetchProBookings(true));
+    dispatch(fetchPayouts(true));
+    dispatch(fetchAccountingSummary(true));
+    dispatch(fetchTodayBookings());
+    dispatch(fetchCreditBalance());
+
+    try {
+      const notifData = await notificationApi.list(5);
+      const notifs = notifData?.data || notifData || [];
+      setNotifications(Array.isArray(notifs) ? notifs.slice(0, 5) : []);
     } catch {}
   };
 
   useEffect(() => { loadData(); }, []);
 
-  const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
+  const debouncedRefresh = useDebouncedRefresh(loadDataForced);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await debouncedRefresh();
+    setRefreshing(false);
+  };
 
   const confirmedCount = bookings.filter((b) => b.status === 'confirmed').length;
   const inProgressCount = bookings.filter((b) => b.status === 'in_progress').length;

@@ -25,7 +25,9 @@
     "submit:android": "eas submit --platform android",
     "submit:ios": "eas submit --platform ios",
     "build:list": "eas build:list",
-    "update": "eas update"
+    "update": "eas update",
+    "generate-icons": "node scripts/generate-icons.js",
+    "icons:help": "echo 'See ICON_SETUP_QUICKSTART.md for icon setup instructions'"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

@@ -161,6 +161,13 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
                 </View>
                 <Text style={styles.packageAmount}>₹50,000</Text>
                 <Text style={styles.packageJobs}>166 complete jobs</Text>
+
+                {/* No Expiry Badge */}
+                <View style={styles.noExpiryBadge}>
+                  <Ionicons name="infinite" size={16} color={Colors.success} />
+                  <Text style={styles.noExpiryText}>No Expiry</Text>
+                </View>
+
                 <View style={styles.bonusBadge}>
                   <Ionicons name="star-outline" size={12} color={Colors.primary} />
                   <Text style={styles.bonusText}>₹300/job (₹150 × 2)</Text>
@@ -318,6 +325,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     marginBottom: Spacing.sm,
+  },
+  noExpiryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.successBg,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.sm,
+  },
+  noExpiryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.success,
   },
   bonusBadge: {
     flexDirection: 'row',

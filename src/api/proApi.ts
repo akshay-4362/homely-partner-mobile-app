@@ -30,4 +30,24 @@ export const proApi = {
     const { data } = await client.get('/payouts/me');
     return data.data || data;
   },
+
+  // Push notification token methods
+  registerPushToken: async (payload: {
+    token: string;
+    platform: 'ios' | 'android' | 'web';
+    deviceId?: string;
+  }) => {
+    const { data } = await client.post('/professionals/me/push-token', payload);
+    return data;
+  },
+
+  unregisterPushToken: async (token: string) => {
+    const { data } = await client.delete('/professionals/me/push-token', { data: { token } });
+    return data;
+  },
+
+  sendTestNotification: async () => {
+    const { data } = await client.post('/professionals/me/push-token/test');
+    return data;
+  },
 };

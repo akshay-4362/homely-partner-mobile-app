@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
+import { Loader } from '../components/common/Loader';
 import { availabilityApi, DaySchedule, HourlySlot, AvailabilityStats } from '../api/availabilityApi';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -17,7 +18,7 @@ export const EnhancedCalendarScreen = () => {
   const navigation = useNavigation<any>();
   const [weeklySchedule, setWeeklySchedule] = useState<DaySchedule[]>([]);
   const [stats, setStats] = useState<AvailabilityStats | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [batchModalVisible, setBatchModalVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -43,6 +44,8 @@ export const EnhancedCalendarScreen = () => {
       }
     } catch (error) {
       console.error('Error loading availability:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -201,6 +204,10 @@ export const EnhancedCalendarScreen = () => {
   };
 
   const isWeekend = (dayOfWeek: number) => dayOfWeek === 0 || dayOfWeek === 6;
+
+  if (loading) {
+    return <Loader text="Loading schedule..." />;
+  }
 
   return (
     <View style={styles.container}>

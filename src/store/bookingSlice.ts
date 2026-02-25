@@ -6,12 +6,16 @@ interface BookingState {
   items: ProBooking[];
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
+  lastFetched: number | null;
+  cacheTTL: number; // 5 minutes in milliseconds
 }
 
 const initialState: BookingState = {
   items: [],
   status: 'idle',
   error: null,
+  lastFetched: null,
+  cacheTTL: 5 * 60 * 1000, // 5 minutes
 };
 
 const mapBooking = (b: any): ProBooking => ({
@@ -51,8 +55,22 @@ const mapBooking = (b: any): ProBooking => ({
 
 export const fetchProBookings = createAsyncThunk(
   'bookings/fetchPro',
-  async (_, { rejectWithValue }) => {
+  async (forceRefresh: boolean = false, { getState, rejectWithValue }) => {
     try {
+      const state = getState() as any;
+      const { bookings } = state;
+      const now = Date.now();
+
+      // Skip if data is fresh and not force refresh
+      if (
+        !forceRefresh &&
+        bookings.lastFetched &&
+        now - bookings.lastFetched < bookings.cacheTTL &&
+        bookings.items.length > 0
+      ) {
+        return bookings.items;
+      }
+
       const data = await proApi.fetchBookings();
       const list = Array.isArray(data) ? data : data.bookings || data.data || [];
       return list.map(mapBooking);
@@ -92,6 +110,8 @@ const bookingSlice = createSlice({
       .addCase(fetchProBookings.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.items = action.payload;
+        state.lastFetched = Date.now();
+        state.error = null;
       })
       .addCase(fetchProBookings.rejected, (state, action) => {
         state.status = 'failed';

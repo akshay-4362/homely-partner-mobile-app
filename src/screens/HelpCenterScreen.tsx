@@ -8,11 +8,13 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { SectionHeader } from '../components/common/SectionHeader';
+import { Loader } from '../components/common/Loader';
 import { supportTicketApi, SupportTicket, CreateTicketInput } from '../api/supportTicketApi';
 
 export const HelpCenterScreen = () => {
   const navigation = useNavigation<any>();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [isEmergency, setIsEmergency] = useState(false);
@@ -32,6 +34,8 @@ export const HelpCenterScreen = () => {
       setTickets(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading tickets:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,6 +113,10 @@ export const HelpCenterScreen = () => {
 
   const openTickets = tickets.filter((t) => t.status === 'open' || t.status === 'in_progress');
   const closedTickets = tickets.filter((t) => t.status === 'resolved' || t.status === 'closed');
+
+  if (loading) {
+    return <Loader text="Loading tickets..." />;
+  }
 
   return (
     <View style={styles.container}>

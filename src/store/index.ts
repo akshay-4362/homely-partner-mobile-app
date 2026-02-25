@@ -3,6 +3,7 @@ import authReducer from './authSlice';
 import bookingReducer from './bookingSlice';
 import payoutReducer from './payoutSlice';
 import creditReducer from './creditSlice';
+import accountingReducer from './accountingSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     bookings: bookingReducer,
     payouts: payoutReducer,
     credit: creditReducer,
+    accounting: accountingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),
