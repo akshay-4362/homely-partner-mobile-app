@@ -81,13 +81,13 @@ export const ChatScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={90}
-      keyboardShouldPersistTaps="handled"
-    >
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -142,7 +142,8 @@ export const ChatScreen = () => {
           <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   headerAvatarText: { fontSize: 16, fontWeight: '700', color: Colors.primary },
   headerName: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
   headerService: { fontSize: 11, color: Colors.textSecondary },
-  list: { padding: Spacing.xl, gap: Spacing.md, paddingBottom: Platform.OS === 'ios' ? 100 : 80 },
+  list: { padding: Spacing.xl, gap: Spacing.md, paddingBottom: Spacing.xl },
   msgRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   msgRowMe: { flexDirection: 'row-reverse' },
   msgAvatar: {
@@ -185,9 +186,13 @@ const styles = StyleSheet.create({
   emptyChatText: { fontSize: 16, fontWeight: '600', color: Colors.textSecondary },
   emptyChatSub: { fontSize: 13, color: Colors.textTertiary, textAlign: 'center' },
   inputBar: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm,
-    padding: Spacing.md, paddingBottom: Platform.OS === 'ios' ? 28 : Spacing.md,
-    backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
   input: {
     flex: 1, borderWidth: 1.5, borderColor: Colors.border, borderRadius: BorderRadius.xl,

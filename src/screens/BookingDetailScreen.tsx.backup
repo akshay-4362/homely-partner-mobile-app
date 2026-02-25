@@ -38,31 +38,33 @@ export const BookingDetailScreen = () => {
   // Charges
   const [charges, setCharges] = useState<{ pending: AdditionalCharge[]; approved: AdditionalCharge[]; total: number } | null>(null);
   const [chargesModal, setChargesModal] = useState(false);
-  const [addChargeModal, setAddChargeModal] = useState(false);
-  const [newCharges, setNewCharges] = useState([{ description: '', amount: '', category: 'materials' }]);
 
-  // Media - UC Style (combined photo/video)
-  const [beforeMedia, setBeforeMedia] = useState<MediaItem[]>([]);
-  const [afterMedia, setAfterMedia] = useState<MediaItem[]>([]);
-  const [mediaBottomSheet, setMediaBottomSheet] = useState<{
-    visible: boolean;
-    target: 'before' | 'after' | 'oldPart' | 'newPart';
-  }>({ visible: false, target: 'before' });
+  // Media - Separate Before/After with Photos/Videos
+  const [beforePhotos, setBeforePhotos] = useState<MediaItem[]>([]);
+  const [beforeVideos, setBeforeVideos] = useState<MediaItem[]>([]);
+  const [afterPhotos, setAfterPhotos] = useState<MediaItem[]>([]);
+  const [afterVideos, setAfterVideos] = useState<MediaItem[]>([]);
 
-  // Parts Replacement - UC Style (No Price, Just Media)
+  // Parts Replacement
   const [addPartModal, setAddPartModal] = useState(false);
   const [parts, setParts] = useState<Array<{
     id: string;
     oldPartName: string;
-    oldPartMedia: MediaItem[];
+    oldPartPhotos: MediaItem[];
+    oldPartVideos: MediaItem[];
     newPartName: string;
-    newPartMedia: MediaItem[];
+    newPartPrice: string;
+    newPartPhotos: MediaItem[];
+    newPartVideos: MediaItem[];
   }>>([]);
   const [currentPart, setCurrentPart] = useState({
     oldPartName: '',
-    oldPartMedia: [] as MediaItem[],
+    oldPartPhotos: [] as MediaItem[],
+    oldPartVideos: [] as MediaItem[],
     newPartName: '',
-    newPartMedia: [] as MediaItem[],
+    newPartPrice: '',
+    newPartPhotos: [] as MediaItem[],
+    newPartVideos: [] as MediaItem[],
   });
   const [editingPartId, setEditingPartId] = useState<string | null>(null);
 
@@ -220,43 +222,7 @@ export const BookingDetailScreen = () => {
     }
   };
 
-  // Validation before job completion
-  const validateCompletion = (): boolean => {
-    // Check if before media is uploaded
-    if (beforeMedia.length === 0) {
-      Alert.alert('Before Media Required', 'Please upload at least one before service photo or video');
-      return false;
-    }
-
-    // Check if after media is uploaded
-    if (afterMedia.length === 0) {
-      Alert.alert('After Media Required', 'Please upload at least one after service photo or video');
-      return false;
-    }
-
-    // If parts were added, validate their media
-    if (parts.length > 0) {
-      const partsWithoutMedia = parts.filter(p =>
-        p.oldPartMedia.length === 0 || p.newPartMedia.length === 0
-      );
-      if (partsWithoutMedia.length > 0) {
-        Alert.alert(
-          'Parts Media Required',
-          'Please add photos/videos for both old and new parts for all added parts'
-        );
-        return false;
-      }
-    }
-
-    return true;
-  };
-
   const completeWithCash = async () => {
-    // Validate before proceeding
-    if (!validateCompletion()) {
-      return;
-    }
-
     setLoading(true);
     const res = await dispatch(updateProBookingStatus({
       bookingId: booking.id,
@@ -291,70 +257,148 @@ export const BookingDetailScreen = () => {
     }
   };
 
-  // UC-Style Media Upload - Single "Add Media" button with bottom sheet
-  const openMediaBottomSheet = (target: 'before' | 'after' | 'oldPart' | 'newPart') => {
-    setMediaBottomSheet({ visible: true, target });
+  const openPhotoUpload = (phase: 'before' | 'after') => {
+    setMediaPhase(phase);
+    Alert.alert(
+      'Add Photo',
+      'Choose an option',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => captureMedia('photo'),
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: () => pickMediaFromGallery('photo'),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
-  const handleMediaAction = async (action: 'photo' | 'video' | 'gallery') => {
-    setMediaBottomSheet({ ...mediaBottomSheet, visible: false });
-
-    if (action === 'photo') {
-      await takePhoto();
-    } else if (action === 'video') {
-      await recordVideo();
-    } else if (action === 'gallery') {
-      await pickFromGallery();
-    }
+  const openVideoUpload = (phase: 'before' | 'after') => {
+    setMediaPhase(phase);
+    Alert.alert(
+      'Add Video',
+      'Choose an option',
+      [
+        {
+          text: 'Record Video',
+          onPress: () => captureMedia('video'),
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: () => pickMediaFromGallery('video'),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
-  const takePhoto = async () => {
+  const pickMediaOptions = () => {
+    Alert.alert(
+      'Add Media',
+      'Choose media type',
+      [
+        {
+          text: 'Photo',
+          onPress: () => {
+            Alert.alert(
+              'Add Photo',
+              'Choose an option',
+              [
+                {
+                  text: 'Take Photo',
+                  onPress: () => captureMedia('photo'),
+                },
+                {
+                  text: 'Choose from Gallery',
+                  onPress: () => pickMediaFromGallery('photo'),
+                },
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+              ]
+            );
+          },
+        },
+        {
+          text: 'Video',
+          onPress: () => {
+            Alert.alert(
+              'Add Video',
+              'Choose an option',
+              [
+                {
+                  text: 'Record Video',
+                  onPress: () => captureMedia('video'),
+                },
+                {
+                  text: 'Choose from Gallery',
+                  onPress: () => pickMediaFromGallery('video'),
+                },
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+              ]
+            );
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const captureMedia = async (type: 'photo' | 'video') => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Camera permission is required');
+      Alert.alert('Permission needed', 'Camera permission is required to take photos/videos');
       return;
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
+      mediaTypes: type === 'video' ? ['videos'] : ['images'],
       quality: 0.7,
       base64: true,
       allowsEditing: true,
+      videoMaxDuration: type === 'video' ? 30 : undefined, // 30 seconds max for videos
     });
 
     if (!result.canceled && result.assets[0]) {
-      addMediaToTarget(result.assets[0], 'photo');
+      const asset = result.assets[0];
+      const isVideo = asset.type === 'video';
+      setMediaModal(true);
+      setSelectedMedia((prev) => [
+        ...prev,
+        {
+          dataUrl: `data:${isVideo ? 'video/mp4' : 'image/jpeg'};base64,${asset.base64}`,
+          type: isVideo ? 'video' : 'photo',
+          label: mediaLabel || (isVideo ? 'Video' : 'Photo'),
+        },
+      ]);
     }
   };
 
-  const recordVideo = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Camera permission is required');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['videos'],
-      quality: 0.7,
-      base64: true,
-      videoMaxDuration: 30,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      addMediaToTarget(result.assets[0], 'video');
-    }
-  };
-
-  const pickFromGallery = async () => {
+  const pickMediaFromGallery = async (type: 'photo' | 'video') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Gallery permission is required');
+      Alert.alert('Permission needed', 'Gallery permission is required to select photos/videos');
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
+      mediaTypes: type === 'video' ? ['videos'] : ['images'],
       quality: 0.7,
       base64: true,
       allowsMultipleSelection: false,
@@ -362,141 +406,31 @@ export const BookingDetailScreen = () => {
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      const type = asset.type === 'video' ? 'video' : 'photo';
-      addMediaToTarget(asset, type);
-    }
-  };
-
-  const addMediaToTarget = (asset: any, type: 'photo' | 'video') => {
-    const mediaItem: MediaItem = {
-      dataUrl: `data:${type === 'video' ? 'video/mp4' : 'image/jpeg'};base64,${asset.base64}`,
-      type,
-      label: type === 'photo' ? 'Photo' : 'Video',
-    };
-
-    const target = mediaBottomSheet.target;
-    if (target === 'before') {
-      setBeforeMedia(prev => [...prev, mediaItem]);
-    } else if (target === 'after') {
-      setAfterMedia(prev => [...prev, mediaItem]);
-    } else if (target === 'oldPart') {
-      setCurrentPart(prev => ({ ...prev, oldPartMedia: [...prev.oldPartMedia, mediaItem] }));
-    } else if (target === 'newPart') {
-      setCurrentPart(prev => ({ ...prev, newPartMedia: [...prev.newPartMedia, mediaItem] }));
-    }
-  };
-
-  const removeMediaFromTarget = (target: 'before' | 'after' | 'oldPart' | 'newPart', index: number) => {
-    if (target === 'before') {
-      setBeforeMedia(prev => prev.filter((_, i) => i !== index));
-    } else if (target === 'after') {
-      setAfterMedia(prev => prev.filter((_, i) => i !== index));
-    } else if (target === 'oldPart') {
-      setCurrentPart(prev => ({ ...prev, oldPartMedia: prev.oldPartMedia.filter((_, i) => i !== index) }));
-    } else if (target === 'newPart') {
-      setCurrentPart(prev => ({ ...prev, newPartMedia: prev.newPartMedia.filter((_, i) => i !== index) }));
-    }
-  };
-
-  const submitBeforeMedia = async () => {
-    if (beforeMedia.length === 0) {
-      Alert.alert('Error', 'Please add at least one photo or video');
-      return;
-    }
-    setLoading(true);
-    try {
-      await bookingApi.addMedia(booking.id, 'before', beforeMedia);
-      Alert.alert('Success', 'Before service media uploaded');
-    } catch {
-      Alert.alert('Error', 'Failed to upload media');
-    }
-    setLoading(false);
-  };
-
-  const submitAfterMedia = async () => {
-    if (afterMedia.length === 0) {
-      Alert.alert('Error', 'Please add at least one photo or video');
-      return;
-    }
-    setLoading(true);
-    try {
-      await bookingApi.addMedia(booking.id, 'after', afterMedia);
-      Alert.alert('Success', 'After service media uploaded');
-    } catch {
-      Alert.alert('Error', 'Failed to upload media');
-    }
-    setLoading(false);
-  };
-
-  // Parts Replacement Functions
-  const openAddPartModal = () => {
-    setCurrentPart({
-      oldPartName: '',
-      oldPartMedia: [],
-      newPartName: '',
-      newPartMedia: [],
-    });
-    setEditingPartId(null);
-    setAddPartModal(true);
-  };
-
-  const editPart = (partId: string) => {
-    const part = parts.find(p => p.id === partId);
-    if (part) {
-      setCurrentPart({
-        oldPartName: part.oldPartName,
-        oldPartMedia: part.oldPartMedia,
-        newPartName: part.newPartName,
-        newPartMedia: part.newPartMedia,
-      });
-      setEditingPartId(partId);
-      setAddPartModal(true);
-    }
-  };
-
-  const deletePart = (partId: string) => {
-    Alert.alert(
-      'Delete Part',
-      'Are you sure you want to remove this part?',
-      [
-        { text: 'Cancel', style: 'cancel' },
+      const isVideo = type === 'video';
+      setMediaModal(true);
+      setSelectedMedia((prev) => [
+        ...prev,
         {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => setParts(prev => prev.filter(p => p.id !== partId)),
+          dataUrl: `data:${isVideo ? 'video/mp4' : 'image/jpeg'};base64,${asset.base64}`,
+          type: isVideo ? 'video' : 'photo',
+          label: mediaLabel || (isVideo ? 'Video' : 'Photo'),
         },
-      ]
-    );
+      ]);
+    }
   };
 
-  const savePart = () => {
-    if (!currentPart.oldPartName.trim() || !currentPart.newPartName.trim()) {
-      Alert.alert('Error', 'Please fill in part names');
-      return;
+  const submitMedia = async () => {
+    if (selectedMedia.length === 0) { Alert.alert('Add at least one photo'); return; }
+    setLoading(true);
+    try {
+      await bookingApi.addMedia(booking.id, mediaPhase, selectedMedia);
+      Alert.alert('Success', `${mediaPhase === 'before' ? 'Before' : 'After'} photos uploaded`);
+      setMediaModal(false);
+      setSelectedMedia([]);
+    } catch {
+      Alert.alert('Error', 'Failed to upload media');
     }
-
-    if (editingPartId) {
-      // Update existing part
-      setParts(prev => prev.map(p => p.id === editingPartId
-        ? { ...p, ...currentPart }
-        : p
-      ));
-    } else {
-      // Add new part
-      setParts(prev => [...prev, {
-        id: Date.now().toString(),
-        ...currentPart,
-      }]);
-    }
-
-    setAddPartModal(false);
-    setCurrentPart({
-      oldPartName: '',
-      oldPartMedia: [],
-      newPartName: '',
-      newPartMedia: [],
-    });
-    setEditingPartId(null);
+    setLoading(false);
   };
 
   const submitCharges = async () => {
@@ -739,104 +673,39 @@ export const BookingDetailScreen = () => {
               <Text style={styles.mediaGroupLabel}>Before ({booking.beforeMedia?.length || 0})</Text>
               <View style={styles.mediaRow}>
                 <TouchableOpacity
-                  style={styles.addMediaBtn}
-                  onPress={() => openMediaBottomSheet('before')}
+                  style={styles.mediaBtn}
+                  onPress={() => openPhotoUpload('before')}
                 >
-                  <Ionicons name="add-circle" size={20} color={Colors.primary} />
-                  <Text style={styles.addMediaText}>Add Media</Text>
+                  <Ionicons name="camera" size={20} color={Colors.primary} />
+                  <Text style={styles.mediaBtnText}>Upload Photo</Text>
                 </TouchableOpacity>
-
-                {/* Before Media Preview Grid */}
-                {beforeMedia.length > 0 && (
-                  <View style={styles.mediaGrid}>
-                    {beforeMedia.map((media, index) => (
-                      <View key={index} style={styles.mediaPreview}>
-                        <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
-                        <TouchableOpacity
-                          style={styles.removeMediaBtn}
-                          onPress={() => removeMediaFromTarget('before', index)}
-                        >
-                          <Ionicons name="close-circle" size={20} color={Colors.error} />
-                        </TouchableOpacity>
-                        <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {beforeMedia.length > 0 && (
-                  <Button label="Submit Before Media" onPress={submitBeforeMedia} loading={loading} fullWidth />
-                )}
+                <TouchableOpacity
+                  style={styles.mediaBtn}
+                  onPress={() => openVideoUpload('before')}
+                >
+                  <Ionicons name="videocam" size={20} color={Colors.primary} />
+                  <Text style={styles.mediaBtnText}>Upload Video</Text>
+                </TouchableOpacity>
               </View>
 
               {/* After Media */}
               <Text style={[styles.mediaGroupLabel, { marginTop: Spacing.md }]}>After ({booking.afterMedia?.length || 0})</Text>
               <View style={styles.mediaRow}>
                 <TouchableOpacity
-                  style={[styles.addMediaBtn, { borderColor: Colors.success }]}
-                  onPress={() => openMediaBottomSheet('after')}
+                  style={styles.mediaBtn}
+                  onPress={() => openPhotoUpload('after')}
                 >
-                  <Ionicons name="add-circle" size={20} color={Colors.success} />
-                  <Text style={[styles.addMediaText, { color: Colors.success }]}>Add Media</Text>
+                  <Ionicons name="camera" size={20} color={Colors.success} />
+                  <Text style={[styles.mediaBtnText, { color: Colors.success }]}>Upload Photo</Text>
                 </TouchableOpacity>
-
-                {/* After Media Preview Grid */}
-                {afterMedia.length > 0 && (
-                  <View style={styles.mediaGrid}>
-                    {afterMedia.map((media, index) => (
-                      <View key={index} style={styles.mediaPreview}>
-                        <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
-                        <TouchableOpacity
-                          style={styles.removeMediaBtn}
-                          onPress={() => removeMediaFromTarget('after', index)}
-                        >
-                          <Ionicons name="close-circle" size={20} color={Colors.error} />
-                        </TouchableOpacity>
-                        <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {afterMedia.length > 0 && (
-                  <Button label="Submit After Media" onPress={submitAfterMedia} loading={loading} fullWidth />
-                )}
+                <TouchableOpacity
+                  style={styles.mediaBtn}
+                  onPress={() => openVideoUpload('after')}
+                >
+                  <Ionicons name="videocam" size={20} color={Colors.success} />
+                  <Text style={[styles.mediaBtnText, { color: Colors.success }]}>Upload Video</Text>
+                </TouchableOpacity>
               </View>
-            </Card>
-
-            {/* Parts Replacement */}
-            <Card>
-              <Text style={styles.sectionTitle}>Parts Replaced</Text>
-              {parts.length > 0 && (
-                <>
-                  {parts.map((part) => (
-                    <View key={part.id} style={styles.partCard}>
-                      <View style={styles.partHeader}>
-                        <Text style={styles.partTitle}>{part.oldPartName} → {part.newPartName}</Text>
-                        <View style={styles.partActions}>
-                          <TouchableOpacity onPress={() => editPart(part.id)} style={{ marginRight: 8 }}>
-                            <Ionicons name="create-outline" size={20} color={Colors.primary} />
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => deletePart(part.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.error} />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                      <View style={styles.partMediaRow}>
-                        <Text style={styles.partMediaLabel}>Old: {part.oldPartMedia.length} media</Text>
-                        <Text style={styles.partMediaLabel}>New: {part.newPartMedia.length} media</Text>
-                      </View>
-                    </View>
-                  ))}
-                </>
-              )}
-              <Button
-                label="➕ Add Part"
-                onPress={openAddPartModal}
-                variant="outline"
-                size="sm"
-                style={{ marginTop: parts.length > 0 ? Spacing.md : 0 }}
-              />
             </Card>
 
             {/* Additional Charges */}
@@ -952,6 +821,45 @@ export const BookingDetailScreen = () => {
         </Card>
       </ScrollView>
 
+      {/* Media Upload Modal */}
+      <Modal visible={mediaModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>{mediaPhase === 'before' ? 'Before' : 'After'} Photos</Text>
+            <Text style={styles.modalSubtitle}>Upload up to 3 photos/videos</Text>
+
+            {selectedMedia.map((m, i) => (
+              <View key={i} style={styles.mediaPreview}>
+                <Image source={{ uri: m.dataUrl }} style={styles.mediaThumb} />
+                <Text style={styles.mediaPreviewLabel}>{m.label}</Text>
+                <TouchableOpacity onPress={() => setSelectedMedia((prev) => prev.filter((_, idx) => idx !== i))}>
+                  <Ionicons name="close-circle" size={20} color={Colors.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {selectedMedia.length < 3 && (
+              <>
+                <TextInput
+                  style={styles.otpInput}
+                  placeholder="Photo label (e.g. Kitchen sink)"
+                  value={mediaLabel}
+                  onChangeText={setMediaLabel}
+                  placeholderTextColor={Colors.textTertiary}
+                />
+                <Button label="Add Photo/Video" onPress={pickMediaOptions} variant="outline" fullWidth />
+              </>
+            )}
+
+            <View style={styles.modalActions}>
+              <Button label="Cancel" onPress={() => { setMediaModal(false); setSelectedMedia([]); }} variant="ghost" />
+              <Button label="Upload" onPress={submitMedia} loading={loading} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Add Charge Modal */}
       <Modal visible={addChargeModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -1036,138 +944,6 @@ export const BookingDetailScreen = () => {
             )}
             <Button label="Close" onPress={() => setChargesModal(false)} variant="outline" fullWidth style={{ marginTop: Spacing.lg }} />
           </View>
-        </View>
-      </Modal>
-
-      {/* Media Bottom Sheet - UC Style */}
-      <Modal visible={mediaBottomSheet.visible} animationType="slide" transparent>
-        <TouchableOpacity
-          style={styles.bottomSheetOverlay}
-          activeOpacity={1}
-          onPress={() => setMediaBottomSheet({ ...mediaBottomSheet, visible: false })}
-        >
-          <View style={styles.bottomSheet}>
-            <View style={styles.bottomSheetHandle} />
-            <Text style={styles.bottomSheetTitle}>Add Media</Text>
-
-            <TouchableOpacity
-              style={styles.bottomSheetOption}
-              onPress={() => handleMediaAction('photo')}
-            >
-              <Ionicons name="camera" size={24} color={Colors.primary} />
-              <Text style={styles.bottomSheetOptionText}>Take Photo</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.bottomSheetOption}
-              onPress={() => handleMediaAction('video')}
-            >
-              <Ionicons name="videocam" size={24} color={Colors.primary} />
-              <Text style={styles.bottomSheetOptionText}>Record Video</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.bottomSheetOption}
-              onPress={() => handleMediaAction('gallery')}
-            >
-              <Ionicons name="images" size={24} color={Colors.primary} />
-              <Text style={styles.bottomSheetOptionText}>Choose from Gallery</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.bottomSheetCancel}
-              onPress={() => setMediaBottomSheet({ ...mediaBottomSheet, visible: false })}
-            >
-              <Text style={styles.bottomSheetCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Add Part Modal - UC Style */}
-      <Modal visible={addPartModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}>
-            <View style={styles.modalSheet}>
-              <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>{editingPartId ? 'Edit Part' : 'Add Part'}</Text>
-
-              {/* Old Part Section */}
-              <Text style={styles.partSectionTitle}>Old Part</Text>
-              <TextInput
-                style={styles.otpInput}
-                placeholder="Part name (e.g., Old water pump)"
-                value={currentPart.oldPartName}
-                onChangeText={(v) => setCurrentPart(prev => ({ ...prev, oldPartName: v }))}
-                placeholderTextColor={Colors.textTertiary}
-              />
-
-              <TouchableOpacity
-                style={styles.addMediaBtn}
-                onPress={() => openMediaBottomSheet('oldPart')}
-              >
-                <Ionicons name="add-circle" size={20} color={Colors.textSecondary} />
-                <Text style={[styles.addMediaText, { color: Colors.textSecondary }]}>Add Media</Text>
-              </TouchableOpacity>
-
-              {currentPart.oldPartMedia.length > 0 && (
-                <View style={styles.mediaGrid}>
-                  {currentPart.oldPartMedia.map((media, index) => (
-                    <View key={index} style={styles.mediaPreview}>
-                      <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
-                      <TouchableOpacity
-                        style={styles.removeMediaBtn}
-                        onPress={() => removeMediaFromTarget('oldPart', index)}
-                      >
-                        <Ionicons name="close-circle" size={20} color={Colors.error} />
-                      </TouchableOpacity>
-                      <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* New Part Section */}
-              <Text style={[styles.partSectionTitle, { marginTop: Spacing.lg }]}>New Part</Text>
-              <TextInput
-                style={styles.otpInput}
-                placeholder="Part name (e.g., New water pump)"
-                value={currentPart.newPartName}
-                onChangeText={(v) => setCurrentPart(prev => ({ ...prev, newPartName: v }))}
-                placeholderTextColor={Colors.textTertiary}
-              />
-
-              <TouchableOpacity
-                style={styles.addMediaBtn}
-                onPress={() => openMediaBottomSheet('newPart')}
-              >
-                <Ionicons name="add-circle" size={20} color={Colors.success} />
-                <Text style={[styles.addMediaText, { color: Colors.success }]}>Add Media</Text>
-              </TouchableOpacity>
-
-              {currentPart.newPartMedia.length > 0 && (
-                <View style={styles.mediaGrid}>
-                  {currentPart.newPartMedia.map((media, index) => (
-                    <View key={index} style={styles.mediaPreview}>
-                      <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
-                      <TouchableOpacity
-                        style={styles.removeMediaBtn}
-                        onPress={() => removeMediaFromTarget('newPart', index)}
-                      >
-                        <Ionicons name="close-circle" size={20} color={Colors.error} />
-                      </TouchableOpacity>
-                      <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <View style={styles.modalActions}>
-                <Button label="Cancel" onPress={() => setAddPartModal(false)} variant="ghost" />
-                <Button label={editingPartId ? 'Update' : 'Add'} onPress={savePart} />
-              </View>
-            </View>
-          </ScrollView>
         </View>
       </Modal>
 
@@ -1394,146 +1170,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     marginTop: 2,
-  },
-
-  // UC-Style Media Upload Styles
-  addMediaBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    borderStyle: 'dashed',
-    backgroundColor: Colors.surface,
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  addMediaText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  mediaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  mediaPreview: {
-    width: 100,
-    height: 100,
-    borderRadius: BorderRadius.md,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: Colors.gray100,
-  },
-  mediaThumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  removeMediaBtn: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 10,
-  },
-  mediaType: {
-    position: 'absolute',
-    bottom: 4,
-    left: 4,
-    fontSize: 16,
-  },
-
-  // Bottom Sheet Styles
-  bottomSheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  bottomSheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    paddingBottom: Platform.OS === 'ios' ? 34 : Spacing.xl,
-  },
-  bottomSheetHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: Colors.gray200,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: Spacing.md,
-  },
-  bottomSheetTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.lg,
-  },
-  bottomSheetOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.background,
-  },
-  bottomSheetOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
-  bottomSheetCancel: {
-    padding: Spacing.lg,
-    alignItems: 'center',
-    marginTop: Spacing.md,
-  },
-  bottomSheetCancelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-
-  // Parts Replacement Styles
-  partSectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
-  partCard: {
-    backgroundColor: Colors.background,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-  },
-  partHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  partTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    flex: 1,
-  },
-  partActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  partMediaRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  partMediaLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
   },
 });
