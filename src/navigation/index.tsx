@@ -95,6 +95,7 @@ const MainTabs = ({ navigation }: any) => {
           Home: { active: 'home', inactive: 'home-outline' },
           Jobs: { active: 'briefcase', inactive: 'briefcase-outline' },
           Earnings: { active: 'wallet', inactive: 'wallet-outline' },
+          Target: { active: 'analytics', inactive: 'analytics-outline' },
           Profile: { active: 'person', inactive: 'person-outline' },
         };
         const i = icons[route.name] || { active: 'ellipse', inactive: 'ellipse-outline' };
@@ -105,6 +106,7 @@ const MainTabs = ({ navigation }: any) => {
     <Tab.Screen name="Home" component={HomeScreen} />
     <Tab.Screen name="Jobs" component={BookingStackNav} />
     <Tab.Screen name="Earnings" component={EarningsScreen} />
+    <Tab.Screen name="Target" component={TargetsScreen} />
     <Tab.Screen name="Profile" component={ProfileScreen} />
   </Tab.Navigator>
   );

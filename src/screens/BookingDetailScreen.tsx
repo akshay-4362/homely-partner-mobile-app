@@ -527,6 +527,13 @@ export const BookingDetailScreen = () => {
   };
 
   const openMapsApp = () => {
+    // Check if lat/lng are available
+    if (!booking.lat || !booking.lng) {
+      // Fallback to address string
+      openMap();
+      return;
+    }
+
     const scheme = Platform.select({ ios: 'maps:', android: 'geo:' });
     const url = Platform.select({
       ios: `${scheme}${booking.lat},${booking.lng}`,

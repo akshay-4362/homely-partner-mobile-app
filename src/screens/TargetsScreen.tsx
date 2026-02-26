@@ -1,104 +1,132 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  StatusBar,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
-import { useAppSelector } from '../hooks/useAppSelector';
+import { Card } from '../components/common/Card';
 import { proApi } from '../api/proApi';
-import { formatDate } from '../utils/format';
 
-interface TargetMetric {
-  name: string;
-  target: string;
-  actual: number;
-  unit: string;
-  met: boolean;
+interface MetricCard {
+  id: string;
+  title: string;
+  subtitle: string;
+  currentValue: number;
+  targetValue: number;
+  unit?: string;
+  status: 'good' | 'warning' | 'bad';
+  comparison: 'higher' | 'lower'; // higher is better or lower is better
 }
 
 export const TargetsScreen = () => {
+  const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [metrics, setMetrics] = useState<TargetMetric[]>([]);
-  const [jobPackInfo, setJobPackInfo] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
-    jobsSent: 0,
-    jobsTarget: 10,
+  const [performanceStatus, setPerformanceStatus] = useState<'good' | 'low' | 'critical'>('good');
+  const [trainingPending, setTrainingPending] = useState(false);
+  const [nextReviewDate, setNextReviewDate] = useState('16 Mar');
+  const [metrics, setMetrics] = useState<MetricCard[]>([]);
+  const [subscription, setSubscription] = useState({
+    status: 'ACTIVE',
+    jobsReceived: 8,
+    jobsLimit: 10,
   });
-  const [allTargetsMet, setAllTargetsMet] = useState(false);
 
   useEffect(() => {
-    loadTargets();
+    loadData();
   }, []);
 
-  const loadTargets = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
 
-      // Fetch hub stats for metrics
+      // Fetch profile and hub stats
       const profile = await proApi.fetchProfile();
       const hubStats = profile.hubStats || {};
 
-      // Calculate metrics
-      const leaveHours = 0; // Would need availability tracking
-      const leaveTarget = 31;
+      // Calculate metrics based on actual data
+      const rating = hubStats.rating || 5.0;
+      const cancellations = hubStats.cancellations || 0;
+      const weekendHours = 0; // Would need availability tracking
+      const auditFailures = 0; // Would need audit system
+      const revisitError = hubStats.repeatCustomers || 0;
 
-      const revisitPercent = hubStats.repeatCustomers || 0;
-      const revisitTarget = 7;
-
-      const acceptanceRate = hubStats.acceptanceRate || 100;
-
-      const metricsData: TargetMetric[] = [
+      const metricsData: MetricCard[] = [
         {
-          name: 'Leave hours',
-          target: `Keep ${leaveTarget}`,
-          actual: leaveHours,
-          unit: 'hrs',
-          met: leaveHours <= leaveTarget,
+          id: 'rating',
+          title: 'Rating',
+          subtitle: 'Keep 4.55 or above',
+          currentValue: parseFloat(rating.toFixed(2)),
+          targetValue: 4.55,
+          status: rating >= 4.55 ? 'good' : rating >= 4.0 ? 'warning' : 'bad',
+          comparison: 'higher',
         },
         {
-          name: 'Revisit %',
-          target: `Keep ${revisitTarget}`,
-          actual: revisitPercent,
-          unit: '%',
-          met: revisitPercent <= revisitTarget,
+          id: 'cancellations',
+          title: 'Cancellations',
+          subtitle: 'Keep 5 or below',
+          currentValue: cancellations,
+          targetValue: 5,
+          status: cancellations <= 3 ? 'good' : cancellations <= 5 ? 'warning' : 'bad',
+          comparison: 'lower',
         },
         {
-          name: 'Acceptance',
-          target: '-',
-          actual: acceptanceRate,
-          unit: '%',
-          met: true, // Auto-assignment means always met
+          id: 'weekend_hours',
+          title: 'Weekend unavailable hours',
+          subtitle: 'Keep 31 or below',
+          currentValue: weekendHours,
+          targetValue: 31,
+          status: weekendHours <= 20 ? 'good' : weekendHours <= 31 ? 'warning' : 'bad',
+          comparison: 'lower',
+        },
+        {
+          id: 'audit_failures',
+          title: 'Audit failures',
+          subtitle: 'Keep 3 or below',
+          currentValue: auditFailures,
+          targetValue: 3,
+          status: auditFailures === 0 ? 'good' : auditFailures <= 3 ? 'warning' : 'bad',
+          comparison: 'lower',
+        },
+        {
+          id: 'revisit_error',
+          title: 'Revisit error %',
+          subtitle: 'Keep 7 or below',
+          currentValue: revisitError,
+          targetValue: 7,
+          status: revisitError <= 5 ? 'good' : revisitError <= 7 ? 'warning' : 'bad',
+          comparison: 'lower',
         },
       ];
 
       setMetrics(metricsData);
-      setAllTargetsMet(metricsData.every(m => m.met));
 
-      // Mock job pack data - would need backend endpoint
-      const now = new Date();
-      const packStart = new Date(now);
-      packStart.setDate(now.getDate() - 1);
-      const packEnd = new Date(now);
-      packEnd.setDate(now.getDate() + 1);
+      // Determine overall performance status
+      const hasAnyBad = metricsData.some(m => m.status === 'bad');
+      const hasMultipleWarnings = metricsData.filter(m => m.status === 'warning').length >= 2;
 
-      setJobPackInfo({
-        startDate: packStart,
-        endDate: packEnd,
-        jobsSent: hubStats.thisWeekJobs || 0,
-        jobsTarget: 10,
+      if (hasAnyBad || hasMultipleWarnings) {
+        setPerformanceStatus('low');
+      } else {
+        setPerformanceStatus('good');
+      }
+
+      // Mock subscription data - would need backend endpoint
+      setSubscription({
+        status: hubStats.thisWeekJobs >= 10 ? 'EXPIRED' : 'ACTIVE',
+        jobsReceived: hubStats.thisWeekJobs || 0,
+        jobsLimit: 10,
       });
     } catch (error) {
-      console.error('Failed to load targets:', error);
+      console.error('Failed to load target data:', error);
     } finally {
       setLoading(false);
     }
@@ -106,14 +134,48 @@ export const TargetsScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadTargets();
+    await loadData();
     setRefreshing(false);
   };
+
+  const getStatusIcon = (status: 'good' | 'warning' | 'bad') => {
+    switch (status) {
+      case 'good':
+        return <Ionicons name="checkmark-circle" size={24} color={Colors.success} />;
+      case 'warning':
+        return <Ionicons name="alert-circle" size={24} color="#FFA500" />;
+      case 'bad':
+        return <Ionicons name="close-circle" size={24} color={Colors.error} />;
+    }
+  };
+
+  const getStatusColor = (status: 'good' | 'warning' | 'bad') => {
+    switch (status) {
+      case 'good':
+        return Colors.success;
+      case 'warning':
+        return '#FFA500';
+      case 'bad':
+        return Colors.error;
+    }
+  };
+
+  const renderMetricCard = (metric: MetricCard) => (
+    <View key={metric.id} style={styles.metricCard}>
+      <Text style={styles.metricTitle}>{metric.title}</Text>
+      <Text style={styles.metricSubtitle}>{metric.subtitle}</Text>
+      <View style={styles.metricValueRow}>
+        {getStatusIcon(metric.status)}
+        <Text style={[styles.metricValue, { color: getStatusColor(metric.status) }]}>
+          {metric.currentValue}
+        </Text>
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" />
         <View style={styles.loader}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -123,134 +185,151 @@ export const TargetsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={styles.menuBtn}>
+          <Ionicons name="menu" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Target</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
         contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Performance Targets</Text>
-        </View>
-
-        {/* Promise Fulfilled Badge */}
-        {allTargetsMet && (
-          <View style={styles.badgeCard}>
-            <Ionicons name="checkmark-circle" size={32} color={Colors.success} />
-            <Text style={styles.badgeText}>Promise Fulfilled</Text>
-            <Text style={styles.badgeSubtext}>All targets met this period</Text>
-          </View>
+        {/* Low Performance Banner */}
+        {performanceStatus === 'low' && (
+          <Card style={styles.warningBanner}>
+            <Text style={styles.warningTitle}>Low performance</Text>
+            <TouchableOpacity onPress={() => {/* Navigate to strikes info */}}>
+              <Text style={styles.warningLink}>Learn about strikes</Text>
+            </TouchableOpacity>
+          </Card>
         )}
 
-        {/* Current Job Pack */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Current Job Pack</Text>
-          <View style={styles.jobPackInfo}>
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.infoText}>
-                {formatDate(jobPackInfo.startDate)} - {formatDate(jobPackInfo.endDate)}
-              </Text>
-            </View>
-            <View style={styles.jobPackProgress}>
-              <Text style={styles.jobPackText}>
-                {jobPackInfo.jobsSent} of {jobPackInfo.jobsTarget} jobs sent
-              </Text>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${Math.min(
-                        (jobPackInfo.jobsSent / jobPackInfo.jobsTarget) * 100,
-                        100
-                      )}%`,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
+        {/* Training Result Pending */}
+        {trainingPending && (
+          <TouchableOpacity
+            style={styles.trainingCard}
+            onPress={() => navigation.navigate('Training')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="time-outline" size={24} color={Colors.textSecondary} />
+            <Text style={styles.trainingText}>Training result pending</Text>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        )}
+
+        {/* Metrics Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Metrics</Text>
+          <Text style={styles.reviewDate}>Next performance review on {nextReviewDate}</Text>
+
+          <View style={styles.metricsGrid}>
+            {metrics.map(renderMetricCard)}
           </View>
         </View>
 
-        {/* Metrics Table */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Performance Metrics</Text>
-          <View style={styles.metricsTable}>
-            {/* Header Row */}
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableHeaderText, styles.metricCol]}>Metric</Text>
-              <Text style={[styles.tableHeaderText, styles.targetCol]}>Target</Text>
-              <Text style={[styles.tableHeaderText, styles.actualCol]}>You</Text>
+        {/* Action Links */}
+        <View style={styles.linksSection}>
+          <TouchableOpacity
+            style={styles.linkItem}
+            onPress={() => {/* Navigate to how ranks work */}}
+            activeOpacity={0.7}
+          >
+            <View style={styles.linkLeft}>
+              <Ionicons name="information-circle-outline" size={24} color={Colors.textPrimary} />
+              <Text style={styles.linkText}>How ranks work?</Text>
             </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
 
-            {/* Data Rows */}
-            {metrics.map((metric, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.tableRow,
-                  index === metrics.length - 1 && styles.tableRowLast,
-                ]}
-              >
-                <Text style={[styles.tableCell, styles.metricCol]}>{metric.name}</Text>
-                <Text style={[styles.tableCell, styles.targetCol]}>{metric.target}</Text>
-                <View style={[styles.actualCell, styles.actualCol]}>
-                  <Text
-                    style={[
-                      styles.actualValue,
-                      metric.met ? styles.actualMet : styles.actualNotMet,
-                    ]}
-                  >
-                    {metric.actual}{metric.unit}
-                  </Text>
-                  {metric.met && (
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
-                  )}
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.linkItem}
+            onPress={() => {/* Navigate to rewards */}}
+            activeOpacity={0.7}
+          >
+            <View style={styles.linkLeft}>
+              <Ionicons name="trophy-outline" size={24} color={Colors.textPrimary} />
+              <Text style={styles.linkText}>View rewards</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.linkItem}
+            onPress={() => {/* Navigate to previous ranks */}}
+            activeOpacity={0.7}
+          >
+            <View style={styles.linkLeft}>
+              <Ionicons name="time-outline" size={24} color={Colors.textPrimary} />
+              <Text style={styles.linkText}>View previous ranks</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Job Subscription Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Job Subscription</Text>
+
+          <Card style={styles.subscriptionCard}>
+            <View style={styles.subscriptionHeader}>
+              <View>
+                <View style={[
+                  styles.statusBadge,
+                  subscription.status === 'EXPIRED' && styles.expiredBadge
+                ]}>
+                  <Text style={styles.statusText}>{subscription.status}</Text>
                 </View>
+                <Text style={styles.subscriptionTitle}>
+                  You got {subscription.jobsReceived}/{subscription.jobsLimit} jobs
+                </Text>
               </View>
-            ))}
-          </View>
+              <Ionicons
+                name={subscription.status === 'EXPIRED' ? 'alert-circle' : 'checkmark-circle'}
+                size={32}
+                color={subscription.status === 'EXPIRED' ? Colors.error : Colors.success}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.detailsBtn}
+              onPress={() => navigation.navigate('Credits')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.detailsBtnText}>See details</Text>
+            </TouchableOpacity>
+          </Card>
+
+          <TouchableOpacity
+            style={styles.linkItem}
+            onPress={() => {/* Navigate to previous subscriptions */}}
+            activeOpacity={0.7}
+          >
+            <View style={styles.linkLeft}>
+              <Ionicons name="time-outline" size={24} color={Colors.textPrimary} />
+              <Text style={styles.linkText}>View previous</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
-        {/* Previous Job Packs */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Previous Job Packs</Text>
-          <View style={styles.historyList}>
-            <View style={styles.historyItem}>
-              <View style={styles.historyIcon}>
-                <Ionicons name="checkmark" size={16} color={Colors.success} />
-              </View>
-              <View style={styles.historyContent}>
-                <Text style={styles.historyDate}>13-14 Feb</Text>
-                <Text style={styles.historyResult}>10/10 ✓</Text>
-              </View>
-            </View>
-
-            <View style={styles.historyItem}>
-              <View style={styles.historyIcon}>
-                <Ionicons name="checkmark" size={16} color={Colors.success} />
-              </View>
-              <View style={styles.historyContent}>
-                <Text style={styles.historyDate}>03-06 Feb</Text>
-                <Text style={styles.historyResult}>10/10 ✓</Text>
-              </View>
-            </View>
-
-            <View style={styles.historyItem}>
-              <View style={styles.historyIcon}>
-                <Ionicons name="checkmark" size={16} color={Colors.success} />
-              </View>
-              <View style={styles.historyContent}>
-                <Text style={styles.historyDate}>01-02 Feb</Text>
-                <Text style={styles.historyResult}>10/10 ✓</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        {/* Help Button */}
+        <TouchableOpacity
+          style={styles.helpButton}
+          onPress={() => navigation.navigate('HelpCenter')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="help-circle" size={24} color="#fff" />
+          <Text style={styles.helpText}>Help</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -266,179 +345,201 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scroll: {
-    padding: Spacing.xl,
-    gap: Spacing.lg,
-  },
   header: {
-    marginBottom: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  menuBtn: {
+    padding: 4,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-  badgeCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    gap: Spacing.sm,
-    borderWidth: 2,
-    borderColor: Colors.success,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  badgeText: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.success,
+    color: Colors.textPrimary,
   },
-  badgeSubtext: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+  scroll: {
     padding: Spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingBottom: 100,
   },
-  cardTitle: {
+  warningBanner: {
+    backgroundColor: '#FFF3CD',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFA500',
+    marginBottom: Spacing.md,
+  },
+  warningTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  warningLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textDecorationLine: 'underline',
+  },
+  trainingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  trainingText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  section: {
+    marginBottom: Spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  reviewDate: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  metricCard: {
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    width: '48%',
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  metricTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  metricSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
     marginBottom: Spacing.md,
   },
-  jobPackInfo: {
-    gap: Spacing.md,
-  },
-  infoRow: {
+  metricValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  infoText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  jobPackProgress: {
-    gap: Spacing.sm,
-  },
-  jobPackText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: Colors.gray200,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: 4,
-  },
-  metricsTable: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    overflow: 'hidden',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: Colors.gray100,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableHeaderText: {
-    fontSize: 12,
+  metricValue: {
+    fontSize: 28,
     fontWeight: '700',
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
   },
-  tableRow: {
+  linksSection: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  linkItem: {
     flexDirection: 'row',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
     alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
   },
-  tableRowLast: {
-    borderBottomWidth: 0,
+  linkLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
   },
-  tableCell: {
-    fontSize: 14,
+  linkText: {
+    fontSize: 16,
+    fontWeight: '500',
     color: Colors.textPrimary,
   },
-  metricCol: {
-    flex: 2,
+  divider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+    marginHorizontal: Spacing.lg,
   },
-  targetCol: {
-    flex: 1.5,
-    textAlign: 'center',
+  subscriptionCard: {
+    marginBottom: Spacing.md,
   },
-  actualCol: {
-    flex: 1.5,
-  },
-  actualCell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: Spacing.xs,
-  },
-  actualValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  actualMet: {
-    color: Colors.success,
-  },
-  actualNotMet: {
-    color: Colors.error,
-  },
-  historyList: {
-    gap: Spacing.md,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  historyIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.successBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  historyContent: {
-    flex: 1,
+  subscriptionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.lg,
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.success,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.sm,
+  },
+  expiredBadge: {
+    backgroundColor: Colors.error,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  subscriptionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  detailsBtn: {
+    borderWidth: 1.5,
+    borderColor: Colors.textPrimary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
   },
-  historyDate: {
-    fontSize: 14,
+  detailsBtnText: {
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
-  historyResult: {
-    fontSize: 14,
+  helpButton: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    right: Spacing.xl,
+    backgroundColor: Colors.textPrimary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  helpText: {
+    fontSize: 16,
     fontWeight: '600',
-    color: Colors.success,
+    color: '#fff',
   },
 });

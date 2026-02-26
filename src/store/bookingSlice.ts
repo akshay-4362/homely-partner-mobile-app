@@ -28,7 +28,7 @@ const mapBooking = (b: any): ProBooking => ({
   customerPhone: b.customer?.phone || b.customerPhone,
   scheduledAt: b.scheduledAt,
   status: b.status,
-  city: b.address?.city || b.city,
+  city: b.address?.city || b.addressSnapshot?.city || b.city,
   paymentMethod: b.paymentMethod,
   paymentStatus: b.payment?.status || b.paymentStatus,
   paidAt: b.payment?.paidAt || b.paidAt,
@@ -36,14 +36,20 @@ const mapBooking = (b: any): ProBooking => ({
   paymentIntentId: b.payment?.stripePaymentIntentId || b.paymentIntentId,
   addressLine: b.address
     ? [b.address.line1, b.address.city].filter(Boolean).join(', ')
+    : b.addressSnapshot
+    ? [b.addressSnapshot.line1, b.addressSnapshot.city].filter(Boolean).join(', ')
     : b.addressLine,
   addressFull: b.address
     ? [b.address.line1, b.address.line2, b.address.city, b.address.state, b.address.pincode]
         .filter(Boolean)
         .join(', ')
+    : b.addressSnapshot
+    ? [b.addressSnapshot.line1, b.addressSnapshot.line2, b.addressSnapshot.city, b.addressSnapshot.state, b.addressSnapshot.pincode]
+        .filter(Boolean)
+        .join(', ')
     : b.addressFull,
-  lat: b.address?.lat || b.lat,
-  lng: b.address?.lng || b.lng,
+  lat: b.address?.lat || b.addressSnapshot?.lat || b.lat,
+  lng: b.address?.lng || b.addressSnapshot?.lng || b.lng,
   total: b.total ?? b.pricing?.total ?? 0,
   additionalChargesTotal: b.additionalChargesTotal ?? 0,
   finalTotal: b.finalTotal ?? b.total ?? 0,
