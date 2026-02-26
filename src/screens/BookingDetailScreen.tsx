@@ -18,6 +18,7 @@ import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { ProBooking, AdditionalCharge, MediaItem } from '../types';
 import { FaceVerificationModal } from '../components/FaceVerificationModal';
+import { RateCustomerModal } from '../components/RateCustomerModal';
 import { useSocket } from '../hooks/useSocket';
 
 const CHARGE_CATEGORIES = ['materials', 'extra_work', 'transport', 'other'];
@@ -34,6 +35,7 @@ export const BookingDetailScreen = () => {
   const [error, setError] = useState('');
   const [faceVerificationModal, setFaceVerificationModal] = useState(false);
   const [faceVerified, setFaceVerified] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   // Charges
   const [charges, setCharges] = useState<{ pending: AdditionalCharge[]; approved: AdditionalCharge[]; total: number } | null>(null);
@@ -190,22 +192,19 @@ export const BookingDetailScreen = () => {
     setLoading(false);
     if (res.meta.requestStatus === 'fulfilled') {
       if (newStatus === 'completed') {
-        // Show completion modal with Reviews option
+        // Show rating modal immediately after completion
         Alert.alert(
           'Job Completed! ✓',
-          'Customer will be asked to rate your service.',
+          'Great work! Would you like to rate this customer?',
           [
             {
-              text: 'View My Reviews',
+              text: 'Rate Customer',
               onPress: () => {
-                navigation.goBack();
-                setTimeout(() => {
-                  (navigation as any).navigate('Reviews');
-                }, 100);
+                setShowRatingModal(true);
               }
             },
             {
-              text: 'Done',
+              text: 'Skip',
               onPress: () => navigation.goBack(),
               style: 'cancel'
             }
@@ -265,22 +264,19 @@ export const BookingDetailScreen = () => {
     }));
     setLoading(false);
     if (res.meta.requestStatus === 'fulfilled') {
-      // Show completion modal with Reviews option
+      // Show rating modal immediately after completion
       Alert.alert(
         'Job Completed! ✓',
-        'Cash payment received. Customer will be asked to rate your service.',
+        'Cash payment received. Would you like to rate this customer?',
         [
           {
-            text: 'View My Reviews',
+            text: 'Rate Customer',
             onPress: () => {
-              navigation.goBack();
-              setTimeout(() => {
-                (navigation as any).navigate('Reviews');
-              }, 100);
+              setShowRatingModal(true);
             }
           },
           {
-            text: 'Done',
+            text: 'Skip',
             onPress: () => navigation.goBack(),
             style: 'cancel'
           }
@@ -1184,6 +1180,43 @@ export const BookingDetailScreen = () => {
         bookingId={booking.id}
         onSuccess={handleFaceVerificationSuccess}
         onCancel={() => setFaceVerificationModal(false)}
+      />
+
+      {/* Rate Customer Modal */}
+      <RateCustomerModal
+        visible={showRatingModal}
+        bookingId={booking.id}
+        customerName={booking.customerName}
+        onClose={() => {
+          setShowRatingModal(false);
+          navigation.goBack();
+        }}
+        onSuccess={() => {
+          Alert.alert(
+            'Thank You! 🎉',
+            'Your feedback helps us maintain service quality.',
+            [
+              {
+                text: 'View My Reviews',
+                onPress: () => {
+                  setShowRatingModal(false);
+                  navigation.goBack();
+                  setTimeout(() => {
+                    (navigation as any).navigate('Reviews');
+                  }, 100);
+                }
+              },
+              {
+                text: 'Done',
+                onPress: () => {
+                  setShowRatingModal(false);
+                  navigation.goBack();
+                },
+                style: 'cancel'
+              }
+            ]
+          );
+        }}
       />
     </SafeAreaView>
   );
