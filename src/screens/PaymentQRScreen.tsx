@@ -110,8 +110,19 @@ export const PaymentQRScreen = () => {
       });
     } catch (err: any) {
       console.error('Failed to generate QR code:', err);
-      setError(err.response?.data?.message || 'Failed to generate QR code');
-      Alert.alert('Error', 'Failed to generate payment QR code. Please try again.');
+      const errorMessage = err.response?.data?.message || 'Failed to generate QR code';
+      setError(errorMessage);
+
+      // Show detailed error with helpful guidance
+      if (errorMessage.includes('test mode') || errorMessage.includes('not enabled')) {
+        Alert.alert(
+          'QR Code Not Available',
+          errorMessage + '\n\nAlternative: Ask customer to pay online or pay cash after service completion.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to generate payment QR code. Please try again or ask customer to pay cash.');
+      }
     } finally {
       setLoading(false);
     }
@@ -195,10 +206,40 @@ export const PaymentQRScreen = () => {
   if (error && !qrData) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
+        <ScrollView contentContainerStyle={styles.errorContainer}>
           <Ionicons name="alert-circle" size={64} color={Colors.error} />
-          <Text style={styles.errorTitle}>Failed to Generate QR Code</Text>
+          <Text style={styles.errorTitle}>QR Code Not Available</Text>
           <Text style={styles.errorMessage}>{error}</Text>
+
+          {/* Alternative Payment Options */}
+          <View style={styles.alternativesCard}>
+            <Text style={styles.alternativesTitle}>Alternative Payment Options:</Text>
+
+            <View style={styles.alternativeOption}>
+              <Ionicons name="cash-outline" size={24} color={Colors.success} />
+              <View style={styles.alternativeText}>
+                <Text style={styles.alternativeLabel}>Cash Payment</Text>
+                <Text style={styles.alternativeDescription}>Accept cash after service completion</Text>
+              </View>
+            </View>
+
+            <View style={styles.alternativeOption}>
+              <Ionicons name="phone-portrait-outline" size={24} color={Colors.primary} />
+              <View style={styles.alternativeText}>
+                <Text style={styles.alternativeLabel}>Online Payment</Text>
+                <Text style={styles.alternativeDescription}>Ask customer to pay from their app</Text>
+              </View>
+            </View>
+
+            <View style={styles.alternativeOption}>
+              <Ionicons name="card-outline" size={24} color={Colors.primary} />
+              <View style={styles.alternativeText}>
+                <Text style={styles.alternativeLabel}>Payment Link</Text>
+                <Text style={styles.alternativeDescription}>Customer can pay via payment link</Text>
+              </View>
+            </View>
+          </View>
+
           <Button
             label="Try Again"
             onPress={generateQRCode}
@@ -211,7 +252,7 @@ export const PaymentQRScreen = () => {
             variant="secondary"
             style={styles.retryButton}
           />
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -435,6 +476,42 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: Spacing.lg,
     minWidth: 200,
+  },
+  alternativesCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.md,
+    width: '100%',
+    maxWidth: 400,
+  },
+  alternativesTitle: {
+    ...Typography.subtitle,
+    color: Colors.text,
+    marginBottom: Spacing.md,
+    fontWeight: '600',
+  },
+  alternativeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  alternativeText: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  alternativeLabel: {
+    ...Typography.body,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  alternativeDescription: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   header: {
     flexDirection: 'row',
