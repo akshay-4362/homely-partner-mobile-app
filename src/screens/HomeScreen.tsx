@@ -9,7 +9,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchCreditBalance } from '../store/creditSlice';
+import { fetchAccountingSummary, fetchTodayBookings } from '../store/accountingSlice';
 import { notificationApi } from '../api/notificationApi';
+import { formatCurrency, formatDate } from '../utils/format';
+import { Badge } from '../components/common/Badge';
+import { SectionHeader } from '../components/common/SectionHeader';
 import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { CreditBalanceWidget } from '../components/CreditBalanceWidget';
@@ -21,12 +25,15 @@ export const HomeScreen = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
   const { balance: creditBalance } = useAppSelector((s) => s.credit);
+  const { summary, todayBookings: todayJobs } = useAppSelector((s) => s.accounting);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     // Fetch from Redux (with caching)
     dispatch(fetchCreditBalance());
+    dispatch(fetchAccountingSummary());
+    dispatch(fetchTodayBookings());
 
     // Fetch notifications (not cached in Redux)
     try {
@@ -39,6 +46,8 @@ export const HomeScreen = () => {
   const loadDataForced = async () => {
     // Force refresh all data
     dispatch(fetchCreditBalance());
+    dispatch(fetchAccountingSummary(true));
+    dispatch(fetchTodayBookings());
 
     try {
       const notifData = await notificationApi.list(5);
@@ -107,10 +116,64 @@ export const HomeScreen = () => {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* KPI Cards */}
+        <View style={styles.kpiRow}>
+          <KpiCard
+            label="Customer Paid"
+            value={summary ? formatCurrency(summary.totalPaid) : '—'}
+            icon="wallet-outline"
+            color={Colors.success}
+            bg={Colors.successBg}
+          />
+          <KpiCard
+            label="Rating"
+            value={summary ? `${summary.rating.toFixed(1)}★` : '—'}
+            icon="star-outline"
+            color={Colors.warning}
+            bg={Colors.warningBg}
+          />
+        </View>
+
+        {/* Today's Schedule */}
+        {todayJobs && todayJobs.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title="Today's Schedule"
+              action="View All"
+              onAction={() => navigation.navigate('Jobs')}
+            />
+            {todayJobs.map((job) => (
+              <TodayJobCard key={job.bookingId} job={job} onPress={() => navigation.navigate('Jobs')} />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+const KpiCard = ({ label, value, icon, color, bg }: { label: string; value: string; icon: any; color: string; bg: string }) => (
+  <View style={[styles.kpiCard, { backgroundColor: bg }]}>
+    <Ionicons name={icon} size={20} color={color} style={{ marginBottom: 6 }} />
+    <Text style={[styles.kpiValue, { color }]}>{value}</Text>
+    <Text style={styles.kpiLabel}>{label}</Text>
+  </View>
+);
+
+const TodayJobCard = ({ job, onPress }: { job: any; onPress: () => void }) => (
+  <TouchableOpacity style={styles.todayCard} onPress={onPress} activeOpacity={0.7}>
+    <View style={styles.todayLeft}>
+      <Text style={styles.todayTime}>{new Date(job.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+      <Badge status={job.status} label={job.status} />
+    </View>
+    <View style={styles.todayMid}>
+      <Text style={styles.todayName}>{job.customerName}</Text>
+      <Text style={styles.todayService}>{job.serviceName}</Text>
+    </View>
+    <Text style={styles.todayAmt}>{formatCurrency(job.earnings)}</Text>
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
@@ -131,6 +194,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingBottom: 90,
   },
+  kpiRow: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.xl },
+  kpiCard: {
+    flex: 1, borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center',
+  },
+  kpiValue: { fontSize: 16, fontWeight: '800', marginBottom: 2 },
+  kpiLabel: { fontSize: 10, color: Colors.textSecondary, textAlign: 'center', fontWeight: '500' },
+  section: { marginBottom: Spacing.xl },
+  todayCard: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.sm,
+    borderLeftWidth: 3, borderLeftColor: Colors.primary,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
+  },
+  todayLeft: { width: 80, marginRight: Spacing.md, gap: 4 },
+  todayTime: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
+  todayMid: { flex: 1 },
+  todayName: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  todayService: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  todayAmt: { fontSize: 14, fontWeight: '700', color: Colors.success },
   pausedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
