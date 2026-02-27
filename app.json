@@ -43,14 +43,7 @@
     },
     "plugins": [
       "expo-web-browser",
-      "expo-font",
-      [
-        "@stripe/stripe-react-native",
-        {
-          "merchantIdentifier": [],
-          "enableGooglePay": false
-        }
-      ]
+      "expo-font"
     ],
     "extra": {
       "eas": {

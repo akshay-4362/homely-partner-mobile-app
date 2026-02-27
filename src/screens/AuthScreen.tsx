@@ -9,6 +9,7 @@ import { useAppSelector } from '../hooks/useAppSelector';
 import { login, register, clearError } from '../store/authSlice';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
+import { Logo } from '../components/Logo';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 
 export const AuthScreen = () => {
@@ -39,12 +40,7 @@ export const AuthScreen = () => {
         <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoWrap}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>H</Text>
-            </View>
-            <Text style={styles.brand}>Homelyo Pro</Text>
-          </View>
+          <Logo width={200} />
           <Text style={styles.tagline}>Manage your jobs, earnings & schedule</Text>
         </View>
 
@@ -146,14 +142,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Colors.background },
   scroll: { padding: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Platform.OS === 'ios' ? 100 : 80 },
   header: { alignItems: 'center', marginBottom: Spacing.xxxl },
-  logoWrap: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  logoCircle: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginRight: 10,
-  },
-  logoText: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  brand: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary },
-  tagline: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center' },
+  tagline: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.md },
   toggleRow: {
     flexDirection: 'row',
     backgroundColor: Colors.gray100,
