@@ -19,9 +19,10 @@ export const useSocket = () => {
     if (!globalSocket || !globalSocket.connected) {
       globalSocket = io(SOCKET_URL, {
         auth: { token: `Bearer ${accessToken}` },
-        transports: ['websocket', 'polling'],
+        transports: ['polling'], // Use polling for Vercel serverless compatibility
         reconnectionAttempts: 5,
         reconnectionDelay: 2000,
+        upgrade: false, // Disable WebSocket upgrade on Vercel
       });
 
       globalSocket.on('connect', () => console.log('[Socket] Connected:', globalSocket?.id));

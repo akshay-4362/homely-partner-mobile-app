@@ -587,9 +587,9 @@ export const BookingDetailScreen = () => {
         {/* Header Card */}
         <Card style={styles.headerCard}>
           <View style={styles.headerTop}>
-            <View>
+            <View style={{ flex: 1, marginRight: Spacing.md }}>
               <Text style={styles.bookingNum}>#{booking.bookingNumber}</Text>
-              <Text style={styles.serviceName}>{booking.serviceName}</Text>
+              <Text style={styles.serviceName} numberOfLines={2}>{booking.serviceName}</Text>
             </View>
             <Badge status={booking.status} label={booking.status} />
           </View>
@@ -687,78 +687,31 @@ export const BookingDetailScreen = () => {
 
         {isInProgress && (
           <>
-            <Card style={styles.otpCard}>
-              <Text style={styles.sectionTitle}>Complete Job</Text>
-              <Text style={styles.otpHint}>Mark this job as completed when service is finished</Text>
-
-              {/* Payment method selection for pay_later bookings */}
-              {booking.paymentMethod === 'pay_later' && (
-                <View style={styles.paymentMethodSection}>
-                  <Text style={styles.paymentMethodLabel}>How did customer pay?</Text>
-                  <View style={styles.paymentMethodOptions}>
-                    <TouchableOpacity
-                      style={[
-                        styles.paymentMethodOption,
-                        paymentMethod === 'cash' && styles.paymentMethodOptionActive
-                      ]}
-                      onPress={() => setPaymentMethod('cash')}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[
-                        styles.paymentMethodRadio,
-                        paymentMethod === 'cash' && styles.paymentMethodRadioActive
-                      ]}>
-                        {paymentMethod === 'cash' && <View style={styles.paymentMethodRadioDot} />}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.paymentMethodText}>Cash</Text>
-                        <Text style={styles.paymentMethodSubtext}>I received ₹{booking.finalTotal || booking.total}</Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.paymentMethodOption,
-                        paymentMethod === 'online' && styles.paymentMethodOptionActive
-                      ]}
-                      onPress={() => setPaymentMethod('online')}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[
-                        styles.paymentMethodRadio,
-                        paymentMethod === 'online' && styles.paymentMethodRadioActive
-                      ]}>
-                        {paymentMethod === 'online' && <View style={styles.paymentMethodRadioDot} />}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.paymentMethodText}>Online Payment</Text>
-                        <Text style={styles.paymentMethodSubtext}>Process via app</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
+            {/* Additional Charges - First Section */}
+            <Card>
+              <View style={styles.chargesHeader}>
+                <Text style={styles.sectionTitle}>Additional Charges</Text>
+                <TouchableOpacity onPress={() => setChargesModal(true)}>
+                  <Text style={styles.viewCharges}>View</Text>
+                </TouchableOpacity>
+              </View>
+              {charges && (
+                <View style={styles.chargesSummary}>
+                  <Text style={styles.chargesStat}>
+                    {charges.pending.length} pending • {charges.approved.length} approved
+                  </Text>
+                  {charges.total > 0 && (
+                    <Text style={styles.chargesTotal}>Total: {formatCurrency(charges.total)}</Text>
+                  )}
                 </View>
               )}
-
-              {/* Show Payment QR button for pay_later bookings with online payment */}
-              {booking.paymentMethod === 'pay_later' && paymentMethod === 'online' && (
-                <Button
-                  label="Show Payment QR Code"
-                  onPress={() => navigation.navigate('PaymentQR', { booking })}
-                  icon="qr-code-outline"
-                  variant="secondary"
-                  fullWidth
-                  style={{ marginTop: Spacing.md }}
-                />
-              )}
-
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+              <Text style={styles.chargesNote}>Customer approves before payment is charged</Text>
               <Button
-                label="Mark Job Completed"
-                onPress={() => handleStatusChange('completed')}
-                loading={loading}
-                fullWidth
-                icon="checkmark-circle"
-                style={{ marginTop: Spacing.md }}
+                label="Add Charges"
+                onPress={() => setAddChargeModal(true)}
+                variant="outline"
+                size="sm"
+                style={{ marginTop: Spacing.sm }}
               />
             </Card>
 
@@ -875,7 +828,8 @@ export const BookingDetailScreen = () => {
               )}
             </Card>
 
-            {/* Parts Replacement */}
+            {/* Parts Replacement - only show after charges added */}
+            {charges && (charges.pending.length > 0 || charges.approved.length > 0) && (
             <Card>
               <Text style={styles.sectionTitle}>Parts Replaced</Text>
               {parts.length > 0 && (
@@ -909,34 +863,85 @@ export const BookingDetailScreen = () => {
                 style={{ marginTop: parts.length > 0 ? Spacing.md : 0 }}
               />
             </Card>
+            )}
 
-            {/* Additional Charges */}
-            <Card>
-              <View style={styles.chargesHeader}>
-                <Text style={styles.sectionTitle}>Additional Charges</Text>
-                <TouchableOpacity onPress={() => setChargesModal(true)}>
-                  <Text style={styles.viewCharges}>View</Text>
-                </TouchableOpacity>
-              </View>
-              {charges && (
-                <View style={styles.chargesSummary}>
-                  <Text style={styles.chargesStat}>
-                    {charges.pending.length} pending • {charges.approved.length} approved
-                  </Text>
-                  {charges.total > 0 && (
-                    <Text style={styles.chargesTotal}>Total: {formatCurrency(charges.total)}</Text>
-                  )}
-                </View>
-              )}
-              <Text style={styles.chargesNote}>Customer approves before payment is charged</Text>
-              <Button
-                label="Add Charges"
-                onPress={() => setAddChargeModal(true)}
-                variant="outline"
-                size="sm"
-                style={{ marginTop: Spacing.sm }}
-              />
-            </Card>
+            {/* Complete Job - Only show after charges added */}
+            {charges && (charges.pending.length > 0 || charges.approved.length > 0) && (
+              <Card style={styles.otpCard}>
+                <Text style={styles.sectionTitle}>Complete Job</Text>
+                <Text style={styles.otpHint}>Mark this job as completed when service is finished</Text>
+
+                {/* Payment method selection for pay_later bookings */}
+                {booking.paymentMethod === 'pay_later' && (
+                  <View style={styles.paymentMethodSection}>
+                    <Text style={styles.paymentMethodLabel}>How did customer pay?</Text>
+                    <View style={styles.paymentMethodOptions}>
+                      <TouchableOpacity
+                        style={[
+                          styles.paymentMethodOption,
+                          paymentMethod === 'cash' && styles.paymentMethodOptionActive
+                        ]}
+                        onPress={() => setPaymentMethod('cash')}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[
+                          styles.paymentMethodRadio,
+                          paymentMethod === 'cash' && styles.paymentMethodRadioActive
+                        ]}>
+                          {paymentMethod === 'cash' && <View style={styles.paymentMethodRadioDot} />}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.paymentMethodText}>Cash</Text>
+                          <Text style={styles.paymentMethodSubtext}>I received ₹{booking.finalTotal || booking.total}</Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.paymentMethodOption,
+                          paymentMethod === 'online' && styles.paymentMethodOptionActive
+                        ]}
+                        onPress={() => setPaymentMethod('online')}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[
+                          styles.paymentMethodRadio,
+                          paymentMethod === 'online' && styles.paymentMethodRadioActive
+                        ]}>
+                          {paymentMethod === 'online' && <View style={styles.paymentMethodRadioDot} />}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.paymentMethodText}>Online Payment</Text>
+                          <Text style={styles.paymentMethodSubtext}>Process via app</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {/* Show Payment QR button for pay_later bookings with online payment */}
+                {booking.paymentMethod === 'pay_later' && paymentMethod === 'online' && (
+                  <Button
+                    label="Show Payment QR Code"
+                    onPress={() => navigation.navigate('PaymentQR', { booking })}
+                    icon="qr-code-outline"
+                    variant="secondary"
+                    fullWidth
+                    style={{ marginTop: Spacing.md }}
+                  />
+                )}
+
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                <Button
+                  label="Mark Job Completed"
+                  onPress={() => handleStatusChange('completed')}
+                  loading={loading}
+                  fullWidth
+                  icon="checkmark-circle"
+                  style={{ marginTop: Spacing.md }}
+                />
+              </Card>
+            )}
           </>
         )}
 
