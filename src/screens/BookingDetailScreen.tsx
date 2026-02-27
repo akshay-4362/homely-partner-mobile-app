@@ -419,8 +419,11 @@ export const BookingDetailScreen = () => {
     try {
       await bookingApi.addMedia(booking.id, 'before', beforeMedia);
       Alert.alert('Success', 'Before service media uploaded');
-    } catch {
-      Alert.alert('Error', 'Failed to upload media');
+      setBeforeMedia([]); // Clear uploaded media
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to upload media';
+      Alert.alert('Upload Failed', errorMsg);
+      console.error('Before media upload error:', error);
     }
     setLoading(false);
   };
@@ -434,8 +437,11 @@ export const BookingDetailScreen = () => {
     try {
       await bookingApi.addMedia(booking.id, 'after', afterMedia);
       Alert.alert('Success', 'After service media uploaded');
-    } catch {
-      Alert.alert('Error', 'Failed to upload media');
+      setAfterMedia([]); // Clear uploaded media
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to upload media';
+      Alert.alert('Upload Failed', errorMsg);
+      console.error('After media upload error:', error);
     }
     setLoading(false);
   };
@@ -481,34 +487,52 @@ export const BookingDetailScreen = () => {
     );
   };
 
-  const savePart = () => {
+  const savePart = async () => {
     if (!currentPart.oldPartName.trim() || !currentPart.newPartName.trim()) {
       Alert.alert('Error', 'Please fill in part names');
       return;
     }
 
-    if (editingPartId) {
-      // Update existing part
-      setParts(prev => prev.map(p => p.id === editingPartId
-        ? { ...p, ...currentPart }
-        : p
-      ));
-    } else {
-      // Add new part
-      setParts(prev => [...prev, {
-        id: Date.now().toString(),
-        ...currentPart,
+    setLoading(true);
+    try {
+      // Submit part to backend
+      await bookingApi.addParts(booking.id, [{
+        oldPartName: currentPart.oldPartName,
+        oldPartMedia: currentPart.oldPartMedia,
+        newPartName: currentPart.newPartName,
+        newPartMedia: currentPart.newPartMedia,
       }]);
-    }
 
-    setAddPartModal(false);
-    setCurrentPart({
-      oldPartName: '',
-      oldPartMedia: [],
-      newPartName: '',
-      newPartMedia: [],
-    });
-    setEditingPartId(null);
+      // Update local state
+      if (editingPartId) {
+        // Update existing part
+        setParts(prev => prev.map(p => p.id === editingPartId
+          ? { ...p, ...currentPart }
+          : p
+        ));
+      } else {
+        // Add new part
+        setParts(prev => [...prev, {
+          id: Date.now().toString(),
+          ...currentPart,
+        }]);
+      }
+
+      Alert.alert('Success', 'Part replacement recorded');
+      setAddPartModal(false);
+      setCurrentPart({
+        oldPartName: '',
+        oldPartMedia: [],
+        newPartName: '',
+        newPartMedia: [],
+      });
+      setEditingPartId(null);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to save part';
+      Alert.alert('Failed to Save Part', errorMsg);
+      console.error('Part save error:', error);
+    }
+    setLoading(false);
   };
 
   const submitCharges = async () => {

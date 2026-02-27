@@ -43,6 +43,19 @@ export const bookingApi = {
     return data.data || data;
   },
 
+  addParts: async (
+    bookingId: string,
+    parts: Array<{
+      oldPartName: string;
+      oldPartMedia: MediaItem[];
+      newPartName: string;
+      newPartMedia: MediaItem[];
+    }>
+  ) => {
+    const { data } = await client.post(`/bookings/${bookingId}/parts`, { parts });
+    return data.data || data;
+  },
+
   getInvoice: async (bookingId: string) => {
     const { data } = await client.get(`/invoices/booking/${bookingId}`);
     return data.data || data;
