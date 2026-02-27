@@ -125,15 +125,16 @@ export const TargetsScreen = () => {
       // Calculate subscription based on credit balance
       // Each job costs ₹300 (₹150 on assignment + ₹150 on completion)
       const creditPerJob = creditStats.creditPerJob || 150;
-      const currentBalance = creditStats.currentBalance || 0;
-      const jobsRemaining = Math.floor(currentBalance / (creditPerJob * 2));
-      const jobsAssigned = hubStats.totalJobsDelivered || 0;
-      const totalJobsPurchased = jobsRemaining + jobsAssigned;
+      const totalPurchased = creditStats.totalPurchased || 0;
+      const jobsAssigned = creditStats.jobsAssigned || 0;
+
+      const totalJobs = Math.floor(totalPurchased / (creditPerJob * 2));
+      const jobsRemaining = totalJobs - jobsAssigned;
 
       setSubscription({
         status: jobsRemaining > 0 ? 'ACTIVE' : 'EXPIRED',
         jobsReceived: jobsAssigned,
-        jobsLimit: totalJobsPurchased,
+        jobsLimit: totalJobs,
       });
     } catch (error) {
       console.error('Failed to load target data:', error);

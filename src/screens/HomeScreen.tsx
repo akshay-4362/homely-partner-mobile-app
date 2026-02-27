@@ -144,7 +144,14 @@ export const HomeScreen = () => {
               onAction={() => navigation.navigate('Jobs')}
             />
             {todayJobs.map((job) => (
-              <TodayJobCard key={job.bookingId} job={job} onPress={() => navigation.navigate('Jobs')} />
+              <TodayJobCard
+                key={job.bookingId}
+                job={job}
+                onPress={() => navigation.navigate('Jobs', {
+                  screen: 'BookingDetail',
+                  params: { booking: job }
+                })}
+              />
             ))}
           </View>
         )}
@@ -168,10 +175,12 @@ const TodayJobCard = ({ job, onPress }: { job: any; onPress: () => void }) => (
       <Badge status={job.status} label={job.status} />
     </View>
     <View style={styles.todayMid}>
-      <Text style={styles.todayName}>{job.customerName}</Text>
-      <Text style={styles.todayService}>{job.serviceName}</Text>
+      <Text style={styles.todayName} numberOfLines={2}>{job.customerName}</Text>
+      <Text style={styles.todayService} numberOfLines={2}>{job.serviceName}</Text>
     </View>
-    <Text style={styles.todayAmt}>{formatCurrency(job.earnings)}</Text>
+    <View style={styles.todayRight}>
+      <Text style={styles.todayAmt}>{formatCurrency(job.earnings)}</Text>
+    </View>
   </TouchableOpacity>
 );
 
@@ -202,17 +211,60 @@ const styles = StyleSheet.create({
   kpiLabel: { fontSize: 10, color: Colors.textSecondary, textAlign: 'center', fontWeight: '500' },
   section: { marginBottom: Spacing.xl },
   todayCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.sm,
-    borderLeftWidth: 3, borderLeftColor: Colors.primary,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 88,
   },
-  todayLeft: { width: 80, marginRight: Spacing.md, gap: 4 },
-  todayTime: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
-  todayMid: { flex: 1 },
-  todayName: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  todayService: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
-  todayAmt: { fontSize: 14, fontWeight: '700', color: Colors.success },
+  todayLeft: {
+    width: 90,
+    marginRight: Spacing.lg,
+    gap: 6,
+    alignItems: 'flex-start',
+  },
+  todayTime: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    letterSpacing: 0.3,
+  },
+  todayMid: {
+    flex: 1,
+    marginRight: Spacing.md,
+    justifyContent: 'center',
+  },
+  todayName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  todayService: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  todayRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  todayAmt: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.success,
+    letterSpacing: 0.2,
+  },
   pausedBanner: {
     flexDirection: 'row',
     alignItems: 'center',

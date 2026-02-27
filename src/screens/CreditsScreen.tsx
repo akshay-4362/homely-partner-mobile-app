@@ -28,29 +28,11 @@ export const CreditsScreen = ({ route }: any) => {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   const { stats, transactions, status } = useSelector((state: RootState) => state.credit);
-  const { items: bookings } = useAppSelector((s) => s.bookings);
   const balance = stats?.currentBalance || 0;
 
-  // Calculate THIS WEEK'S job stats (to match Target screen)
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - now.getDay()); // Start of current week (Sunday)
-  weekStart.setHours(0, 0, 0, 0);
-
-  // Total jobs received this week (all statuses except cancelled)
-  const thisWeekJobs = bookings.filter(
-    (b) => b.createdAt && new Date(b.createdAt) >= weekStart && b.status !== 'cancelled'
-  ).length;
-
-  // Completed jobs this week
-  const completedJobs = bookings.filter(
-    (b) => b.status === 'completed' && b.completedAt && new Date(b.completedAt) >= weekStart
-  ).length;
-
-  // Cancelled jobs this week
-  const cancelledJobs = bookings.filter(
-    (b) => b.status === 'cancelled' && b.updatedAt && new Date(b.updatedAt) >= weekStart
-  ).length;
+  // Calculate total jobs: jobs assigned vs total available
+  const jobsUsed = stats?.jobsAssigned || 0;
+  const totalJobs = stats ? Math.floor((stats.totalPurchased || 0) / (stats.creditPerJob * 2)) : 0;
 
   useEffect(() => {
     load();
@@ -112,32 +94,9 @@ export const CreditsScreen = ({ route }: any) => {
           <Text style={styles.balanceAmount}>{formatCurrency(balance)}</Text>
           {stats && (
             <Text style={styles.jobsRemaining}>
-              ~{Math.floor(stats.jobsRemaining / 2)} jobs remaining (₹{stats.creditPerJob * 2}/job)
+              {jobsUsed}/{totalJobs} jobs used (₹{stats.creditPerJob * 2}/job)
             </Text>
           )}
-
-          {/* Weekly Job Stats */}
-          <View style={styles.weeklyJobsCard}>
-            <Text style={styles.weeklyJobsLabel}>This Week</Text>
-            <Text style={styles.weeklyJobsValue}>{thisWeekJobs}/10 jobs</Text>
-          </View>
-
-          {/* Job Stats */}
-          <View style={styles.jobStats}>
-            <View style={styles.statItem}>
-              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
-              <Text style={styles.statValue}>{completedJobs}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
-            </View>
-
-            <View style={styles.statDivider} />
-
-            <View style={styles.statItem}>
-              <Ionicons name="close-circle" size={20} color={Colors.cancelled} />
-              <Text style={styles.statValue}>{cancelledJobs}</Text>
-              <Text style={styles.statLabel}>Cancelled</Text>
-            </View>
-          </View>
 
           <TouchableOpacity style={styles.rechargeBtn} onPress={handleAddCredits}>
             <Ionicons name="add-circle-outline" size={18} color="#fff" />
@@ -230,54 +189,7 @@ const styles = StyleSheet.create({
   },
   balanceLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '500', marginBottom: 8 },
   balanceAmount: { fontSize: 36, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  jobsRemaining: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginBottom: Spacing.md },
-  weeklyJobsCard: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    alignItems: 'center',
-  },
-  weeklyJobsLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  weeklyJobsValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  jobStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.lg,
-  },
-  statItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.8)',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
+  jobsRemaining: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginBottom: Spacing.lg },
   rechargeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: BorderRadius.full,

@@ -28,6 +28,9 @@ export interface CreditStats {
   jobsRemaining: number;
   warningThreshold: number;
   needsRecharge: boolean;
+  totalPurchased: number;
+  totalSpent: number;
+  jobsAssigned: number; // Total unique jobs assigned (with at least one deduction)
   monthlyStats: {
     purchase?: { total: number; count: number };
     job_deduction?: { total: number; count: number };
