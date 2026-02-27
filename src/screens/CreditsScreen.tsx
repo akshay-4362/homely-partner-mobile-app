@@ -19,10 +19,11 @@ import { useAppSelector } from '../hooks/useAppSelector';
 
 type Tab = 'all' | 'recharges' | 'expenses' | 'penalties';
 
-export const CreditsScreen = () => {
+export const CreditsScreen = ({ route }: any) => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
-  const [tab, setTab] = useState<Tab>('all');
+  const initialTab = route?.params?.initialTab || 'all';
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [refreshing, setRefreshing] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
@@ -30,9 +31,26 @@ export const CreditsScreen = () => {
   const { items: bookings } = useAppSelector((s) => s.bookings);
   const balance = stats?.currentBalance || 0;
 
-  // Calculate job stats
-  const completedJobs = bookings.filter((b) => b.status === 'completed').length;
-  const cancelledJobs = bookings.filter((b) => b.status === 'cancelled').length;
+  // Calculate THIS WEEK'S job stats (to match Target screen)
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay()); // Start of current week (Sunday)
+  weekStart.setHours(0, 0, 0, 0);
+
+  // Total jobs received this week (all statuses except cancelled)
+  const thisWeekJobs = bookings.filter(
+    (b) => b.createdAt && new Date(b.createdAt) >= weekStart && b.status !== 'cancelled'
+  ).length;
+
+  // Completed jobs this week
+  const completedJobs = bookings.filter(
+    (b) => b.status === 'completed' && b.completedAt && new Date(b.completedAt) >= weekStart
+  ).length;
+
+  // Cancelled jobs this week
+  const cancelledJobs = bookings.filter(
+    (b) => b.status === 'cancelled' && b.updatedAt && new Date(b.updatedAt) >= weekStart
+  ).length;
 
   useEffect(() => {
     load();
@@ -97,6 +115,12 @@ export const CreditsScreen = () => {
               ~{Math.floor(stats.jobsRemaining / 2)} jobs remaining (₹{stats.creditPerJob * 2}/job)
             </Text>
           )}
+
+          {/* Weekly Job Stats */}
+          <View style={styles.weeklyJobsCard}>
+            <Text style={styles.weeklyJobsLabel}>This Week</Text>
+            <Text style={styles.weeklyJobsValue}>{thisWeekJobs}/10 jobs</Text>
+          </View>
 
           {/* Job Stats */}
           <View style={styles.jobStats}>
@@ -207,6 +231,24 @@ const styles = StyleSheet.create({
   balanceLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '500', marginBottom: 8 },
   balanceAmount: { fontSize: 36, fontWeight: '800', color: '#fff', marginBottom: 4 },
   jobsRemaining: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginBottom: Spacing.md },
+  weeklyJobsCard: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    alignItems: 'center',
+  },
+  weeklyJobsLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  weeklyJobsValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+  },
   jobStats: {
     flexDirection: 'row',
     alignItems: 'center',

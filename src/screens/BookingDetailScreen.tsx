@@ -601,17 +601,13 @@ export const BookingDetailScreen = () => {
         <Card style={styles.locationCard}>
           <Text style={styles.sectionTitle}>Job Location</Text>
 
-          {/* Map Preview */}
+          {/* Map Preview - Placeholder since we don't have Google Maps API key */}
           {booking.lat && booking.lng && (
-            <TouchableOpacity onPress={openMapsApp} activeOpacity={0.8}>
-              <Image
-                source={{
-                  uri: `https://maps.googleapis.com/maps/api/staticmap?center=${booking.lat},${booking.lng}&zoom=15&size=600x200&markers=color:red%7C${booking.lat},${booking.lng}&key=AIzaSyDummy_Replace_With_Real_Key`,
-                }}
-                style={styles.mapImage}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
+            <View style={styles.mapPlaceholder}>
+              <Ionicons name="location" size={40} color={Colors.primary} />
+              <Text style={styles.mapPlaceholderText}>Location: {booking.lat.toFixed(4)}, {booking.lng.toFixed(4)}</Text>
+              <Text style={styles.mapPlaceholderHint}>Tap "Open in Maps" below to view</Text>
+            </View>
           )}
 
           {/* Full Address */}
@@ -752,71 +748,111 @@ export const BookingDetailScreen = () => {
 
               {/* Before Media */}
               <Text style={styles.mediaGroupLabel}>Before ({booking.beforeMedia?.length || 0})</Text>
-              <View style={styles.mediaRow}>
+
+              {/* Separate Photo and Video Buttons */}
+              <View style={styles.mediaButtonRow}>
                 <TouchableOpacity
-                  style={styles.addMediaBtn}
-                  onPress={() => openMediaBottomSheet('before')}
+                  style={styles.mediaActionBtn}
+                  onPress={() => {
+                    setMediaBottomSheet({ visible: false, target: 'before' });
+                    takePhoto();
+                  }}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="add-circle" size={20} color={Colors.primary} />
-                  <Text style={styles.addMediaText}>Add Media</Text>
+                  <Ionicons name="camera" size={22} color="#fff" />
+                  <Text style={styles.mediaActionBtnText}>Upload Photo</Text>
                 </TouchableOpacity>
 
-                {/* Before Media Preview Grid */}
-                {beforeMedia.length > 0 && (
-                  <View style={styles.mediaGrid}>
-                    {beforeMedia.map((media, index) => (
-                      <View key={index} style={styles.mediaPreview}>
-                        <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
-                        <TouchableOpacity
-                          style={styles.removeMediaBtn}
-                          onPress={() => removeMediaFromTarget('before', index)}
-                        >
-                          <Ionicons name="close-circle" size={20} color={Colors.error} />
-                        </TouchableOpacity>
-                        <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {beforeMedia.length > 0 && (
-                  <Button label="Submit Before Media" onPress={submitBeforeMedia} loading={loading} fullWidth />
-                )}
-              </View>
-
-              {/* After Media */}
-              <Text style={[styles.mediaGroupLabel, { marginTop: Spacing.md }]}>After ({booking.afterMedia?.length || 0})</Text>
-              <View style={styles.mediaRow}>
                 <TouchableOpacity
-                  style={[styles.addMediaBtn, { borderColor: Colors.success }]}
-                  onPress={() => openMediaBottomSheet('after')}
+                  style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
+                  onPress={() => {
+                    setMediaBottomSheet({ visible: false, target: 'before' });
+                    recordVideo();
+                  }}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="add-circle" size={20} color={Colors.success} />
-                  <Text style={[styles.addMediaText, { color: Colors.success }]}>Add Media</Text>
+                  <Ionicons name="videocam" size={22} color="#fff" />
+                  <Text style={styles.mediaActionBtnText}>Upload Video</Text>
                 </TouchableOpacity>
-
-                {/* After Media Preview Grid */}
-                {afterMedia.length > 0 && (
-                  <View style={styles.mediaGrid}>
-                    {afterMedia.map((media, index) => (
-                      <View key={index} style={styles.mediaPreview}>
-                        <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
-                        <TouchableOpacity
-                          style={styles.removeMediaBtn}
-                          onPress={() => removeMediaFromTarget('after', index)}
-                        >
-                          <Ionicons name="close-circle" size={20} color={Colors.error} />
-                        </TouchableOpacity>
-                        <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {afterMedia.length > 0 && (
-                  <Button label="Submit After Media" onPress={submitAfterMedia} loading={loading} fullWidth />
-                )}
               </View>
+
+              {/* Before Media Preview Grid */}
+              {beforeMedia.length > 0 && (
+                <View style={styles.mediaGrid}>
+                  {beforeMedia.map((media, index) => (
+                    <View key={index} style={styles.mediaPreview}>
+                      <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                      <TouchableOpacity
+                        style={styles.removeMediaBtn}
+                        onPress={() => removeMediaFromTarget('before', index)}
+                      >
+                        <Ionicons name="close-circle" size={20} color={Colors.error} />
+                      </TouchableOpacity>
+                      <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {beforeMedia.length > 0 && (
+                <Button label="Submit Before Media" onPress={submitBeforeMedia} loading={loading} fullWidth />
+              )}
+
+              {/* After Media - Only show after charges are added */}
+              {charges && (charges.pending.length > 0 || charges.approved.length > 0) && (
+                <>
+                  <Text style={[styles.mediaGroupLabel, { marginTop: Spacing.lg }]}>After ({booking.afterMedia?.length || 0})</Text>
+
+                  {/* Separate Photo and Video Buttons for After */}
+                  <View style={styles.mediaButtonRow}>
+                    <TouchableOpacity
+                      style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
+                      onPress={() => {
+                        setMediaBottomSheet({ visible: false, target: 'after' });
+                        takePhoto();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="camera" size={22} color="#fff" />
+                      <Text style={styles.mediaActionBtnText}>Upload Photo</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.mediaActionBtn, { backgroundColor: Colors.warning }]}
+                      onPress={() => {
+                        setMediaBottomSheet({ visible: false, target: 'after' });
+                        recordVideo();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="videocam" size={22} color="#fff" />
+                      <Text style={styles.mediaActionBtnText}>Upload Video</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* After Media Preview Grid */}
+                  {afterMedia.length > 0 && (
+                    <View style={styles.mediaGrid}>
+                      {afterMedia.map((media, index) => (
+                        <View key={index} style={styles.mediaPreview}>
+                          <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                          <TouchableOpacity
+                            style={styles.removeMediaBtn}
+                            onPress={() => removeMediaFromTarget('after', index)}
+                          >
+                            <Ionicons name="close-circle" size={20} color={Colors.error} />
+                          </TouchableOpacity>
+                          <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {afterMedia.length > 0 && (
+                    <Button label="Submit After Media" onPress={submitAfterMedia} loading={loading} fullWidth />
+                  )}
+                </>
+              )}
             </Card>
 
             {/* Parts Replacement */}
@@ -976,6 +1012,18 @@ export const BookingDetailScreen = () => {
               <Text style={styles.modalTitle}>Add Parts & Materials</Text>
               {newCharges.map((c, i) => (
                 <View key={i} style={styles.chargeItem}>
+                  <View style={styles.chargeItemHeader}>
+                    <Text style={styles.fieldLabel}>Charge #{i + 1}</Text>
+                    {newCharges.length > 1 && (
+                      <TouchableOpacity
+                        onPress={() => setNewCharges((prev) => prev.filter((_, idx) => idx !== i))}
+                        style={styles.removeChargeBtn}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={Colors.error} />
+                        <Text style={styles.removeChargeText}>Remove</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                   <Text style={styles.fieldLabel}>Part/Material Description</Text>
                   <TextInput
                     style={styles.otpInput}
@@ -1117,13 +1165,32 @@ export const BookingDetailScreen = () => {
                 placeholderTextColor={Colors.textTertiary}
               />
 
-              <TouchableOpacity
-                style={styles.addMediaBtn}
-                onPress={() => openMediaBottomSheet('oldPart')}
-              >
-                <Ionicons name="add-circle" size={20} color={Colors.textSecondary} />
-                <Text style={[styles.addMediaText, { color: Colors.textSecondary }]}>Add Media</Text>
-              </TouchableOpacity>
+              {/* Separate Photo and Video Buttons for Old Part */}
+              <View style={styles.mediaButtonRow}>
+                <TouchableOpacity
+                  style={[styles.mediaActionBtn, { backgroundColor: Colors.error }]}
+                  onPress={() => {
+                    setMediaBottomSheet({ visible: false, target: 'oldPart' });
+                    takePhoto();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="camera" size={20} color="#fff" />
+                  <Text style={styles.mediaActionBtnText}>Photo</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.mediaActionBtn, { backgroundColor: Colors.error }]}
+                  onPress={() => {
+                    setMediaBottomSheet({ visible: false, target: 'oldPart' });
+                    recordVideo();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="videocam" size={20} color="#fff" />
+                  <Text style={styles.mediaActionBtnText}>Video</Text>
+                </TouchableOpacity>
+              </View>
 
               {currentPart.oldPartMedia.length > 0 && (
                 <View style={styles.mediaGrid}>
@@ -1152,13 +1219,32 @@ export const BookingDetailScreen = () => {
                 placeholderTextColor={Colors.textTertiary}
               />
 
-              <TouchableOpacity
-                style={styles.addMediaBtn}
-                onPress={() => openMediaBottomSheet('newPart')}
-              >
-                <Ionicons name="add-circle" size={20} color={Colors.success} />
-                <Text style={[styles.addMediaText, { color: Colors.success }]}>Add Media</Text>
-              </TouchableOpacity>
+              {/* Separate Photo and Video Buttons for New Part */}
+              <View style={styles.mediaButtonRow}>
+                <TouchableOpacity
+                  style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
+                  onPress={() => {
+                    setMediaBottomSheet({ visible: false, target: 'newPart' });
+                    takePhoto();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="camera" size={20} color="#fff" />
+                  <Text style={styles.mediaActionBtnText}>Photo</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
+                  onPress={() => {
+                    setMediaBottomSheet({ visible: false, target: 'newPart' });
+                    recordVideo();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="videocam" size={20} color="#fff" />
+                  <Text style={styles.mediaActionBtnText}>Video</Text>
+                </TouchableOpacity>
+              </View>
 
               {currentPart.newPartMedia.length > 0 && (
                 <View style={styles.mediaGrid}>
@@ -1318,6 +1404,26 @@ const styles = StyleSheet.create({
   mediaThumb: { width: 60, height: 60, borderRadius: 8, backgroundColor: Colors.gray100 },
   mediaPreviewLabel: { flex: 1, fontSize: 13, color: Colors.textPrimary },
   chargeItem: { marginBottom: Spacing.md, paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider },
+  chargeItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  removeChargeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.errorBg,
+  },
+  removeChargeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.error,
+  },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: Spacing.sm },
   catChip: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: BorderRadius.full,
@@ -1359,6 +1465,29 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
     backgroundColor: Colors.gray100,
+  },
+  mapPlaceholder: {
+    width: '100%',
+    height: 180,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderStyle: 'dashed',
+  },
+  mapPlaceholderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primary,
+    marginTop: Spacing.sm,
+  },
+  mapPlaceholderHint: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 4,
   },
   addressRow: {
     flexDirection: 'row',
@@ -1466,6 +1595,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  mediaButtonRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  mediaActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  mediaActionBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   mediaGrid: {
     flexDirection: 'row',

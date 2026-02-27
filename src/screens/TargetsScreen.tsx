@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { proApi } from '../api/proApi';
+import { creditApi } from '../api/creditApi';
 
 interface MetricCard {
   id: string;
@@ -48,9 +49,11 @@ export const TargetsScreen = () => {
     try {
       setLoading(true);
 
-      // Fetch profile and hub stats
+      // Fetch profile, hub stats, and credit stats
       const profile = await proApi.fetchProfile();
       const hubStats = profile.hubStats || {};
+      const creditStatsResponse = await creditApi.getCreditStats();
+      const creditStats = creditStatsResponse.data || creditStatsResponse;
 
       // Calculate metrics based on actual data
       const rating = hubStats.rating || 5.0;
@@ -119,11 +122,18 @@ export const TargetsScreen = () => {
         setPerformanceStatus('good');
       }
 
-      // Mock subscription data - would need backend endpoint
+      // Calculate subscription based on credit balance
+      // Each job costs ₹300 (₹150 on assignment + ₹150 on completion)
+      const creditPerJob = creditStats.creditPerJob || 150;
+      const currentBalance = creditStats.currentBalance || 0;
+      const jobsRemaining = Math.floor(currentBalance / (creditPerJob * 2));
+      const jobsAssigned = hubStats.totalJobsDelivered || 0;
+      const totalJobsPurchased = jobsRemaining + jobsAssigned;
+
       setSubscription({
-        status: hubStats.thisWeekJobs >= 10 ? 'EXPIRED' : 'ACTIVE',
-        jobsReceived: hubStats.thisWeekJobs || 0,
-        jobsLimit: 10,
+        status: jobsRemaining > 0 ? 'ACTIVE' : 'EXPIRED',
+        jobsReceived: jobsAssigned,
+        jobsLimit: totalJobsPurchased,
       });
     } catch (error) {
       console.error('Failed to load target data:', error);
@@ -299,13 +309,25 @@ export const TargetsScreen = () => {
               />
             </View>
 
-            <TouchableOpacity
-              style={styles.detailsBtn}
-              onPress={() => navigation.navigate('Credits')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.detailsBtnText}>See details</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.detailsBtn, { flex: 1, marginRight: 8 }]}
+                onPress={() => navigation.navigate('Credits')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.detailsBtnText}>See details</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.detailsBtn, styles.historyBtn, { flex: 1 }]}
+                onPress={() => navigation.navigate('Credits', { initialTab: 'recharges' })}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="receipt-outline" size={16} color={Colors.primary} />
+                <Text style={[styles.detailsBtnText, { color: Colors.primary, marginLeft: 4 }]}>
+                  Credit History
+                </Text>
+              </TouchableOpacity>
+            </View>
           </Card>
 
           <TouchableOpacity
@@ -508,12 +530,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textPrimary,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   detailsBtn: {
     borderWidth: 1.5,
     borderColor: Colors.textPrimary,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyBtn: {
+    flexDirection: 'row',
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
   },
   detailsBtnText: {
     fontSize: 16,

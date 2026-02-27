@@ -40,6 +40,7 @@ export const UnifiedCalendarScreen = () => {
   );
   const [showHoursEditor, setShowHoursEditor] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [routineEnabled, setRoutineEnabled] = useState(true);
 
   // Generate next 7 days for strip
   const weekDates = useMemo(() => {
@@ -98,6 +99,116 @@ export const UnifiedCalendarScreen = () => {
     }
   };
 
+  // Quick routine presets
+  const applyRoutine = (routineType: string) => {
+    let newSchedule = [...weeklySchedule];
+
+    switch (routineType) {
+      case 'weekdays_9to5':
+        // Weekdays (Mon-Fri): 9 AM to 5 PM, Weekends: Off
+        newSchedule = newSchedule.map((day, idx) => {
+          const hours = Array(24).fill(false);
+          if (idx >= 1 && idx <= 5) { // Monday to Friday
+            for (let h = 9; h <= 17; h++) {
+              hours[h] = true; // 9 AM to 5 PM
+            }
+          }
+          return { ...day, hours };
+        });
+        break;
+
+      case 'weekends':
+        // Weekends (Sat-Sun): 8 AM to 8 PM, Weekdays: Off
+        newSchedule = newSchedule.map((day, idx) => {
+          const hours = Array(24).fill(false);
+          if (idx === 0 || idx === 6) { // Sunday or Saturday
+            for (let h = 8; h <= 20; h++) {
+              hours[h] = true; // 8 AM to 8 PM
+            }
+          }
+          return { ...day, hours };
+        });
+        break;
+
+      case 'all_days':
+        // All days: 8 AM to 8 PM
+        newSchedule = newSchedule.map(day => {
+          const hours = Array(24).fill(false);
+          for (let h = 8; h <= 20; h++) {
+            hours[h] = true; // 8 AM to 8 PM
+          }
+          return { ...day, hours };
+        });
+        break;
+
+      case 'clear_all':
+        // Clear all hours
+        newSchedule = newSchedule.map(day => ({
+          ...day,
+          hours: Array(24).fill(false),
+        }));
+        break;
+    }
+
+    setWeeklySchedule(newSchedule);
+  };
+
+  const showChangeRoutineOptions = () => {
+    Alert.alert(
+      'Change Routine',
+      'Choose a quick setup option',
+      [
+        {
+          text: 'Weekdays 9-5',
+          onPress: () => {
+            applyRoutine('weekdays_9to5');
+            Alert.alert('Applied', 'Weekdays 9 AM to 5 PM set');
+          }
+        },
+        {
+          text: 'Weekends 8-8',
+          onPress: () => {
+            applyRoutine('weekends');
+            Alert.alert('Applied', 'Weekends 8 AM to 8 PM set');
+          }
+        },
+        {
+          text: 'All Days 8-8',
+          onPress: () => {
+            applyRoutine('all_days');
+            Alert.alert('Applied', 'All days 8 AM to 8 PM set');
+          }
+        },
+        {
+          text: 'Clear All',
+          onPress: () => {
+            applyRoutine('clear_all');
+            Alert.alert('Cleared', 'All hours cleared');
+          },
+          style: 'destructive'
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+
+  const toggleRoutine = () => {
+    if (routineEnabled) {
+      // Disable: Clear all hours
+      applyRoutine('clear_all');
+      setRoutineEnabled(false);
+      Alert.alert('Routine Disabled', 'All availability cleared');
+    } else {
+      // Enable: Set to all days 8-8
+      applyRoutine('all_days');
+      setRoutineEnabled(true);
+      Alert.alert('Routine Enabled', 'All days 8 AM to 8 PM set');
+    }
+  };
+
   // Get selected day's schedule
   const selectedDayIndex = selectedDate.getDay(); // 0 = Sunday
   const selectedDaySchedule = weeklySchedule[selectedDayIndex];
@@ -146,11 +257,37 @@ export const UnifiedCalendarScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.changeRoutineBtn} onPress={saveSchedule}>
-          <Text style={styles.changeRoutineText}>
-            {saving ? 'Saving...' : 'Save routine'}
+        <View style={styles.headerButtons}>
+          <TouchableOpacity style={styles.changeRoutineBtn} onPress={showChangeRoutineOptions}>
+            <Text style={styles.changeRoutineText}>Change routine</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveBtn} onPress={saveSchedule}>
+            <Text style={styles.saveBtnText}>
+              {saving ? 'Saving...' : 'Save'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Routine Enable/Disable Toggle */}
+      <View style={styles.routineToggleCard}>
+        <View style={styles.routineToggleLeft}>
+          <Ionicons
+            name={routineEnabled ? 'time' : 'time-outline'}
+            size={20}
+            color={routineEnabled ? Colors.success : Colors.textSecondary}
+          />
+          <Text style={styles.routineToggleText}>
+            {routineEnabled ? 'Routine Enabled' : 'Routine Disabled'}
           </Text>
-        </TouchableOpacity>
+        </View>
+        <Switch
+          value={routineEnabled}
+          onValueChange={toggleRoutine}
+          trackColor={{ false: Colors.gray300, true: '#4CD964' }}
+          thumbColor="#fff"
+          ios_backgroundColor={Colors.gray300}
+        />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -277,8 +414,12 @@ const styles = StyleSheet.create({
   backBtn: {
     padding: 8,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   changeRoutineBtn: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
@@ -287,6 +428,38 @@ const styles = StyleSheet.create({
   },
   changeRoutineText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  saveBtn: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.primary,
+  },
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  routineToggleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.sm,
+  },
+  routineToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  routineToggleText: {
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
