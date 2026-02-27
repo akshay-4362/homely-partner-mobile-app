@@ -26,10 +26,17 @@ export const UnifiedCalendarScreen = () => {
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weeklySchedule, setWeeklySchedule] = useState<DaySchedule[]>(
-    Array(7).fill(null).map((_, idx) => ({
-      day: DAYS_SHORT[idx].toLowerCase(),
-      hours: Array(24).fill(true), // Default all available
-    }))
+    Array(7).fill(null).map((_, idx) => {
+      // Create 24 hours array with only 8 AM to 8 PM (hours 8-20) set to true
+      const hours = Array(24).fill(false);
+      for (let h = 8; h <= 20; h++) {
+        hours[h] = true; // 8 AM to 8 PM all available by default
+      }
+      return {
+        day: DAYS_SHORT[idx].toLowerCase(),
+        hours,
+      };
+    })
   );
   const [showHoursEditor, setShowHoursEditor] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -218,11 +225,12 @@ export const UnifiedCalendarScreen = () => {
           />
         </TouchableOpacity>
 
-        {/* Hourly Slots */}
+        {/* Hourly Slots - 8 AM to 8 PM only */}
         {showHoursEditor && (
           <View style={styles.hoursContainer}>
-            {Array.from({ length: 24 }, (_, hour) => {
-              const nextHour = (hour + 1) % 24;
+            {Array.from({ length: 13 }, (_, idx) => {
+              const hour = 8 + idx; // Start at 8 AM (8) to 8 PM (20)
+              const nextHour = hour + 1;
               const formatHour = (h: number) => {
                 const period = h < 12 ? 'AM' : 'PM';
                 const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
