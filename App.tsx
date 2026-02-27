@@ -3,7 +3,6 @@ import React, { useEffect, useRef } from 'react';
 import { Provider, useDispatch } from 'react-redux';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { StripeProvider } from '@stripe/stripe-react-native';
 import { NavigationContainerRef } from '@react-navigation/native';
 import { store } from './src/store';
 import { AppNavigator } from './src/navigation';
@@ -15,9 +14,6 @@ import {
   registerForPushNotifications,
   setupNotificationListeners,
 } from './src/services/notificationService';
-
-// Stripe publishable key - Replace with your actual key
-const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_YOUR_KEY_HERE';
 
 const AppInner = () => {
   const dispatch = useDispatch();
@@ -64,9 +60,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
-        <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
-          <AppInner />
-        </StripeProvider>
+        <AppInner />
       </Provider>
     </GestureHandlerRootView>
   );

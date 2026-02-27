@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useStripe } from '@stripe/stripe-react-native';
+import RazorpayCheckout from 'react-native-razorpay';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Button } from './common/Button';
 import { formatCurrency } from '../utils/format';
@@ -39,7 +39,6 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [selectedAmount, setSelectedAmount] = useState<number>(50000);
   const [processing, setProcessing] = useState(false);
 
@@ -47,44 +46,37 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
     try {
       setProcessing(true);
 
-      // Step 1: Create payment intent on backend
+      // Step 1: Create Razorpay order on backend
       const { data } = await creditApi.createPurchaseIntent(selectedAmount);
-      const { clientSecret, paymentIntentId } = data;
+      const { orderId, amount, keyId } = data;
 
-      // Step 2: Initialize payment sheet
-      const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'Homelyo Professional',
-        paymentIntentClientSecret: clientSecret,
-        defaultBillingDetails: {
+      // Step 2: Prepare Razorpay options
+      const options = {
+        description: 'Credit Purchase',
+        image: 'https://your-logo-url.com/logo.png', // Optional: Add your logo
+        currency: 'INR',
+        key: keyId,
+        amount: amount, // Amount in paise
+        name: 'Homelyo Professional',
+        order_id: orderId,
+        prefill: {
           name: 'Professional Partner',
         },
-        appearance: {
-          colors: {
-            primary: Colors.primary,
-          },
+        theme: {
+          color: Colors.primary,
         },
-      });
+      };
 
-      if (initError) {
-        Alert.alert('Error', initError.message);
-        setProcessing(false);
-        return;
-      }
+      // Step 3: Open Razorpay checkout
+      const paymentData = await RazorpayCheckout.open(options);
 
-      // Step 3: Present payment sheet
-      const { error: presentError } = await presentPaymentSheet();
-
-      if (presentError) {
-        if (presentError.code !== 'Canceled') {
-          Alert.alert('Payment failed', presentError.message);
-        }
-        setProcessing(false);
-        return;
-      }
-
-      // Step 4: Confirm purchase on backend
+      // Step 4: Payment successful - confirm on backend
       try {
-        await creditApi.confirmPurchase(paymentIntentId, selectedAmount);
+        await creditApi.confirmPurchase(
+          paymentData.razorpay_payment_id,
+          paymentData.razorpay_order_id,
+          selectedAmount
+        );
 
         Alert.alert(
           'Success!',
@@ -108,9 +100,17 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
       }
     } catch (error: any) {
       console.error('Purchase error:', error);
+
+      // Handle user cancelled payment
+      if (error.code === RazorpayCheckout.PAYMENT_CANCELLED) {
+        // User cancelled - do nothing
+        setProcessing(false);
+        return;
+      }
+
       Alert.alert(
         'Purchase failed',
-        error.response?.data?.message || 'Failed to process payment. Please try again.'
+        error.description || error.message || 'Failed to process payment. Please try again.'
       );
     } finally {
       setProcessing(false);

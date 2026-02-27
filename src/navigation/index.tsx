@@ -29,6 +29,9 @@ import { MyHubScreen } from '../screens/MyHubScreen';
 import { ReviewsScreen } from '../screens/ReviewsScreen';
 import { TargetsScreen } from '../screens/TargetsScreen';
 import { UnifiedCalendarScreen } from '../screens/UnifiedCalendarScreen';
+import { PaymentQRScreen } from '../screens/PaymentQRScreen';
+import { BankAccountSetupScreen } from '../screens/BankAccountSetupScreen';
+import { PayoutAccountsScreen } from '../screens/PayoutAccountsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -39,6 +42,7 @@ const BookingStackNav = () => (
   <BookingStack.Navigator screenOptions={{ headerShown: false }}>
     <BookingStack.Screen name="BookingsList" component={BookingsScreen} />
     <BookingStack.Screen name="BookingDetail" component={BookingDetailScreen} />
+    <BookingStack.Screen name="PaymentQR" component={PaymentQRScreen} />
     <BookingStack.Screen name="Chat" component={ChatScreen} />
   </BookingStack.Navigator>
 );
@@ -134,6 +138,8 @@ const DrawerNav = () => (
     <Drawer.Screen name="MyHub" component={MyHubScreen} />
     <Drawer.Screen name="Reviews" component={ReviewsScreen} />
     <Drawer.Screen name="Targets" component={TargetsScreen} />
+    <Drawer.Screen name="PayoutAccounts" component={PayoutAccountsScreen} />
+    <Drawer.Screen name="BankAccountSetup" component={BankAccountSetupScreen} />
   </Drawer.Navigator>
 );
 

@@ -11,7 +11,10 @@ export interface CreditTransaction {
     bookingNumber: string;
     scheduledDate: string;
   };
-  paymentIntentId?: string;
+  // Payment gateway fields
+  paymentIntentId?: string; // Deprecated: Stripe (kept for historical data)
+  razorpayPaymentId?: string;
+  razorpayOrderId?: string;
   description: string;
   balanceAfter: number;
   metadata?: any;
@@ -45,8 +48,10 @@ export interface CreditHistory {
 
 export interface CreatePurchaseIntentResponse {
   data: {
-    clientSecret: string;
-    paymentIntentId: string;
+    orderId: string;
+    amount: number;
+    currency: string;
+    keyId: string;
   };
 }
 
@@ -80,19 +85,21 @@ export const getCreditTransactions = async (params?: {
   return response.data;
 };
 
-// Create payment intent for credit purchase
+// Create Razorpay order for credit purchase
 export const createPurchaseIntent = async (amount: number): Promise<CreatePurchaseIntentResponse> => {
   const response = await client.post('/credits/create-purchase-intent', { amount });
   return response.data;
 };
 
-// Confirm credit purchase after payment
+// Confirm credit purchase after successful Razorpay payment
 export const confirmPurchase = async (
-  paymentIntentId: string,
+  razorpayPaymentId: string,
+  razorpayOrderId: string,
   amount: number
 ): Promise<ConfirmPurchaseResponse> => {
   const response = await client.post('/credits/confirm-purchase', {
-    paymentIntentId,
+    razorpayPaymentId,
+    razorpayOrderId,
     amount,
   });
   return response.data;

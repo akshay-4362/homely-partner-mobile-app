@@ -723,6 +723,18 @@ export const BookingDetailScreen = () => {
                 </View>
               )}
 
+              {/* Show Payment QR button for pay_later bookings with online payment */}
+              {booking.paymentMethod === 'pay_later' && paymentMethod === 'online' && (
+                <Button
+                  label="Show Payment QR Code"
+                  onPress={() => navigation.navigate('PaymentQR', { booking })}
+                  icon="qr-code-outline"
+                  variant="secondary"
+                  fullWidth
+                  style={{ marginTop: Spacing.md }}
+                />
+              )}
+
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
               <Button
                 label="Mark Job Completed"
