@@ -35,6 +35,7 @@ export const BookingDetailScreen = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
   const initialBooking: ProBooking = route.params?.booking;
+  const fromScreen = route.params?.fromScreen; // Track where user came from
 
   // Use local state for booking to allow updates
   const [booking, setBooking] = useState<ProBooking>(initialBooking);
@@ -596,7 +597,18 @@ export const BookingDetailScreen = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Nav */}
       <View style={styles.nav}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => {
+            if (fromScreen) {
+              // Navigate to specific screen if coming from outside Jobs tab
+              navigation.navigate('MainTabs', { screen: fromScreen });
+            } else {
+              // Default back behavior for Jobs tab navigation
+              navigation.goBack();
+            }
+          }}
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Job Detail</Text>
@@ -744,7 +756,15 @@ export const BookingDetailScreen = () => {
               <Text style={styles.sectionTitle}>Job Media</Text>
 
               {/* Before Media */}
-              <Text style={styles.mediaGroupLabel}>Before ({booking.beforeMedia?.length || 0})</Text>
+              <View style={styles.mediaHeaderRow}>
+                <Text style={styles.mediaGroupLabel}>
+                  Before Photos/Videos
+                </Text>
+                <Text style={styles.mediaCount}>
+                  {booking.beforeMedia?.length || 0} uploaded
+                  {beforeMedia.length > 0 && ` • ${beforeMedia.length} pending`}
+                </Text>
+              </View>
 
               {/* Separate Photo and Video Buttons */}
               <View style={styles.mediaButtonRow}>
@@ -773,7 +793,25 @@ export const BookingDetailScreen = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Before Media Preview Grid */}
+              {/* Already Uploaded Before Media */}
+              {booking.beforeMedia && booking.beforeMedia.length > 0 && (
+                <View style={styles.uploadedMediaSection}>
+                  <Text style={styles.uploadedMediaLabel}>✓ Uploaded</Text>
+                  <View style={styles.mediaGrid}>
+                    {booking.beforeMedia.map((media, index) => (
+                      <View key={`uploaded-before-${index}`} style={styles.mediaPreview}>
+                        <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                        <View style={styles.uploadedBadge}>
+                          <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                        </View>
+                        <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Before Media Preview Grid - Pending Upload */}
               {beforeMedia.length > 0 && (
                 <View style={styles.mediaGrid}>
                   {beforeMedia.map((media, index) => (
@@ -798,7 +836,15 @@ export const BookingDetailScreen = () => {
               {/* After Media - Only show after charges are added */}
               {charges && (charges.pending.length > 0 || charges.approved.length > 0) && (
                 <>
-                  <Text style={[styles.mediaGroupLabel, { marginTop: Spacing.lg }]}>After ({booking.afterMedia?.length || 0})</Text>
+                  <View style={[styles.mediaHeaderRow, { marginTop: Spacing.xl }]}>
+                    <Text style={styles.mediaGroupLabel}>
+                      After Photos/Videos
+                    </Text>
+                    <Text style={styles.mediaCount}>
+                      {booking.afterMedia?.length || 0} uploaded
+                      {afterMedia.length > 0 && ` • ${afterMedia.length} pending`}
+                    </Text>
+                  </View>
 
                   {/* Separate Photo and Video Buttons for After */}
                   <View style={styles.mediaButtonRow}>
@@ -827,7 +873,25 @@ export const BookingDetailScreen = () => {
                     </TouchableOpacity>
                   </View>
 
-                  {/* After Media Preview Grid */}
+                  {/* Already Uploaded After Media */}
+                  {booking.afterMedia && booking.afterMedia.length > 0 && (
+                    <View style={styles.uploadedMediaSection}>
+                      <Text style={styles.uploadedMediaLabel}>✓ Uploaded</Text>
+                      <View style={styles.mediaGrid}>
+                        {booking.afterMedia.map((media, index) => (
+                          <View key={`uploaded-after-${index}`} style={styles.mediaPreview}>
+                            <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                            <View style={styles.uploadedBadge}>
+                              <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                            </View>
+                            <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* After Media Preview Grid - Pending Upload */}
                   {afterMedia.length > 0 && (
                     <View style={styles.mediaGrid}>
                       {afterMedia.map((media, index) => (
@@ -1406,7 +1470,36 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBg, padding: Spacing.md, borderRadius: BorderRadius.md,
   },
   mediaBtnText: { fontSize: 12, color: Colors.primary, fontWeight: '600' },
-  mediaGroupLabel: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary, marginBottom: Spacing.sm },
+  mediaHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  mediaGroupLabel: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
+  mediaCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  uploadedMediaSection: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  uploadedMediaLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.success,
+    marginBottom: Spacing.sm,
+  },
+  uploadedBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 12,
+    padding: 2,
+  },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary, marginBottom: 4, marginTop: 6 },
   chargesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
   viewCharges: { fontSize: 13, color: Colors.primary, fontWeight: '600' },

@@ -38,14 +38,21 @@ const Tab = createBottomTabNavigator();
 const BookingStack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
-const BookingStackNav = () => (
-  <BookingStack.Navigator screenOptions={{ headerShown: false }}>
-    <BookingStack.Screen name="BookingsList" component={BookingsScreen} />
-    <BookingStack.Screen name="BookingDetail" component={BookingDetailScreen} />
-    <BookingStack.Screen name="PaymentQR" component={PaymentQRScreen} />
-    <BookingStack.Screen name="Chat" component={ChatScreen} />
-  </BookingStack.Navigator>
-);
+const BookingStackNav = () => {
+  const stackRef = React.useRef<any>(null);
+
+  return (
+    <BookingStack.Navigator
+      ref={stackRef}
+      screenOptions={{ headerShown: false }}
+    >
+      <BookingStack.Screen name="BookingsList" component={BookingsScreen} />
+      <BookingStack.Screen name="BookingDetail" component={BookingDetailScreen} />
+      <BookingStack.Screen name="PaymentQR" component={PaymentQRScreen} />
+      <BookingStack.Screen name="Chat" component={ChatScreen} />
+    </BookingStack.Navigator>
+  );
+};
 
 const MainTabs = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -108,7 +115,13 @@ const MainTabs = ({ navigation }: any) => {
     })}
   >
     <Tab.Screen name="Home" component={HomeScreen} />
-    <Tab.Screen name="Jobs" component={BookingStackNav} />
+    <Tab.Screen
+      name="Jobs"
+      component={BookingStackNav}
+      options={{
+        unmountOnBlur: true, // Reset Jobs stack when navigating away from it
+      }}
+    />
     <Tab.Screen name="Earnings" component={EarningsScreen} />
     <Tab.Screen name="Target" component={TargetsScreen} />
     <Tab.Screen name="Profile" component={ProfileScreen} />

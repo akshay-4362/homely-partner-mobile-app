@@ -149,7 +149,7 @@ export const HomeScreen = () => {
                 job={job}
                 onPress={() => navigation.navigate('Jobs', {
                   screen: 'BookingDetail',
-                  params: { booking: job }
+                  params: { booking: job, fromScreen: 'Home' }
                 })}
               />
             ))}
