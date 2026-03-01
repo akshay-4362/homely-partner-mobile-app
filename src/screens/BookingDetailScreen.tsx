@@ -755,7 +755,7 @@ export const BookingDetailScreen = () => {
             <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
             <Text style={styles.infoText}>Booking Date: {formatDate(booking.scheduledAt)}</Text>
           </View>
-          {booking.addressLine && (
+          {!!booking.addressLine && (
             isCompleted ? (
               <View style={styles.infoRow}>
                 <Ionicons name="location-outline" size={16} color={Colors.textTertiary} />
@@ -780,7 +780,7 @@ export const BookingDetailScreen = () => {
           <Text style={styles.sectionTitle}>Job Location</Text>
 
           {/* Map Preview - MapMyIndia */}
-          {booking.lat && booking.lng && (
+          {!!(booking.lat && booking.lng) && (
             isCompleted ? (
               <Image
                 source={{
