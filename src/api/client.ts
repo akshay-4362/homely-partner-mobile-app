@@ -57,7 +57,7 @@ client.interceptors.response.use(
       try {
         const refreshToken = await getRefreshToken();
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
-        const { accessToken, refreshToken: newRefresh } = data;
+        const { accessToken, refreshToken: newRefresh } = data.data;
 
         await setTokens(accessToken, newRefresh);
         client.defaults.headers.common.Authorization = `Bearer ${accessToken}`;

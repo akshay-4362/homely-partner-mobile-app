@@ -29,16 +29,72 @@ import { useSocket } from '../hooks/useSocket';
 
 const CHARGE_CATEGORIES = ['materials', 'extra_work', 'transport', 'other'];
 
+// Normalize raw backend booking data to match ProBooking shape
+const normalizeBooking = (b: any): ProBooking => ({
+  id: b._id || b.id || b.bookingId,
+  bookingNumber: b.bookingNumber,
+  serviceName: b.service?.name || b.serviceName || 'Service',
+  customerName: b.customer
+    ? `${b.customer.firstName} ${b.customer.lastName}`
+    : b.customerName || 'Customer',
+  customerPhone: b.customer?.phone || b.customerPhone,
+  scheduledAt: b.scheduledAt,
+  status: b.status,
+  city: b.address?.city || b.addressSnapshot?.city || b.city,
+  paymentMethod: b.paymentMethod,
+  paymentStatus: b.payment?.status || b.paymentStatus,
+  paidAt: b.payment?.paidAt || b.paidAt,
+  paymentAmount: b.payment?.amount || b.paymentAmount,
+  paymentIntentId: b.payment?.stripePaymentIntentId || b.paymentIntentId,
+  addressLine: b.address
+    ? [b.address.line1, b.address.city].filter(Boolean).join(', ')
+    : b.addressSnapshot
+      ? [b.addressSnapshot.line1, b.addressSnapshot.city].filter(Boolean).join(', ')
+      : b.addressLine,
+  addressFull: b.address
+    ? [b.address.line1, b.address.line2, b.address.city, b.address.state, b.address.pincode]
+      .filter(Boolean)
+      .join(', ')
+    : b.addressSnapshot
+      ? [b.addressSnapshot.line1, b.addressSnapshot.line2, b.addressSnapshot.city, b.addressSnapshot.state, b.addressSnapshot.pincode]
+        .filter(Boolean)
+        .join(', ')
+      : b.addressFull,
+  lat: b.address?.lat || b.addressSnapshot?.lat || b.lat,
+  lng: b.address?.lng || b.addressSnapshot?.lng || b.lng,
+  total: b.total ?? b.pricing?.total ?? b.earnings ?? 0,
+  additionalChargesTotal: b.additionalChargesTotal ?? 0,
+  finalTotal: b.finalTotal ?? b.total ?? b.earnings ?? 0,
+  creditDeducted: b.creditDeducted ?? b.pricing?.creditDeducted,
+  beforeMedia: b.beforeMedia || [],
+  afterMedia: b.afterMedia || [],
+  warrantyExpiresAt: b.warrantyExpiresAt,
+  warrantyClaimed: b.warrantyClaimed,
+  warrantyClaimReason: b.warrantyClaimReason,
+  startOtp: b.startOtp,
+  completionOtp: b.completionOtp,
+});
+
 export const BookingDetailScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
-  const initialBooking: ProBooking = route.params?.booking;
+  const initialBooking: ProBooking = normalizeBooking(route.params?.booking);
   const fromScreen = route.params?.fromScreen; // Track where user came from
 
   // Use local state for booking to allow updates
   const [booking, setBooking] = useState<ProBooking>(initialBooking);
+
+  // Reset booking state when navigating to a different job
+  useEffect(() => {
+    setBooking(normalizeBooking(route.params?.booking));
+    setOtp('');
+    setError('');
+    setCharges(null);
+    setBeforeMedia([]);
+    setAfterMedia([]);
+  }, [route.params?.booking]);
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,6 +102,7 @@ export const BookingDetailScreen = () => {
   const [faceVerificationModal, setFaceVerificationModal] = useState(false);
   const [faceVerified, setFaceVerified] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [fullImageUri, setFullImageUri] = useState<string | null>(null);
 
   // Charges
   const [charges, setCharges] = useState<{ pending: AdditionalCharge[]; approved: AdditionalCharge[]; total: number } | null>(null);
@@ -85,6 +142,27 @@ export const BookingDetailScreen = () => {
   const socket = useSocket();
 
   useEffect(() => {
+    // Fetch full booking details to get media data (list API may not include it)
+    const loadFullBooking = async () => {
+      try {
+        if (booking.id) {
+          const raw = await bookingApi.getBookingById(booking.id);
+          const full = normalizeBooking(raw);
+          setBooking((prev) => ({
+            ...prev,
+            beforeMedia: full.beforeMedia,
+            afterMedia: full.afterMedia,
+            total: full.total || prev.total,
+            finalTotal: full.finalTotal || prev.finalTotal,
+            additionalChargesTotal: full.additionalChargesTotal ?? prev.additionalChargesTotal,
+          }));
+        }
+      } catch (e) {
+        console.log('Failed to load full booking details:', e);
+      }
+    };
+    loadFullBooking();
+
     if (booking.status === 'in_progress' || booking.status === 'completed') {
       loadCharges();
     }
@@ -421,7 +499,8 @@ export const BookingDetailScreen = () => {
       await bookingApi.addMedia(booking.id, 'before', beforeMedia);
       setBeforeMedia([]); // Clear pending media
       // Reload booking so the uploaded count updates correctly
-      const updated = await bookingApi.getBookingById(booking.id);
+      const raw = await bookingApi.getBookingById(booking.id);
+      const updated = normalizeBooking(raw);
       setBooking((prev) => ({ ...prev, beforeMedia: updated.beforeMedia }));
       Alert.alert('Success', 'Before service media uploaded');
     } catch (error: any) {
@@ -442,7 +521,8 @@ export const BookingDetailScreen = () => {
       await bookingApi.addMedia(booking.id, 'after', afterMedia);
       setAfterMedia([]); // Clear pending media
       // Reload booking so the uploaded count updates correctly
-      const updated = await bookingApi.getBookingById(booking.id);
+      const raw = await bookingApi.getBookingById(booking.id);
+      const updated = normalizeBooking(raw);
       setBooking((prev) => ({ ...prev, afterMedia: updated.afterMedia }));
       Alert.alert('Success', 'After service media uploaded');
     } catch (error: any) {
@@ -829,13 +909,13 @@ export const BookingDetailScreen = () => {
                   <Text style={styles.uploadedMediaLabel}>✓ Uploaded</Text>
                   <View style={styles.mediaGrid}>
                     {booking.beforeMedia.map((media, index) => (
-                      <View key={`uploaded-before-${index}`} style={styles.mediaPreview}>
+                      <TouchableOpacity key={`uploaded-before-${index}`} style={styles.mediaGridItem} onPress={() => setFullImageUri(media.dataUrl)} activeOpacity={0.8}>
                         <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
                         <View style={styles.uploadedBadge}>
                           <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
                         </View>
                         <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                      </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 </View>
@@ -845,7 +925,7 @@ export const BookingDetailScreen = () => {
               {beforeMedia.length > 0 && (
                 <View style={styles.mediaGrid}>
                   {beforeMedia.map((media, index) => (
-                    <View key={index} style={styles.mediaPreview}>
+                    <View key={index} style={styles.mediaGridItem}>
                       <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
                       <TouchableOpacity
                         style={styles.removeMediaBtn}
@@ -876,32 +956,34 @@ export const BookingDetailScreen = () => {
                     </Text>
                   </View>
 
-                  {/* Separate Photo and Video Buttons for After */}
-                  <View style={styles.mediaButtonRow}>
-                    <TouchableOpacity
-                      style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
-                      onPress={() => {
-                        setMediaBottomSheet({ visible: false, target: 'after' });
-                        takePhoto();
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="camera" size={22} color="#fff" />
-                      <Text style={styles.mediaActionBtnText}>Upload Photo</Text>
-                    </TouchableOpacity>
+                  {/* Only show upload buttons if after media hasn't been uploaded yet */}
+                  {!(booking.afterMedia && booking.afterMedia.length > 0) && (
+                    <View style={styles.mediaButtonRow}>
+                      <TouchableOpacity
+                        style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
+                        onPress={() => {
+                          setMediaBottomSheet({ visible: false, target: 'after' });
+                          takePhoto();
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="camera" size={22} color="#fff" />
+                        <Text style={styles.mediaActionBtnText}>Upload Photo</Text>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[styles.mediaActionBtn, { backgroundColor: Colors.warning }]}
-                      onPress={() => {
-                        setMediaBottomSheet({ visible: false, target: 'after' });
-                        recordVideo();
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="videocam" size={22} color="#fff" />
-                      <Text style={styles.mediaActionBtnText}>Upload Video</Text>
-                    </TouchableOpacity>
-                  </View>
+                      <TouchableOpacity
+                        style={[styles.mediaActionBtn, { backgroundColor: Colors.warning }]}
+                        onPress={() => {
+                          setMediaBottomSheet({ visible: false, target: 'after' });
+                          recordVideo();
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="videocam" size={22} color="#fff" />
+                        <Text style={styles.mediaActionBtnText}>Upload Video</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
 
                   {/* Already Uploaded After Media */}
                   {booking.afterMedia && booking.afterMedia.length > 0 && (
@@ -909,13 +991,13 @@ export const BookingDetailScreen = () => {
                       <Text style={styles.uploadedMediaLabel}>✓ Uploaded</Text>
                       <View style={styles.mediaGrid}>
                         {booking.afterMedia.map((media, index) => (
-                          <View key={`uploaded-after-${index}`} style={styles.mediaPreview}>
+                          <TouchableOpacity key={`uploaded-after-${index}`} style={styles.mediaGridItem} onPress={() => setFullImageUri(media.dataUrl)} activeOpacity={0.8}>
                             <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
                             <View style={styles.uploadedBadge}>
                               <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
                             </View>
                             <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                          </View>
+                          </TouchableOpacity>
                         ))}
                       </View>
                     </View>
@@ -925,7 +1007,7 @@ export const BookingDetailScreen = () => {
                   {afterMedia.length > 0 && (
                     <View style={styles.mediaGrid}>
                       {afterMedia.map((media, index) => (
-                        <View key={index} style={styles.mediaPreview}>
+                        <View key={index} style={styles.mediaGridItem}>
                           <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
                           <TouchableOpacity
                             style={styles.removeMediaBtn}
@@ -1475,6 +1557,22 @@ export const BookingDetailScreen = () => {
           );
         }}
       />
+
+      {/* Full-Screen Image Viewer */}
+      <Modal visible={!!fullImageUri} transparent animationType="fade" onRequestClose={() => setFullImageUri(null)}>
+        <View style={styles.imageViewerOverlay}>
+          <TouchableOpacity style={styles.imageViewerClose} onPress={() => setFullImageUri(null)}>
+            <Ionicons name="close-circle" size={36} color="#fff" />
+          </TouchableOpacity>
+          {fullImageUri && (
+            <Image
+              source={{ uri: fullImageUri }}
+              style={styles.imageViewerImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1901,5 +1999,23 @@ const styles = StyleSheet.create({
   partMediaLabel: {
     fontSize: 12,
     color: Colors.textSecondary,
+  },
+
+  // Full-Screen Image Viewer
+  imageViewerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerClose: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 30,
+    right: 20,
+    zIndex: 10,
+  },
+  imageViewerImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
   },
 });

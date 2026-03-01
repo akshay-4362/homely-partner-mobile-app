@@ -53,11 +53,30 @@ export const register = createAsyncThunk(
 );
 
 export const restoreSession = createAsyncThunk('auth/restoreSession', async () => {
-  const [user, accessToken, refreshToken] = await Promise.all([
+  let [user, accessToken, refreshToken] = await Promise.all([
     getUser(),
     getAccessToken(),
     getRefreshToken(),
   ]);
+
+  // If we have a refresh token but no access token (expired), proactively refresh
+  if (!accessToken && refreshToken) {
+    try {
+      const { authApi } = await import('../api/authApi');
+      const data = await authApi.refresh(refreshToken);
+      accessToken = data.accessToken;
+      refreshToken = data.refreshToken;
+      user = data.user;
+      await setTokens(accessToken, refreshToken);
+      if (user) await setUser(user);
+    } catch {
+      // Refresh failed — tokens are invalid, clear everything
+      await clearTokens();
+      await clearUser();
+      return { user: null, accessToken: null, refreshToken: null };
+    }
+  }
+
   return { user, accessToken, refreshToken };
 });
 
