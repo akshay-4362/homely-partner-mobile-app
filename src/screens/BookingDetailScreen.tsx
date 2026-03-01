@@ -17,7 +17,7 @@ import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { updateProBookingStatus } from '../store/bookingSlice';
 import { bookingApi } from '../api/bookingApi';
-import { Colors, Spacing, BorderRadius } from '../theme/colors';
+import { Colors, Spacing, BorderRadius, Typography } from '../theme/colors';
 import { formatCurrency, formatDate, formatDateOnly } from '../utils/format';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -1027,6 +1027,34 @@ export const BookingDetailScreen = () => {
                 </>
               )}
             </Card>
+
+            {/* Collect Payment via QR - show for active jobs when there are charges */}
+            {['confirmed', 'in_progress'].includes(booking.status) &&
+              ((booking.paymentMethod === 'pay_later' && !booking.paidAt) ||
+                (charges && charges.approved.length > 0)) && (
+                <Card style={{ borderColor: Colors.primary, borderWidth: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md }}>
+                    <Ionicons name="qr-code" size={24} color={Colors.primary} style={{ marginRight: Spacing.sm }} />
+                    <Text style={styles.sectionTitle}>Receive Payment</Text>
+                  </View>
+                  <Text style={{ ...Typography.body, color: Colors.textSecondary, marginBottom: Spacing.md }}>
+                    {(() => {
+                      const approvedTotal = charges
+                        ? charges.approved.reduce((sum, c) => sum + c.amount, 0)
+                        : (booking.additionalChargesTotal || 0);
+                      return booking.paidAt
+                        ? `Collect ₹${approvedTotal} for additional charges`
+                        : `Collect full amount ₹${(booking.finalTotal || booking.total) + approvedTotal}`;
+                    })()}
+                  </Text>
+                  <Button
+                    label="Show Company QR Code"
+                    onPress={() => navigation.navigate('PaymentQR', { booking })}
+                    icon="qr-code-outline"
+                    fullWidth
+                  />
+                </Card>
+              )}
 
             {/* Parts Replacement - only show after charges added */}
             {charges && (charges.pending.length > 0 || charges.approved.length > 0) && (

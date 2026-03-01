@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, StatusBar, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchProBookings } from '../store/bookingSlice';
@@ -29,15 +29,20 @@ const TABS: { key: TabKey; label: string; statuses: string[] }[] = [
 export const BookingsScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
-  const { items, status } = useAppSelector((s) => s.bookings);
+  const { items, status, error: fetchError } = useAppSelector((s) => s.bookings);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { dispatch(fetchProBookings()); }, []);
+  // Refetch bookings every time the Jobs tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(fetchProBookings(true));
+    }, [])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(fetchProBookings());
+    await dispatch(fetchProBookings(true));
     setRefreshing(false);
   };
 
@@ -123,7 +128,7 @@ export const BookingsScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Jobs</Text>
-        <TouchableOpacity onPress={() => dispatch(fetchProBookings())}>
+        <TouchableOpacity onPress={() => dispatch(fetchProBookings(true))}>
           <Ionicons name="refresh" size={22} color={Colors.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -166,11 +171,19 @@ export const BookingsScreen = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         ListEmptyComponent={
-          <EmptyState
-            icon="briefcase-outline"
-            title={`No ${activeTab} jobs`}
-            subtitle="Pull down to refresh"
-          />
+          status === 'failed' ? (
+            <EmptyState
+              icon="alert-circle-outline"
+              title="Failed to load jobs"
+              subtitle={fetchError || 'Pull down to refresh or tap retry'}
+            />
+          ) : (
+            <EmptyState
+              icon="briefcase-outline"
+              title={`No ${activeTab} jobs`}
+              subtitle="Pull down to refresh"
+            />
+          )
         }
       />
     </SafeAreaView>
