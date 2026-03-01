@@ -39,11 +39,8 @@ const BookingStack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
 const BookingStackNav = () => {
-  const stackRef = React.useRef<any>(null);
-
   return (
     <BookingStack.Navigator
-      ref={stackRef}
       screenOptions={{ headerShown: false }}
     >
       <BookingStack.Screen name="BookingsList" component={BookingsScreen} />
