@@ -92,40 +92,45 @@ const MainTabs = ({ navigation }: any) => {
           paddingBottom: Math.max(insets.bottom, 8),
           height: 60 + Math.max(insets.bottom, 8),
         },
-      tabBarLabelStyle: {
-        fontSize: 10,
-        fontWeight: '600' as const,
-        marginBottom: Platform.OS === 'ios' ? 0 : 2,
-        marginTop: 2,
-      },
-      tabBarIconStyle: {
-        marginTop: Platform.OS === 'ios' ? 4 : 2,
-      },
-      tabBarIcon: ({ color, size, focused }) => {
-        const icons: Record<string, { active: any; inactive: any }> = {
-          Home: { active: 'home', inactive: 'home-outline' },
-          Jobs: { active: 'briefcase', inactive: 'briefcase-outline' },
-          Earnings: { active: 'wallet', inactive: 'wallet-outline' },
-          Target: { active: 'analytics', inactive: 'analytics-outline' },
-          Profile: { active: 'person', inactive: 'person-outline' },
-        };
-        const i = icons[route.name] || { active: 'ellipse', inactive: 'ellipse-outline' };
-        return <Ionicons name={focused ? i.active : i.inactive} size={size} color={color} />;
-      },
-    })}
-  >
-    <Tab.Screen name="Home" component={HomeScreen} />
-    <Tab.Screen
-      name="Jobs"
-      component={BookingStackNav}
-      options={{
-        unmountOnBlur: true, // Reset Jobs stack when navigating away from it
-      }}
-    />
-    <Tab.Screen name="Earnings" component={EarningsScreen} />
-    <Tab.Screen name="Target" component={TargetsScreen} />
-    <Tab.Screen name="Profile" component={ProfileScreen} />
-  </Tab.Navigator>
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600' as const,
+          marginBottom: Platform.OS === 'ios' ? 0 : 2,
+          marginTop: 2,
+        },
+        tabBarIconStyle: {
+          marginTop: Platform.OS === 'ios' ? 4 : 2,
+        },
+        tabBarIcon: ({ color, size, focused }) => {
+          const icons: Record<string, { active: any; inactive: any }> = {
+            Home: { active: 'home', inactive: 'home-outline' },
+            Jobs: { active: 'briefcase', inactive: 'briefcase-outline' },
+            Earnings: { active: 'wallet', inactive: 'wallet-outline' },
+            Target: { active: 'analytics', inactive: 'analytics-outline' },
+            Profile: { active: 'person', inactive: 'person-outline' },
+          };
+          const i = icons[route.name] || { active: 'ellipse', inactive: 'ellipse-outline' };
+          return <Ionicons name={focused ? i.active : i.inactive} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen
+        name="Jobs"
+        component={BookingStackNav}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            // Always reset to BookingsList when the Jobs tab button is pressed.
+            // This prevents HomeScreen's deep-link navigation (directly to BookingDetail)
+            // from persisting when the user returns to the Jobs tab later.
+            navigation.navigate('Jobs', { screen: 'BookingsList' });
+          },
+        })}
+      />
+      <Tab.Screen name="Earnings" component={EarningsScreen} />
+      <Tab.Screen name="Target" component={TargetsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
   );
 };
 
