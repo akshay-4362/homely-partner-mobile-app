@@ -162,7 +162,10 @@ export const PaymentQRScreen = () => {
         [
           {
             text: 'OK',
-            onPress: () => navigation.goBack(),
+            onPress: () => navigation.navigate('BookingDetail', {
+              booking,
+              paymentComplete: true,
+            }),
           },
         ]
       );
@@ -263,7 +266,7 @@ export const PaymentQRScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors.text} />
+            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Payment QR Code</Text>
           <View style={{ width: 24 }} />
@@ -322,11 +325,11 @@ export const PaymentQRScreen = () => {
         <Card style={styles.bookingCard}>
           <View style={styles.bookingHeader}>
             <Text style={styles.bookingNumber}>Booking #{booking.bookingNumber}</Text>
-            <Text style={styles.customerName}>{booking.customer?.name}</Text>
+            <Text style={styles.customerName}>{booking.customerName}</Text>
           </View>
           <View style={styles.bookingDetails}>
-            <Text style={styles.serviceName}>{booking.service?.name}</Text>
-            <Text style={styles.bookingDate}>{formatDate(booking.scheduledFor)}</Text>
+            <Text style={styles.serviceName}>{booking.serviceName}</Text>
+            <Text style={styles.bookingDate}>{formatDate(booking.scheduledAt)}</Text>
           </View>
         </Card>
 
@@ -352,7 +355,7 @@ export const PaymentQRScreen = () => {
                   value={qrData.paymentUrl}
                   size={QR_SIZE}
                   backgroundColor="white"
-                  color={Colors.text}
+                  color={Colors.textPrimary}
                   logo={require('../../assets/icon.png')}
                   logoSize={QR_SIZE * 0.2}
                   logoBackgroundColor="white"
@@ -463,7 +466,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     ...Typography.h2,
-    color: Colors.text,
+    color: Colors.textPrimary,
     marginTop: Spacing.lg,
     textAlign: 'center',
   },
@@ -487,10 +490,9 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   alternativesTitle: {
-    ...Typography.subtitle,
-    color: Colors.text,
+    ...Typography.h4,
+    color: Colors.textPrimary,
     marginBottom: Spacing.md,
-    fontWeight: '600',
   },
   alternativeOption: {
     flexDirection: 'row',
@@ -505,7 +507,7 @@ const styles = StyleSheet.create({
   },
   alternativeLabel: {
     ...Typography.body,
-    color: Colors.text,
+    color: Colors.textPrimary,
     fontWeight: '600',
   },
   alternativeDescription: {
@@ -524,7 +526,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.h2,
-    color: Colors.text,
+    color: Colors.textPrimary,
   },
   successOverlay: {
     position: 'absolute',
@@ -551,7 +553,7 @@ const styles = StyleSheet.create({
   },
   successMessage: {
     ...Typography.body,
-    color: Colors.text,
+    color: Colors.textPrimary,
     marginTop: Spacing.sm,
     textAlign: 'center',
   },
@@ -568,7 +570,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   statusBannerText: {
-    ...Typography.bodyBold,
+    ...Typography.body,
+    fontWeight: '600',
     color: Colors.primary,
   },
   bookingCard: {
@@ -585,15 +588,16 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   customerName: {
-    ...Typography.bodyBold,
-    color: Colors.text,
+    ...Typography.body,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
   bookingDetails: {
     marginTop: Spacing.xs,
   },
   serviceName: {
     ...Typography.body,
-    color: Colors.text,
+    color: Colors.textPrimary,
   },
   bookingDate: {
     ...Typography.caption,
@@ -609,7 +613,7 @@ const styles = StyleSheet.create({
   },
   qrTitle: {
     ...Typography.h3,
-    color: Colors.text,
+    color: Colors.textPrimary,
     textAlign: 'center',
   },
   qrSubtitle: {
@@ -648,7 +652,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginTop: Spacing.md,
     padding: Spacing.sm,
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: Colors.surfaceAlt,
     borderRadius: BorderRadius.sm,
   },
   timerText: {
@@ -660,7 +664,7 @@ const styles = StyleSheet.create({
   },
   instructionsTitle: {
     ...Typography.h3,
-    color: Colors.text,
+    color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
   instructionsList: {
@@ -686,7 +690,7 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     ...Typography.body,
-    color: Colors.text,
+    color: Colors.textPrimary,
     flex: 1,
   },
   actionButton: {

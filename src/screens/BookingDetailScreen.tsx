@@ -96,6 +96,15 @@ export const BookingDetailScreen = () => {
     setAfterMedia([]);
   }, [route.params?.booking]);
 
+  // When returning from PaymentQRScreen after a successful online/UPI payment,
+  // auto-show the rate-customer modal so the professional can rate the customer.
+  useEffect(() => {
+    if (route.params?.paymentComplete) {
+      setBooking(prev => ({ ...prev, status: 'completed' }));
+      setShowRatingModal(true);
+    }
+  }, [route.params?.paymentComplete]);
+
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
