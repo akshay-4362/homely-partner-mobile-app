@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
-  Platform } from 'react-native';
+  Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -52,7 +52,9 @@ export const CreditsScreen = ({ route }: any) => {
   };
 
   const handleAddCredits = () => {
+    console.log('🔵 Add Credits button clicked');
     setShowPurchaseModal(true);
+    console.log('🔵 Modal state updated to true');
   };
 
   const handlePurchaseSuccess = () => {

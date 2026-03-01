@@ -42,12 +42,19 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
   const [selectedAmount, setSelectedAmount] = useState<number>(50000);
   const [processing, setProcessing] = useState(false);
 
+  React.useEffect(() => {
+    console.log('🟢 PurchaseCreditsModal visible state changed:', visible);
+  }, [visible]);
+
   const handlePurchase = async () => {
     try {
+      console.log('🟡 Purchase initiated, amount:', selectedAmount);
       setProcessing(true);
 
       // Step 1: Create Razorpay order on backend
+      console.log('🟡 Creating Razorpay order...');
       const { data } = await creditApi.createPurchaseIntent(selectedAmount);
+      console.log('🟡 Razorpay order created:', data);
       const { orderId, amount, keyId } = data;
 
       // Step 2: Prepare Razorpay options
@@ -117,12 +124,17 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
     }
   };
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       transparent
       onRequestClose={onClose}
+      presentationStyle="overFullScreen"
     >
       <View style={styles.overlay}>
         <View style={styles.modal}>
