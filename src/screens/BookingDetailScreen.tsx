@@ -145,7 +145,7 @@ export const BookingDetailScreen = () => {
     try {
       const data = await bookingApi.getCharges(booking.id);
       setCharges(data?.data || data);
-    } catch {}
+    } catch { }
   };
 
   const initiateJobStart = () => {
@@ -419,8 +419,11 @@ export const BookingDetailScreen = () => {
     setLoading(true);
     try {
       await bookingApi.addMedia(booking.id, 'before', beforeMedia);
+      setBeforeMedia([]); // Clear pending media
+      // Reload booking so the uploaded count updates correctly
+      const updated = await bookingApi.getBookingById(booking.id);
+      setBooking((prev) => ({ ...prev, beforeMedia: updated.beforeMedia }));
       Alert.alert('Success', 'Before service media uploaded');
-      setBeforeMedia([]); // Clear uploaded media
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || error.message || 'Failed to upload media';
       Alert.alert('Upload Failed', errorMsg);
@@ -437,8 +440,11 @@ export const BookingDetailScreen = () => {
     setLoading(true);
     try {
       await bookingApi.addMedia(booking.id, 'after', afterMedia);
+      setAfterMedia([]); // Clear pending media
+      // Reload booking so the uploaded count updates correctly
+      const updated = await bookingApi.getBookingById(booking.id);
+      setBooking((prev) => ({ ...prev, afterMedia: updated.afterMedia }));
       Alert.alert('Success', 'After service media uploaded');
-      setAfterMedia([]); // Clear uploaded media
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || error.message || 'Failed to upload media';
       Alert.alert('Upload Failed', errorMsg);
@@ -554,6 +560,28 @@ export const BookingDetailScreen = () => {
       Alert.alert('Error', 'Failed to add charges');
     }
     setLoading(false);
+  };
+
+  const handleDeleteCharge = (chargeId: string) => {
+    Alert.alert(
+      'Remove Charge',
+      'Remove this charge? (Customer has denied or you want to cancel it)',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await bookingApi.deleteCharge(booking.id, chargeId);
+              loadCharges();
+            } catch (e: any) {
+              Alert.alert('Error', e?.response?.data?.message || 'Failed to remove charge');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const openMap = () => {
@@ -766,32 +794,34 @@ export const BookingDetailScreen = () => {
                 </Text>
               </View>
 
-              {/* Separate Photo and Video Buttons */}
-              <View style={styles.mediaButtonRow}>
-                <TouchableOpacity
-                  style={styles.mediaActionBtn}
-                  onPress={() => {
-                    setMediaBottomSheet({ visible: false, target: 'before' });
-                    takePhoto();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="camera" size={22} color="#fff" />
-                  <Text style={styles.mediaActionBtnText}>Upload Photo</Text>
-                </TouchableOpacity>
+              {/* Only show upload buttons if before media hasn't been uploaded yet */}
+              {!(booking.beforeMedia && booking.beforeMedia.length > 0) && (
+                <View style={styles.mediaButtonRow}>
+                  <TouchableOpacity
+                    style={styles.mediaActionBtn}
+                    onPress={() => {
+                      setMediaBottomSheet({ visible: false, target: 'before' });
+                      takePhoto();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="camera" size={22} color="#fff" />
+                    <Text style={styles.mediaActionBtnText}>Upload Photo</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
-                  onPress={() => {
-                    setMediaBottomSheet({ visible: false, target: 'before' });
-                    recordVideo();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="videocam" size={22} color="#fff" />
-                  <Text style={styles.mediaActionBtnText}>Upload Video</Text>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
+                    onPress={() => {
+                      setMediaBottomSheet({ visible: false, target: 'before' });
+                      recordVideo();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="videocam" size={22} color="#fff" />
+                    <Text style={styles.mediaActionBtnText}>Upload Video</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Already Uploaded Before Media */}
               {booking.beforeMedia && booking.beforeMedia.length > 0 && (
@@ -918,39 +948,39 @@ export const BookingDetailScreen = () => {
 
             {/* Parts Replacement - only show after charges added */}
             {charges && (charges.pending.length > 0 || charges.approved.length > 0) && (
-            <Card>
-              <Text style={styles.sectionTitle}>Parts Replaced</Text>
-              {parts.length > 0 && (
-                <>
-                  {parts.map((part) => (
-                    <View key={part.id} style={styles.partCard}>
-                      <View style={styles.partHeader}>
-                        <Text style={styles.partTitle}>{part.oldPartName} → {part.newPartName}</Text>
-                        <View style={styles.partActions}>
-                          <TouchableOpacity onPress={() => editPart(part.id)} style={{ marginRight: 8 }}>
-                            <Ionicons name="create-outline" size={20} color={Colors.primary} />
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => deletePart(part.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.error} />
-                          </TouchableOpacity>
+              <Card>
+                <Text style={styles.sectionTitle}>Parts Replaced</Text>
+                {parts.length > 0 && (
+                  <>
+                    {parts.map((part) => (
+                      <View key={part.id} style={styles.partCard}>
+                        <View style={styles.partHeader}>
+                          <Text style={styles.partTitle}>{part.oldPartName} → {part.newPartName}</Text>
+                          <View style={styles.partActions}>
+                            <TouchableOpacity onPress={() => editPart(part.id)} style={{ marginRight: 8 }}>
+                              <Ionicons name="create-outline" size={20} color={Colors.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => deletePart(part.id)}>
+                              <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                        <View style={styles.partMediaRow}>
+                          <Text style={styles.partMediaLabel}>Old: {part.oldPartMedia.length} media</Text>
+                          <Text style={styles.partMediaLabel}>New: {part.newPartMedia.length} media</Text>
                         </View>
                       </View>
-                      <View style={styles.partMediaRow}>
-                        <Text style={styles.partMediaLabel}>Old: {part.oldPartMedia.length} media</Text>
-                        <Text style={styles.partMediaLabel}>New: {part.newPartMedia.length} media</Text>
-                      </View>
-                    </View>
-                  ))}
-                </>
-              )}
-              <Button
-                label="➕ Add Part"
-                onPress={openAddPartModal}
-                variant="outline"
-                size="sm"
-                style={{ marginTop: parts.length > 0 ? Spacing.md : 0 }}
-              />
-            </Card>
+                    ))}
+                  </>
+                )}
+                <Button
+                  label="➕ Add Part"
+                  onPress={openAddPartModal}
+                  variant="outline"
+                  size="sm"
+                  style={{ marginTop: parts.length > 0 ? Spacing.md : 0 }}
+                />
+              </Card>
             )}
 
             {/* Complete Job - Only show after charges added */}
@@ -1067,38 +1097,46 @@ export const BookingDetailScreen = () => {
         <Card style={styles.paymentSummaryCard}>
           <Text style={styles.sectionTitle}>Job Summary</Text>
 
-          <View style={styles.paymentBox}>
-            <View style={styles.payRow}>
-              <Text style={styles.payLabel}>Base Charge</Text>
-              <Text style={styles.payValue}>{formatCurrency(booking.total - (booking.additionalChargesTotal || 0))}</Text>
-            </View>
+          {(() => {
+            // Use local charges state for real-time approved total, fallback to booking field
+            const approvedChargesTotal = charges
+              ? charges.approved.reduce((sum, c) => sum + c.amount, 0)
+              : (booking.additionalChargesTotal || 0);
+            const baseCharge = booking.total;
+            const subtotal = baseCharge + approvedChargesTotal;
 
-            {booking.additionalChargesTotal > 0 && (
-              <View style={styles.payRow}>
-                <Text style={styles.payLabel}>Extra Charges</Text>
-                <Text style={styles.payValue}>{formatCurrency(booking.additionalChargesTotal)}</Text>
+            return (
+              <View style={styles.paymentBox}>
+                <View style={styles.payRow}>
+                  <Text style={styles.payLabel}>Base Charge</Text>
+                  <Text style={styles.payValue}>{formatCurrency(baseCharge)}</Text>
+                </View>
+
+                {approvedChargesTotal > 0 && (
+                  <View style={styles.payRow}>
+                    <Text style={styles.payLabel}>Approved Extra Charges</Text>
+                    <Text style={[styles.payValue, { color: Colors.success }]}>
+                      +{formatCurrency(approvedChargesTotal)}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.payDivider} />
+
+                <View style={styles.payRow}>
+                  <Text style={styles.payLabel}>Subtotal</Text>
+                  <Text style={styles.payValue}>{formatCurrency(subtotal)}</Text>
+                </View>
+
+                <View style={styles.payDivider} />
+
+                <View style={[styles.payRow, styles.payTotal]}>
+                  <Text style={styles.payTotalLabel}>Total</Text>
+                  <Text style={styles.payTotalValue}>{formatCurrency(booking.finalTotal || subtotal)}</Text>
+                </View>
               </View>
-            )}
-
-            <View style={styles.payDivider} />
-
-            <View style={styles.payRow}>
-              <Text style={styles.payLabel}>Subtotal</Text>
-              <Text style={styles.payValue}>{formatCurrency(booking.total)}</Text>
-            </View>
-
-            <View style={styles.payRow}>
-              <Text style={styles.payLabel}>Tax (18%)</Text>
-              <Text style={styles.payValue}>{formatCurrency(Math.round(booking.total * 0.18))}</Text>
-            </View>
-
-            <View style={styles.payDivider} />
-
-            <View style={[styles.payRow, styles.payTotal]}>
-              <Text style={styles.payTotalLabel}>Total</Text>
-              <Text style={styles.payTotalValue}>{formatCurrency(booking.finalTotal || booking.total)}</Text>
-            </View>
-          </View>
+            );
+          })()}
           {isCompleted && booking.creditDeducted && (
             <View style={styles.payRow}>
               <Text style={styles.payLabel}>Platform Fee (Prepaid)</Text>
@@ -1186,9 +1224,17 @@ export const BookingDetailScreen = () => {
                   <View>
                     <Text style={styles.chargesGroup}>Pending Approval</Text>
                     {charges.pending.map((c) => (
-                      <View key={c._id} style={styles.chargeRow}>
-                        <Text style={styles.chargeName}>{c.description}</Text>
-                        <Text style={styles.chargeAmt}>{formatCurrency(c.amount)}</Text>
+                      <View key={c._id} style={[styles.chargeRow, { alignItems: 'center' }]}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.chargeName}>{c.description}</Text>
+                          <Text style={styles.chargeAmt}>{formatCurrency(c.amount)}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteCharge(c._id)}
+                          style={{ padding: 6 }}
+                        >
+                          <Ionicons name="trash-outline" size={18} color={Colors.error} />
+                        </TouchableOpacity>
                       </View>
                     ))}
                   </View>
@@ -1308,7 +1354,7 @@ export const BookingDetailScreen = () => {
               {currentPart.oldPartMedia.length > 0 && (
                 <View style={styles.mediaGrid}>
                   {currentPart.oldPartMedia.map((media, index) => (
-                    <View key={index} style={styles.mediaPreview}>
+                    <View key={index} style={styles.mediaGridItem}>
                       <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
                       <TouchableOpacity
                         style={styles.removeMediaBtn}
@@ -1362,7 +1408,7 @@ export const BookingDetailScreen = () => {
               {currentPart.newPartMedia.length > 0 && (
                 <View style={styles.mediaGrid}>
                   {currentPart.newPartMedia.map((media, index) => (
-                    <View key={index} style={styles.mediaPreview}>
+                    <View key={index} style={styles.mediaGridItem}>
                       <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
                       <TouchableOpacity
                         style={styles.removeMediaBtn}
@@ -1741,7 +1787,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.md,
   },
-  mediaPreview: {
+  mediaGridItem: {
     width: 100,
     height: 100,
     borderRadius: BorderRadius.md,

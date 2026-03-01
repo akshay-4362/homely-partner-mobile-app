@@ -60,4 +60,9 @@ export const bookingApi = {
     const { data } = await client.get(`/invoices/booking/${bookingId}`);
     return data.data || data;
   },
+
+  deleteCharge: async (bookingId: string, chargeId: string) => {
+    const { data } = await client.delete(`/bookings/${bookingId}/charges/${chargeId}`);
+    return data.data || data;
+  },
 };
