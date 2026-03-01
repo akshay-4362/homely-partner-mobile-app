@@ -756,13 +756,22 @@ export const BookingDetailScreen = () => {
             <Text style={styles.infoText}>Booking Date: {formatDate(booking.scheduledAt)}</Text>
           </View>
           {booking.addressLine && (
-            <TouchableOpacity style={styles.infoRow} onPress={openMap}>
-              <Ionicons name="location-outline" size={16} color={Colors.primary} />
-              <Text style={[styles.infoText, { color: Colors.primary, flex: 1 }]}>
-                {booking.addressFull || booking.addressLine}
-              </Text>
-              <Ionicons name="open-outline" size={14} color={Colors.primary} />
-            </TouchableOpacity>
+            isCompleted ? (
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={16} color={Colors.textTertiary} />
+                <Text style={[styles.infoText, { color: Colors.textTertiary, flex: 1 }]}>
+                  {booking.addressFull || booking.addressLine}
+                </Text>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.infoRow} onPress={openMap}>
+                <Ionicons name="location-outline" size={16} color={Colors.primary} />
+                <Text style={[styles.infoText, { color: Colors.primary, flex: 1 }]}>
+                  {booking.addressFull || booking.addressLine}
+                </Text>
+                <Ionicons name="open-outline" size={14} color={Colors.primary} />
+              </TouchableOpacity>
+            )
           )}
         </Card>
 
@@ -772,15 +781,25 @@ export const BookingDetailScreen = () => {
 
           {/* Map Preview - MapMyIndia */}
           {booking.lat && booking.lng && (
-            <TouchableOpacity onPress={openMapsApp} activeOpacity={0.8}>
+            isCompleted ? (
               <Image
                 source={{
                   uri: `https://apis.mapmyindia.com/advancedmaps/v1/${MAPPLS_API_KEY}/still_image?center=${booking.lat},${booking.lng}&zoom=15&size=${Math.round(SCREEN_WIDTH - 80)}x200&markers=${booking.lat},${booking.lng}`
                 }}
-                style={styles.mapImage}
+                style={[styles.mapImage, { opacity: 0.5 }]}
                 resizeMode="cover"
               />
-            </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={openMapsApp} activeOpacity={0.8}>
+                <Image
+                  source={{
+                    uri: `https://apis.mapmyindia.com/advancedmaps/v1/${MAPPLS_API_KEY}/still_image?center=${booking.lat},${booking.lng}&zoom=15&size=${Math.round(SCREEN_WIDTH - 80)}x200&markers=${booking.lat},${booking.lng}`
+                  }}
+                  style={styles.mapImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )
           )}
 
           {/* Full Address */}
@@ -794,21 +813,21 @@ export const BookingDetailScreen = () => {
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={openMapsApp}
-              activeOpacity={0.7}
+              style={[styles.actionBtn, isCompleted && styles.actionBtnDisabled]}
+              onPress={isCompleted ? undefined : openMapsApp}
+              activeOpacity={isCompleted ? 1 : 0.7}
             >
-              <Ionicons name="map" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Open in Maps</Text>
+              <Ionicons name="map" size={20} color={isCompleted ? Colors.textTertiary : '#fff'} />
+              <Text style={[styles.actionBtnText, isCompleted && styles.actionBtnTextDisabled]}>Open in Maps</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={callCustomer}
-              activeOpacity={0.7}
+              style={[styles.actionBtn, isCompleted && styles.actionBtnDisabled]}
+              onPress={isCompleted ? undefined : callCustomer}
+              activeOpacity={isCompleted ? 1 : 0.7}
             >
-              <Ionicons name="call" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Call Customer</Text>
+              <Ionicons name="call" size={20} color={isCompleted ? Colors.textTertiary : '#fff'} />
+              <Text style={[styles.actionBtnText, isCompleted && styles.actionBtnTextDisabled]}>Call Customer</Text>
             </TouchableOpacity>
           </View>
         </Card>
@@ -1820,6 +1839,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+  actionBtnDisabled: {
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  actionBtnTextDisabled: {
+    color: Colors.textTertiary,
   },
   paymentMethodSection: {
     marginTop: Spacing.md,
