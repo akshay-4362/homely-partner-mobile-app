@@ -92,8 +92,8 @@ const bookingSlice = createSlice({
   initialState,
   reducers: {
     resetBookings(state) {
-      state.items = [];
-      state.status = 'idle';
+      console.log('🔴 Resetting bookings state to initial');
+      return initialState;
     },
   },
   extraReducers: (builder) => {

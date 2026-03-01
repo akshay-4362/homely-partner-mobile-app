@@ -30,7 +30,12 @@ export const fetchPayouts = createAsyncThunk(
 const payoutSlice = createSlice({
   name: 'payouts',
   initialState,
-  reducers: {},
+  reducers: {
+    resetPayouts(state) {
+      console.log('🔴 Resetting payouts state to initial');
+      return initialState;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPayouts.pending, (state) => { state.status = 'loading'; })

@@ -61,10 +61,8 @@ const accountingSlice = createSlice({
   initialState,
   reducers: {
     resetAccounting(state) {
-      state.summary = null;
-      state.monthlyEarnings = [];
-      state.todayBookings = [];
-      state.status = 'idle';
+      console.log('🔴 Resetting accounting state to initial');
+      return initialState;
     },
   },
   extraReducers: (builder) => {

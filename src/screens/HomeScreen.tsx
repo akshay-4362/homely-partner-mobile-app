@@ -19,6 +19,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { CreditBalanceWidget } from '../components/CreditBalanceWidget';
 import { PendingTasksWidget } from '../components/PendingTasksWidget';
 import { Notification } from '../types';
+import { usePayoutAccountCheck } from '../hooks/usePayoutAccountCheck';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -28,6 +29,9 @@ export const HomeScreen = () => {
   const { summary, todayBookings: todayJobs } = useAppSelector((s) => s.accounting);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Check for payout account on mount
+  const { hasPayoutAccount, recheckPayoutAccount } = usePayoutAccountCheck();
 
   const loadData = async () => {
     // Fetch from Redux (with caching)
@@ -57,6 +61,14 @@ export const HomeScreen = () => {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  // Recheck payout account when screen is focused (after setup)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      recheckPayoutAccount();
+    });
+    return unsubscribe;
+  }, [navigation, recheckPayoutAccount]);
 
   const debouncedRefresh = useDebouncedRefresh(loadDataForced);
 

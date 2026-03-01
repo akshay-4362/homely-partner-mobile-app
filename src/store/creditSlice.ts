@@ -117,6 +117,10 @@ const creditSlice = createSlice({
       state.error = null;
       state.purchaseError = null;
     },
+    resetCreditState: (state) => {
+      console.log('🔴 Resetting credit state to initial');
+      return initialState;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -192,5 +196,5 @@ const creditSlice = createSlice({
   },
 });
 
-export const { resetPurchaseStatus, clearError } = creditSlice.actions;
+export const { resetPurchaseStatus, clearError, resetCreditState } = creditSlice.actions;
 export default creditSlice.reducer;
