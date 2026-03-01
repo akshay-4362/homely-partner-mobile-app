@@ -1,15 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { accountingApi } from '../api/accountingApi';
-import { ProfessionalAccountingSummary, MonthlyEarning, TodayBooking } from '../types';
+import { ProfessionalAccountingSummary, ProfessionalMonthlyEarning, TodayBooking } from '../types';
 
 interface AccountingState {
   summary: ProfessionalAccountingSummary | null;
-  monthlyEarnings: MonthlyEarning[];
+  monthlyEarnings: ProfessionalMonthlyEarning[];
   todayBookings: TodayBooking[];
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
-  lastFetched: number | null;
-  cacheTTL: number; // 5 minutes in milliseconds
 }
 
 const initialState: AccountingState = {
@@ -18,28 +16,12 @@ const initialState: AccountingState = {
   todayBookings: [],
   status: 'idle',
   error: null,
-  lastFetched: null,
-  cacheTTL: 5 * 60 * 1000, // 5 minutes
 };
 
 export const fetchAccountingSummary = createAsyncThunk(
   'accounting/fetchSummary',
-  async (forceRefresh: boolean = false, { getState, rejectWithValue }) => {
+  async (_forceRefresh: boolean = false, { rejectWithValue }) => {
     try {
-      const state = getState() as any;
-      const { accounting } = state;
-      const now = Date.now();
-
-      // Skip if data is fresh and not force refresh
-      if (
-        !forceRefresh &&
-        accounting.lastFetched &&
-        now - accounting.lastFetched < accounting.cacheTTL &&
-        accounting.summary
-      ) {
-        return accounting.summary;
-      }
-
       const response = await accountingApi.getSummary();
       return response?.data || response;
     } catch (err: any) {
@@ -83,7 +65,6 @@ const accountingSlice = createSlice({
       state.monthlyEarnings = [];
       state.todayBookings = [];
       state.status = 'idle';
-      state.lastFetched = null;
     },
   },
   extraReducers: (builder) => {
@@ -95,7 +76,6 @@ const accountingSlice = createSlice({
       .addCase(fetchAccountingSummary.fulfilled, (state, action: PayloadAction<ProfessionalAccountingSummary>) => {
         state.status = 'succeeded';
         state.summary = action.payload;
-        state.lastFetched = Date.now();
         state.error = null;
       })
       .addCase(fetchAccountingSummary.rejected, (state, action) => {
@@ -104,7 +84,7 @@ const accountingSlice = createSlice({
       })
 
       // Fetch monthly earnings
-      .addCase(fetchMonthlyEarnings.fulfilled, (state, action: PayloadAction<MonthlyEarning[]>) => {
+      .addCase(fetchMonthlyEarnings.fulfilled, (state, action: PayloadAction<ProfessionalMonthlyEarning[]>) => {
         state.monthlyEarnings = action.payload;
       })
 
