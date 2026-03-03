@@ -12,14 +12,14 @@ import { useAppSelector } from '../hooks/useAppSelector';
 import { logout } from '../store/authSlice';
 import { proApi } from '../api/proApi';
 import { documentApi } from '../api/documentApi';
-import { stripeApi } from '../api/stripeApi';
+import client from '../api/client';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
 import { Loader } from '../components/common/Loader';
 import { ProfilePictureUpload } from '../components/ProfilePictureUpload';
-import { ProfessionalDocument, StripeAccountStatus } from '../types';
+import { ProfessionalDocument } from '../types';
 
 export const ProfileScreen = () => {
   const navigation = useNavigation<any>();
@@ -29,7 +29,7 @@ export const ProfileScreen = () => {
   const [profile, setProfile] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [documents, setDocuments] = useState<ProfessionalDocument[]>([]);
-  const [stripeStatus, setStripeStatus] = useState<StripeAccountStatus | null>(null);
+  const [payoutAccounts, setPayoutAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Edit modals
@@ -67,10 +67,11 @@ export const ProfileScreen = () => {
       const docList = docsData?.data || docsData?.documents || docsData || [];
       setDocuments(Array.isArray(docList) ? docList : []);
 
-      // Load stripe status
+      // Load payout accounts (Razorpay)
       try {
-        const s = await stripeApi.getAccountStatus();
-        setStripeStatus(s?.data || s);
+        const response = await client.get('/payout-accounts');
+        const accounts = response.data.data.accounts || [];
+        setPayoutAccounts(accounts);
       } catch {}
     } catch {}
     setLoading(false);
@@ -107,21 +108,6 @@ export const ProfileScreen = () => {
       Alert.alert('Submitted', 'Document submitted for review');
     } catch { Alert.alert('Error', 'Failed to submit document'); }
     setSaving(false);
-  };
-
-  const handleStripeSetup = async () => {
-    try {
-      if (!stripeStatus?.accountId) {
-        await stripeApi.createAccount(user!.email);
-      }
-      const refreshUrl = Linking.createURL('/profile');
-      const returnUrl = Linking.createURL('/profile');
-      const { url } = await stripeApi.getOnboardingLink(refreshUrl, returnUrl);
-      await WebBrowser.openBrowserAsync(url);
-      loadData();
-    } catch {
-      Alert.alert('Error', 'Failed to setup Stripe account');
-    }
   };
 
   const handleLogout = () => {
@@ -172,22 +158,34 @@ export const ProfileScreen = () => {
           ))}
         </View>
 
-        {/* Stripe Section */}
+        {/* Razorpay Payout Accounts */}
         <Card style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Stripe Payouts</Text>
-            {stripeStatus?.detailsSubmitted && <Badge label="Connected" variant="completed" />}
+            <Text style={styles.sectionTitle}>Payout Accounts</Text>
+            {payoutAccounts.length > 0 && <Badge label="Connected" variant="completed" />}
           </View>
-          {stripeStatus?.detailsSubmitted ? (
-            <View style={styles.stripeStatus}>
-              <StripeRow label="Charges" enabled={!!stripeStatus.chargesEnabled} />
-              <StripeRow label="Payouts" enabled={!!stripeStatus.payoutsEnabled} />
-              <StripeRow label="Details" enabled={!!stripeStatus.detailsSubmitted} />
+          {payoutAccounts.length > 0 ? (
+            <View>
+              <Text style={styles.stripeHint}>
+                {payoutAccounts.length} account{payoutAccounts.length > 1 ? 's' : ''} connected
+              </Text>
+              <Button
+                label="Manage Accounts"
+                onPress={() => navigation.navigate('PayoutAccounts')}
+                style={{ marginTop: Spacing.md }}
+                variant="outline"
+              />
             </View>
           ) : (
             <View>
-              <Text style={styles.stripeHint}>Connect Stripe to receive payouts directly to your bank account.</Text>
-              <Button label="Setup Stripe Account" onPress={handleStripeSetup} style={{ marginTop: Spacing.md }} />
+              <Text style={styles.stripeHint}>
+                Add your bank account or UPI to receive payouts via Razorpay.
+              </Text>
+              <Button
+                label="Add Payout Account"
+                onPress={() => navigation.navigate('BankAccountSetup')}
+                style={{ marginTop: Spacing.md }}
+              />
             </View>
           )}
         </Card>
@@ -377,18 +375,6 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
-const StripeRow = ({ label, enabled }: { label: string; enabled: boolean }) => (
-  <View style={styles.stripeRow}>
-    <Text style={styles.stripeRowLabel}>{label}</Text>
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-      <Ionicons name={enabled ? 'checkmark-circle' : 'close-circle'} size={16} color={enabled ? Colors.success : Colors.error} />
-      <Text style={{ fontSize: 13, color: enabled ? Colors.success : Colors.error }}>
-        {enabled ? 'Enabled' : 'Pending'}
-      </Text>
-    </View>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, paddingBottom: Platform.OS === 'ios' ? 100 : 80 },
@@ -420,9 +406,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
   editLink: { fontSize: 14, color: Colors.primary, fontWeight: '600' },
   bioText: { fontSize: 14, color: Colors.textSecondary, lineHeight: 21 },
-  stripeStatus: { gap: 8 },
-  stripeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  stripeRowLabel: { fontSize: 14, color: Colors.textSecondary },
   stripeHint: { fontSize: 13, color: Colors.textSecondary, marginBottom: 4 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: Colors.divider },
   infoLabel: { fontSize: 13, color: Colors.textSecondary },

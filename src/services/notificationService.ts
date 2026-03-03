@@ -27,6 +27,11 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
     return false;
   }
 
+  if (Constants.appOwnership === 'expo') {
+    console.warn('Push notifications are not supported in Expo Go. Use a development build.');
+    return false;
+  }
+
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
@@ -51,6 +56,11 @@ export const getExpoPushToken = async (): Promise<string | null> => {
   try {
     if (!Device.isDevice) {
       console.warn('Must use physical device for push notifications');
+      return null;
+    }
+
+    if (Constants.appOwnership === 'expo') {
+      console.warn('Push notifications are not supported in Expo Go. Use a development build.');
       return null;
     }
 

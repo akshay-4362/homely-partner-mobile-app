@@ -54,6 +54,8 @@ export interface CreatePurchaseIntentResponse {
     orderId: string;
     amount: number;
     currency: string;
+    amountPaid: number;
+    creditsReceived: number;
     keyId: string;
   };
 }

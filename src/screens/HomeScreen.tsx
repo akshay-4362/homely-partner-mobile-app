@@ -111,6 +111,24 @@ export const HomeScreen = () => {
         {/* Pending Tasks */}
         <PendingTasksWidget />
 
+        {/* Payout Account Setup Banner */}
+        {hasPayoutAccount === false && (
+          <View style={styles.pausedBanner}>
+            <Ionicons name="card-outline" size={24} color={Colors.warning} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pausedTitle}>Setup Payment Account</Text>
+              <Text style={styles.pausedSubtitle}>Add your bank account or UPI to receive payments and job assignments</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.pausedBtn, { backgroundColor: Colors.warning }]}
+              onPress={() => navigation.navigate('BankAccountSetup')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pausedBtnText}>Setup</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* New Jobs Paused Banner */}
         {creditBalance === 0 && (
           <View style={styles.pausedBanner}>

@@ -8,8 +8,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  NativeModules,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import RazorpayCheckout from 'react-native-razorpay';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Button } from './common/Button';
@@ -51,11 +53,25 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
       console.log('🟡 Purchase initiated, amount:', selectedAmount);
       setProcessing(true);
 
+      if (Constants.appOwnership === 'expo') {
+        throw new Error('Razorpay is not available in Expo Go. Please use a development build.');
+      }
+
       // Step 1: Create Razorpay order on backend
       console.log('🟡 Creating Razorpay order...');
-      const { data } = await creditApi.createPurchaseIntent(selectedAmount);
-      console.log('🟡 Razorpay order created:', data);
-      const { orderId, amount, keyId } = data;
+      const response = await creditApi.createPurchaseIntent(selectedAmount);
+      console.log('🟡 Full response:', JSON.stringify(response, null, 2));
+
+      const { data } = response;
+      console.log('🟡 Razorpay order data:', JSON.stringify(data, null, 2));
+
+      const { orderId, amount, keyId, creditsReceived } = data;
+
+      if (!orderId || !keyId || !amount) {
+        throw new Error('Invalid response from server: missing orderId, keyId, or amount');
+      }
+
+      console.log('🟡 Extracted values:', { orderId, amount, keyId, creditsReceived });
 
       // Step 2: Prepare Razorpay options
       const options = {
@@ -75,7 +91,20 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
       };
 
       // Step 3: Open Razorpay checkout
+      console.log('🟡 Opening Razorpay with options:', JSON.stringify(options, null, 2));
+
+      const hasCheckoutMethod = !!RazorpayCheckout?.open;
+      const nativeRazorpayModule =
+        (NativeModules as any)?.RNRazorpayCheckout ||
+        (NativeModules as any)?.RazorpayCheckout;
+      const hasNativeOpen = !!nativeRazorpayModule?.open;
+
+      if (!hasCheckoutMethod || !hasNativeOpen) {
+        throw new Error('Razorpay is not available. Please use a development build instead of Expo Go.');
+      }
+
       const paymentData = await RazorpayCheckout.open(options);
+      console.log('🟢 Payment successful:', JSON.stringify(paymentData, null, 2));
 
       // Step 4: Payment successful - confirm on backend
       try {
@@ -106,19 +135,40 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
         );
       }
     } catch (error: any) {
-      console.error('Purchase error:', error);
+      console.error('🔴 Purchase error:', error);
+      console.error('🔴 Error status:', error?.response?.status);
+      console.error('🔴 Error data:', JSON.stringify(error?.response?.data, null, 2));
 
-      // Handle user cancelled payment
-      if (error.code === RazorpayCheckout.PAYMENT_CANCELLED) {
-        // User cancelled - do nothing
+      // Handle user cancelled payment (Razorpay native cancel)
+      const paymentCancelledCode = RazorpayCheckout?.PAYMENT_CANCELLED;
+      if (paymentCancelledCode != null && error?.code === paymentCancelledCode) {
+        console.log('🟡 User cancelled payment');
         setProcessing(false);
         return;
       }
 
-      Alert.alert(
-        'Purchase failed',
-        error.description || error.message || 'Failed to process payment. Please try again.'
-      );
+      // Extract the most meaningful error message
+      const apiMessage = error?.response?.data?.message || error?.response?.data?.error;
+      const errorMessage =
+        apiMessage ||
+        error.description ||
+        error.message ||
+        'Failed to process payment. Please try again.';
+
+      // Check if it's a network error
+      if (error.message?.includes('Network') || error.code === 'ERR_NETWORK') {
+        Alert.alert(
+          'Network Error',
+          'Unable to connect to server. Please check your internet connection and try again.'
+        );
+      } else if (errorMessage.includes('development build')) {
+        Alert.alert(
+          'Setup Required',
+          'Razorpay requires a custom development build (or release build). Expo Go does not support this native module.'
+        );
+      } else {
+        Alert.alert('Purchase failed', errorMessage);
+      }
     } finally {
       setProcessing(false);
     }
