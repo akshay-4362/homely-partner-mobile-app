@@ -16,25 +16,27 @@ import { Card } from '../components/common/Card';
 import { proApi } from '../api/proApi';
 import { creditApi } from '../api/creditApi';
 
-interface MetricCard {
-  id: string;
-  title: string;
-  subtitle: string;
-  currentValue: number;
-  targetValue: number;
-  unit?: string;
-  status: 'good' | 'warning' | 'bad';
-  comparison: 'higher' | 'lower'; // higher is better or lower is better
-}
+// FUTURE USE: Metrics feature
+// interface MetricCard {
+//   id: string;
+//   title: string;
+//   subtitle: string;
+//   currentValue: number;
+//   targetValue: number;
+//   unit?: string;
+//   status: 'good' | 'warning' | 'bad';
+//   comparison: 'higher' | 'lower'; // higher is better or lower is better
+// }
 
 export const TargetsScreen = () => {
   const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [performanceStatus, setPerformanceStatus] = useState<'good' | 'low' | 'critical'>('good');
-  const [trainingPending, setTrainingPending] = useState(false);
-  const [nextReviewDate, setNextReviewDate] = useState('16 Mar');
-  const [metrics, setMetrics] = useState<MetricCard[]>([]);
+  // FUTURE USE: Metrics feature
+  // const [performanceStatus, setPerformanceStatus] = useState<'good' | 'low' | 'critical'>('good');
+  // const [trainingPending, setTrainingPending] = useState(false);
+  // const [nextReviewDate, setNextReviewDate] = useState('16 Mar');
+  // const [metrics, setMetrics] = useState<MetricCard[]>([]);
   const [subscription, setSubscription] = useState({
     status: 'ACTIVE',
     jobsReceived: 8,
@@ -49,78 +51,80 @@ export const TargetsScreen = () => {
     try {
       setLoading(true);
 
-      // Fetch profile, hub stats, and credit stats
-      const profile = await proApi.fetchProfile();
-      const hubStats = profile.hubStats || {};
+      // Fetch credit stats for job subscription
       const creditStatsResponse = await creditApi.getCreditStats();
       const creditStats = creditStatsResponse.data || creditStatsResponse;
 
-      // Calculate metrics based on actual data
-      const rating = hubStats.rating || 5.0;
-      const cancellations = hubStats.cancellations || 0;
-      const weekendHours = 0; // Would need availability tracking
-      const auditFailures = 0; // Would need audit system
-      const revisitError = hubStats.repeatCustomers || 0;
+      // FUTURE USE: Fetch profile and hub stats for metrics
+      // const profile = await proApi.fetchProfile();
+      // const hubStats = profile.hubStats || {};
 
-      const metricsData: MetricCard[] = [
-        {
-          id: 'rating',
-          title: 'Rating',
-          subtitle: 'Keep 4.55 or above',
-          currentValue: parseFloat(rating.toFixed(2)),
-          targetValue: 4.55,
-          status: rating >= 4.55 ? 'good' : rating >= 4.0 ? 'warning' : 'bad',
-          comparison: 'higher',
-        },
-        {
-          id: 'cancellations',
-          title: 'Cancellations',
-          subtitle: 'Keep 5 or below',
-          currentValue: cancellations,
-          targetValue: 5,
-          status: cancellations <= 3 ? 'good' : cancellations <= 5 ? 'warning' : 'bad',
-          comparison: 'lower',
-        },
-        {
-          id: 'weekend_hours',
-          title: 'Weekend unavailable hours',
-          subtitle: 'Keep 31 or below',
-          currentValue: weekendHours,
-          targetValue: 31,
-          status: weekendHours <= 20 ? 'good' : weekendHours <= 31 ? 'warning' : 'bad',
-          comparison: 'lower',
-        },
-        {
-          id: 'audit_failures',
-          title: 'Audit failures',
-          subtitle: 'Keep 3 or below',
-          currentValue: auditFailures,
-          targetValue: 3,
-          status: auditFailures === 0 ? 'good' : auditFailures <= 3 ? 'warning' : 'bad',
-          comparison: 'lower',
-        },
-        {
-          id: 'revisit_error',
-          title: 'Revisit error %',
-          subtitle: 'Keep 7 or below',
-          currentValue: revisitError,
-          targetValue: 7,
-          status: revisitError <= 5 ? 'good' : revisitError <= 7 ? 'warning' : 'bad',
-          comparison: 'lower',
-        },
-      ];
-
-      setMetrics(metricsData);
-
-      // Determine overall performance status
-      const hasAnyBad = metricsData.some(m => m.status === 'bad');
-      const hasMultipleWarnings = metricsData.filter(m => m.status === 'warning').length >= 2;
-
-      if (hasAnyBad || hasMultipleWarnings) {
-        setPerformanceStatus('low');
-      } else {
-        setPerformanceStatus('good');
-      }
+      // FUTURE USE: Metrics feature
+      // const rating = hubStats.rating || 5.0;
+      // const cancellations = hubStats.cancellations || 0;
+      // const weekendHours = 0; // Would need availability tracking
+      // const auditFailures = 0; // Would need audit system
+      // const revisitError = hubStats.repeatCustomers || 0;
+      //
+      // const metricsData: MetricCard[] = [
+      //   {
+      //     id: 'rating',
+      //     title: 'Rating',
+      //     subtitle: 'Keep 4.55 or above',
+      //     currentValue: parseFloat(rating.toFixed(2)),
+      //     targetValue: 4.55,
+      //     status: rating >= 4.55 ? 'good' : rating >= 4.0 ? 'warning' : 'bad',
+      //     comparison: 'higher',
+      //   },
+      //   {
+      //     id: 'cancellations',
+      //     title: 'Cancellations',
+      //     subtitle: 'Keep 5 or below',
+      //     currentValue: cancellations,
+      //     targetValue: 5,
+      //     status: cancellations <= 3 ? 'good' : cancellations <= 5 ? 'warning' : 'bad',
+      //     comparison: 'lower',
+      //   },
+      //   {
+      //     id: 'weekend_hours',
+      //     title: 'Weekend unavailable hours',
+      //     subtitle: 'Keep 31 or below',
+      //     currentValue: weekendHours,
+      //     targetValue: 31,
+      //     status: weekendHours <= 20 ? 'good' : weekendHours <= 31 ? 'warning' : 'bad',
+      //     comparison: 'lower',
+      //   },
+      //   {
+      //     id: 'audit_failures',
+      //     title: 'Audit failures',
+      //     subtitle: 'Keep 3 or below',
+      //     currentValue: auditFailures,
+      //     targetValue: 3,
+      //     status: auditFailures === 0 ? 'good' : auditFailures <= 3 ? 'warning' : 'bad',
+      //     comparison: 'lower',
+      //   },
+      //   {
+      //     id: 'revisit_error',
+      //     title: 'Revisit error %',
+      //     subtitle: 'Keep 7 or below',
+      //     currentValue: revisitError,
+      //     targetValue: 7,
+      //     status: revisitError <= 5 ? 'good' : revisitError <= 7 ? 'warning' : 'bad',
+      //     comparison: 'lower',
+      //   },
+      // ];
+      //
+      // setMetrics(metricsData);
+      //
+      // // Determine overall performance status
+      // const hasAnyBad = metricsData.some(m => m.status === 'bad');
+      // const hasMultipleWarnings = metricsData.filter(m => m.status === 'warning').length >= 2;
+      //
+      // if (hasAnyBad || hasMultipleWarnings) {
+      //   setPerformanceStatus('low');
+      // } else {
+      //   setPerformanceStatus('good');
+      // }
 
       // Calculate subscription based on credit balance
       // Each job costs ₹300 (₹150 on assignment + ₹150 on completion)
@@ -149,40 +153,41 @@ export const TargetsScreen = () => {
     setRefreshing(false);
   };
 
-  const getStatusIcon = (status: 'good' | 'warning' | 'bad') => {
-    switch (status) {
-      case 'good':
-        return <Ionicons name="checkmark-circle" size={24} color={Colors.success} />;
-      case 'warning':
-        return <Ionicons name="alert-circle" size={24} color="#FFA500" />;
-      case 'bad':
-        return <Ionicons name="close-circle" size={24} color={Colors.error} />;
-    }
-  };
-
-  const getStatusColor = (status: 'good' | 'warning' | 'bad') => {
-    switch (status) {
-      case 'good':
-        return Colors.success;
-      case 'warning':
-        return '#FFA500';
-      case 'bad':
-        return Colors.error;
-    }
-  };
-
-  const renderMetricCard = (metric: MetricCard) => (
-    <View key={metric.id} style={styles.metricCard}>
-      <Text style={styles.metricTitle}>{metric.title}</Text>
-      <Text style={styles.metricSubtitle}>{metric.subtitle}</Text>
-      <View style={styles.metricValueRow}>
-        {getStatusIcon(metric.status)}
-        <Text style={[styles.metricValue, { color: getStatusColor(metric.status) }]}>
-          {metric.currentValue}
-        </Text>
-      </View>
-    </View>
-  );
+  // FUTURE USE: Metrics feature
+  // const getStatusIcon = (status: 'good' | 'warning' | 'bad') => {
+  //   switch (status) {
+  //     case 'good':
+  //       return <Ionicons name="checkmark-circle" size={24} color={Colors.success} />;
+  //     case 'warning':
+  //       return <Ionicons name="alert-circle" size={24} color="#FFA500" />;
+  //     case 'bad':
+  //       return <Ionicons name="close-circle" size={24} color={Colors.error} />;
+  //   }
+  // };
+  //
+  // const getStatusColor = (status: 'good' | 'warning' | 'bad') => {
+  //   switch (status) {
+  //     case 'good':
+  //       return Colors.success;
+  //     case 'warning':
+  //       return '#FFA500';
+  //     case 'bad':
+  //       return Colors.error;
+  //   }
+  // };
+  //
+  // const renderMetricCard = (metric: MetricCard) => (
+  //   <View key={metric.id} style={styles.metricCard}>
+  //     <Text style={styles.metricTitle}>{metric.title}</Text>
+  //     <Text style={styles.metricSubtitle}>{metric.subtitle}</Text>
+  //     <View style={styles.metricValueRow}>
+  //       {getStatusIcon(metric.status)}
+  //       <Text style={[styles.metricValue, { color: getStatusColor(metric.status) }]}>
+  //         {metric.currentValue}
+  //       </Text>
+  //     </View>
+  //   </View>
+  // );
 
   if (loading) {
     return (
@@ -210,18 +215,18 @@ export const TargetsScreen = () => {
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Low Performance Banner */}
-        {performanceStatus === 'low' && (
+        {/* FUTURE USE: Low Performance Banner */}
+        {/* {performanceStatus === 'low' && (
           <Card style={styles.warningBanner}>
             <Text style={styles.warningTitle}>Low performance</Text>
-            <TouchableOpacity onPress={() => {/* Navigate to strikes info */}}>
+            <TouchableOpacity onPress={() => {}}>
               <Text style={styles.warningLink}>Learn about strikes</Text>
             </TouchableOpacity>
           </Card>
-        )}
+        )} */}
 
-        {/* Training Result Pending */}
-        {trainingPending && (
+        {/* FUTURE USE: Training Result Pending */}
+        {/* {trainingPending && (
           <TouchableOpacity
             style={styles.trainingCard}
             onPress={() => navigation.navigate('Training')}
@@ -231,23 +236,22 @@ export const TargetsScreen = () => {
             <Text style={styles.trainingText}>Training result pending</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
-        )}
+        )} */}
 
-        {/* Metrics Section */}
-        <View style={styles.section}>
+        {/* FUTURE USE: Metrics Section */}
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Metrics</Text>
           <Text style={styles.reviewDate}>Next performance review on {nextReviewDate}</Text>
-
           <View style={styles.metricsGrid}>
             {metrics.map(renderMetricCard)}
           </View>
-        </View>
+        </View> */}
 
-        {/* Action Links */}
-        <View style={styles.linksSection}>
+        {/* FUTURE USE: Action Links (How ranks work, View rewards, View previous ranks) */}
+        {/* <View style={styles.linksSection}>
           <TouchableOpacity
             style={styles.linkItem}
-            onPress={() => {/* Navigate to how ranks work */}}
+            onPress={() => {}}
             activeOpacity={0.7}
           >
             <View style={styles.linkLeft}>
@@ -256,12 +260,10 @@ export const TargetsScreen = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
-
           <View style={styles.divider} />
-
           <TouchableOpacity
             style={styles.linkItem}
-            onPress={() => {/* Navigate to rewards */}}
+            onPress={() => {}}
             activeOpacity={0.7}
           >
             <View style={styles.linkLeft}>
@@ -270,12 +272,10 @@ export const TargetsScreen = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
-
           <View style={styles.divider} />
-
           <TouchableOpacity
             style={styles.linkItem}
-            onPress={() => {/* Navigate to previous ranks */}}
+            onPress={() => {}}
             activeOpacity={0.7}
           >
             <View style={styles.linkLeft}>
@@ -284,7 +284,7 @@ export const TargetsScreen = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* Job Subscription Section */}
         <View style={styles.section}>
@@ -333,7 +333,7 @@ export const TargetsScreen = () => {
 
           <TouchableOpacity
             style={styles.linkItem}
-            onPress={() => {/* Navigate to previous subscriptions */}}
+            onPress={() => {/* Navigate to previous subscriptions */ }}
             activeOpacity={0.7}
           >
             <View style={styles.linkLeft}>
@@ -390,41 +390,42 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingBottom: 100,
   },
-  warningBanner: {
-    backgroundColor: '#FFF3CD',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFA500',
-    marginBottom: Spacing.md,
-  },
-  warningTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  warningLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    textDecorationLine: 'underline',
-  },
-  trainingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-  },
-  trainingText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
+  // FUTURE USE: Metrics & action links styles
+  // warningBanner: {
+  //   backgroundColor: '#FFF3CD',
+  //   borderLeftWidth: 4,
+  //   borderLeftColor: '#FFA500',
+  //   marginBottom: Spacing.md,
+  // },
+  // warningTitle: {
+  //   fontSize: 20,
+  //   fontWeight: '700',
+  //   color: Colors.textPrimary,
+  //   marginBottom: Spacing.xs,
+  // },
+  // warningLink: {
+  //   fontSize: 14,
+  //   fontWeight: '600',
+  //   color: Colors.textPrimary,
+  //   textDecorationLine: 'underline',
+  // },
+  // trainingCard: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   backgroundColor: Colors.surface,
+  //   padding: Spacing.lg,
+  //   borderRadius: BorderRadius.md,
+  //   marginBottom: Spacing.md,
+  //   gap: Spacing.md,
+  //   borderWidth: 1,
+  //   borderColor: Colors.divider,
+  // },
+  // trainingText: {
+  //   flex: 1,
+  //   fontSize: 16,
+  //   fontWeight: '500',
+  //   color: Colors.textPrimary,
+  // },
   section: {
     marginBottom: Spacing.xl,
   },
@@ -434,51 +435,51 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.xs,
   },
-  reviewDate: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  metricCard: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    width: '48%',
-    borderWidth: 1,
-    borderColor: Colors.divider,
-  },
-  metricTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  metricSubtitle: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-  },
-  metricValueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  metricValue: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  linksSection: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.xl,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-  },
+  // reviewDate: {
+  //   fontSize: 14,
+  //   color: Colors.textSecondary,
+  //   marginBottom: Spacing.lg,
+  // },
+  // metricsGrid: {
+  //   flexDirection: 'row',
+  //   flexWrap: 'wrap',
+  //   gap: Spacing.md,
+  // },
+  // metricCard: {
+  //   backgroundColor: Colors.surface,
+  //   padding: Spacing.lg,
+  //   borderRadius: BorderRadius.md,
+  //   width: '48%',
+  //   borderWidth: 1,
+  //   borderColor: Colors.divider,
+  // },
+  // metricTitle: {
+  //   fontSize: 16,
+  //   fontWeight: '700',
+  //   color: Colors.textPrimary,
+  //   marginBottom: Spacing.xs,
+  // },
+  // metricSubtitle: {
+  //   fontSize: 12,
+  //   color: Colors.textSecondary,
+  //   marginBottom: Spacing.md,
+  // },
+  // metricValueRow: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   gap: Spacing.sm,
+  // },
+  // metricValue: {
+  //   fontSize: 28,
+  //   fontWeight: '700',
+  // },
+  // linksSection: {
+  //   backgroundColor: Colors.surface,
+  //   borderRadius: BorderRadius.md,
+  //   marginBottom: Spacing.xl,
+  //   borderWidth: 1,
+  //   borderColor: Colors.divider,
+  // },
   linkItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -495,11 +496,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textPrimary,
   },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.divider,
-    marginHorizontal: Spacing.lg,
-  },
+  // divider: {
+  //   height: 1,
+  //   backgroundColor: Colors.divider,
+  //   marginHorizontal: Spacing.lg,
+  // },
   subscriptionCard: {
     marginBottom: Spacing.md,
   },
