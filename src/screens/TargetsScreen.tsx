@@ -52,22 +52,38 @@ export const TargetsScreen = () => {
       const creditStatsResponse = await creditApi.getCreditStats();
       const creditStats = creditStatsResponse.data || creditStatsResponse;
 
-      // Fetch profile and hub stats for metrics
+      // Fetch profile for metrics
       const profile = await proApi.fetchProfile();
-      const hubStats = profile.hubStats || {};
 
-      // Metrics data - Only Rating and Weekend unavailable hours
-      const rating = hubStats.rating || 5.0;
-      const weekendHours = 0; // Would need availability tracking
+      // Fetch weekend unavailable hours
+      let weekendHours = 0;
+      try {
+        const weekendData = await proApi.fetchWeekendUnavailableHours();
+        weekendHours = weekendData.totalUnavailableHours || 0;
+      } catch (error) {
+        console.error('Failed to fetch weekend hours:', error);
+        weekendHours = 0;
+      }
+
+      // Get rating and review count directly from profile
+      const rating = profile.rating || 5.0;
+      const reviewCount = profile.reviewCount || 0;
+      const hasReviews = reviewCount > 0;
+
+      console.log('Professional Profile Data:', {
+        rating,
+        reviewCount,
+        hasReviews,
+      });
 
       const metricsData: MetricCard[] = [
         {
           id: 'rating',
           title: 'Rating',
-          subtitle: 'Keep 4.55 or above',
-          currentValue: parseFloat(rating.toFixed(2)),
+          subtitle: hasReviews ? 'Keep 4.55 or above' : 'No ratings yet',
+          currentValue: hasReviews ? parseFloat(rating.toFixed(2)) : 0,
           targetValue: 4.55,
-          status: rating >= 4.55 ? 'good' : rating >= 4.0 ? 'warning' : 'bad',
+          status: hasReviews ? (rating >= 4.55 ? 'good' : rating >= 4.0 ? 'warning' : 'bad') : 'warning',
           comparison: 'higher',
         },
         {
@@ -132,18 +148,58 @@ export const TargetsScreen = () => {
     }
   };
 
-  const renderMetricCard = (metric: MetricCard) => (
-    <View key={metric.id} style={styles.metricCard}>
-      <Text style={styles.metricTitle}>{metric.title}</Text>
-      <Text style={styles.metricSubtitle}>{metric.subtitle}</Text>
-      <View style={styles.metricValueRow}>
-        {getStatusIcon(metric.status)}
-        <Text style={[styles.metricValue, { color: getStatusColor(metric.status) }]}>
-          {metric.currentValue}
-        </Text>
+  const renderMetricCard = (metric: MetricCard) => {
+    const isClickable = metric.id === 'rating' || metric.id === 'weekend_hours';
+
+    const CardContent = (
+      <>
+        <Text style={styles.metricTitle}>{metric.title}</Text>
+        <Text style={styles.metricSubtitle}>{metric.subtitle}</Text>
+        <View style={styles.metricValueRow}>
+          {metric.currentValue === 0 && metric.id === 'rating' ? (
+            <>
+              <Ionicons name="star-outline" size={24} color={Colors.textSecondary} />
+              <Text style={[styles.metricValue, { color: Colors.textSecondary }]}>
+                New
+              </Text>
+            </>
+          ) : (
+            <>
+              {getStatusIcon(metric.status)}
+              <Text style={[styles.metricValue, { color: getStatusColor(metric.status) }]}>
+                {metric.currentValue}
+              </Text>
+            </>
+          )}
+        </View>
+      </>
+    );
+
+    if (isClickable) {
+      const getNavigationTarget = () => {
+        if (metric.id === 'rating') return 'RatingsDetail';
+        if (metric.id === 'weekend_hours') return 'WeekendUnavailableHours';
+        return 'Targets';
+      };
+
+      return (
+        <TouchableOpacity
+          key={metric.id}
+          style={styles.metricCard}
+          onPress={() => navigation.navigate(getNavigationTarget())}
+          activeOpacity={0.7}
+        >
+          {CardContent}
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <View key={metric.id} style={styles.metricCard}>
+        {CardContent}
       </View>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (

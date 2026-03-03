@@ -28,6 +28,8 @@ import { TicketDetailScreen } from '../screens/TicketDetailScreen';
 import { MyHubScreen } from '../screens/MyHubScreen';
 import { ReviewsScreen } from '../screens/ReviewsScreen';
 import { TargetsScreen } from '../screens/TargetsScreen';
+import { RatingsDetailScreen } from '../screens/RatingsDetailScreen';
+import { WeekendUnavailableHoursScreen } from '../screens/WeekendUnavailableHoursScreen';
 import { UnifiedCalendarScreen } from '../screens/UnifiedCalendarScreen';
 import { PaymentQRScreen } from '../screens/PaymentQRScreen';
 import { BankAccountSetupScreen } from '../screens/BankAccountSetupScreen';
@@ -153,6 +155,8 @@ const DrawerNav = () => (
     <Drawer.Screen name="MyHub" component={MyHubScreen} />
     <Drawer.Screen name="Reviews" component={ReviewsScreen} />
     <Drawer.Screen name="Targets" component={TargetsScreen} />
+    <Drawer.Screen name="RatingsDetail" component={RatingsDetailScreen} />
+    <Drawer.Screen name="WeekendUnavailableHours" component={WeekendUnavailableHoursScreen} />
     <Drawer.Screen name="PayoutAccounts" component={PayoutAccountsScreen} />
     <Drawer.Screen name="BankAccountSetup" component={BankAccountSetupScreen} />
   </Drawer.Navigator>

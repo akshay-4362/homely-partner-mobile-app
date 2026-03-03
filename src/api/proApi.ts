@@ -50,4 +50,21 @@ export const proApi = {
     const { data } = await client.post('/professionals/me/push-token/test');
     return data;
   },
+
+  // Reviews methods
+  fetchMyReviews: async () => {
+    const { data } = await client.get('/reviews/me');
+    return data.data || data;
+  },
+
+  fetchMyRatingStats: async () => {
+    const { data } = await client.get('/reviews/me/stats');
+    return data.data || data;
+  },
+
+  // Weekend unavailable hours
+  fetchWeekendUnavailableHours: async () => {
+    const { data } = await client.get('/availability/weekend-unavailable-hours');
+    return data.data || data;
+  },
 };
