@@ -169,26 +169,47 @@ export const HomeScreen = () => {
           />
         </View>
 
+        {/* No New Jobs Card */}
+        <TouchableOpacity
+          style={styles.emptyCard}
+          onPress={() => navigation.navigate('Jobs')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.emptyTitle}>No new jobs</Text>
+          <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
+        </TouchableOpacity>
+
         {/* Today's Schedule */}
-        {todayJobs && todayJobs.length > 0 && (
-          <View style={styles.section}>
-            <SectionHeader
-              title="Today's Schedule"
-              action="View All"
-              onAction={() => navigation.navigate('Jobs')}
-            />
-            {todayJobs.map((job) => (
-              <TodayJobCard
-                key={job.bookingId}
-                job={job}
-                onPress={() => navigation.navigate('Jobs', {
-                  screen: 'BookingDetail',
-                  params: { booking: job, fromScreen: 'Home' }
-                })}
+        <View style={styles.section}>
+          {todayJobs && todayJobs.length > 0 ? (
+            <>
+              <SectionHeader
+                title="Today's Schedule"
+                action="View All"
+                onAction={() => navigation.navigate('Jobs')}
               />
-            ))}
-          </View>
-        )}
+              {todayJobs.map((job) => (
+                <TodayJobCard
+                  key={job.bookingId}
+                  job={job}
+                  onPress={() => navigation.navigate('Jobs', {
+                    screen: 'BookingDetail',
+                    params: { booking: job, fromScreen: 'Home' }
+                  })}
+                />
+              ))}
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.emptyCard}
+              onPress={() => navigation.navigate('Jobs')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.emptyTitle}>No jobs today</Text>
+              <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -330,5 +351,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#fff',
+  },
+  emptyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
   },
 });

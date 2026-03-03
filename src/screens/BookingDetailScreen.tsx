@@ -124,7 +124,7 @@ export const BookingDetailScreen = () => {
   const [afterMedia, setAfterMedia] = useState<MediaItem[]>([]);
   const [mediaBottomSheet, setMediaBottomSheet] = useState<{
     visible: boolean;
-    target: 'before' | 'after' | 'oldPart' | 'newPart';
+    target: 'before' | 'after' | 'part';
   }>({ visible: false, target: 'before' });
 
   // Parts Replacement - UC Style (No Price, Just Media)
@@ -132,15 +132,13 @@ export const BookingDetailScreen = () => {
   const [parts, setParts] = useState<Array<{
     id: string;
     oldPartName: string;
-    oldPartMedia: MediaItem[];
     newPartName: string;
-    newPartMedia: MediaItem[];
+    media: MediaItem[]; // Single media array for both old and new parts
   }>>([]);
   const [currentPart, setCurrentPart] = useState({
     oldPartName: '',
-    oldPartMedia: [] as MediaItem[],
     newPartName: '',
-    newPartMedia: [] as MediaItem[],
+    media: [] as MediaItem[], // Single media array
   });
   const [editingPartId, setEditingPartId] = useState<string | null>(null);
 
@@ -392,7 +390,7 @@ export const BookingDetailScreen = () => {
   };
 
   // UC-Style Media Upload - Single "Add Media" button with bottom sheet
-  const openMediaBottomSheet = (target: 'before' | 'after' | 'oldPart' | 'newPart') => {
+  const openMediaBottomSheet = (target: 'before' | 'after' | 'part') => {
     setMediaBottomSheet({ visible: true, target });
   };
 
@@ -479,22 +477,18 @@ export const BookingDetailScreen = () => {
       setBeforeMedia(prev => [...prev, mediaItem]);
     } else if (target === 'after') {
       setAfterMedia(prev => [...prev, mediaItem]);
-    } else if (target === 'oldPart') {
-      setCurrentPart(prev => ({ ...prev, oldPartMedia: [...prev.oldPartMedia, mediaItem] }));
-    } else if (target === 'newPart') {
-      setCurrentPart(prev => ({ ...prev, newPartMedia: [...prev.newPartMedia, mediaItem] }));
+    } else if (target === 'part') {
+      setCurrentPart(prev => ({ ...prev, media: [...prev.media, mediaItem] }));
     }
   };
 
-  const removeMediaFromTarget = (target: 'before' | 'after' | 'oldPart' | 'newPart', index: number) => {
+  const removeMediaFromTarget = (target: 'before' | 'after' | 'part', index: number) => {
     if (target === 'before') {
       setBeforeMedia(prev => prev.filter((_, i) => i !== index));
     } else if (target === 'after') {
       setAfterMedia(prev => prev.filter((_, i) => i !== index));
-    } else if (target === 'oldPart') {
-      setCurrentPart(prev => ({ ...prev, oldPartMedia: prev.oldPartMedia.filter((_, i) => i !== index) }));
-    } else if (target === 'newPart') {
-      setCurrentPart(prev => ({ ...prev, newPartMedia: prev.newPartMedia.filter((_, i) => i !== index) }));
+    } else if (target === 'part') {
+      setCurrentPart(prev => ({ ...prev, media: prev.media.filter((_, i) => i !== index) }));
     }
   };
 
@@ -546,9 +540,8 @@ export const BookingDetailScreen = () => {
   const openAddPartModal = () => {
     setCurrentPart({
       oldPartName: '',
-      oldPartMedia: [],
       newPartName: '',
-      newPartMedia: [],
+      media: [],
     });
     setEditingPartId(null);
     setAddPartModal(true);
@@ -559,9 +552,8 @@ export const BookingDetailScreen = () => {
     if (part) {
       setCurrentPart({
         oldPartName: part.oldPartName,
-        oldPartMedia: part.oldPartMedia,
         newPartName: part.newPartName,
-        newPartMedia: part.newPartMedia,
+        media: part.media,
       });
       setEditingPartId(partId);
       setAddPartModal(true);
@@ -591,12 +583,12 @@ export const BookingDetailScreen = () => {
 
     setLoading(true);
     try {
-      // Submit part to backend
+      // Submit part to backend with single media array
       await bookingApi.addParts(booking.id, [{
         oldPartName: currentPart.oldPartName,
-        oldPartMedia: currentPart.oldPartMedia,
         newPartName: currentPart.newPartName,
-        newPartMedia: currentPart.newPartMedia,
+        oldPartMedia: currentPart.media, // Send same media array for both
+        newPartMedia: currentPart.media, // Backend expects both fields
       }]);
 
       // Update local state
@@ -618,9 +610,8 @@ export const BookingDetailScreen = () => {
       setAddPartModal(false);
       setCurrentPart({
         oldPartName: '',
-        oldPartMedia: [],
         newPartName: '',
-        newPartMedia: [],
+        media: [],
       });
       setEditingPartId(null);
     } catch (error: any) {
@@ -1452,7 +1443,7 @@ export const BookingDetailScreen = () => {
               <View style={styles.modalHandle} />
               <Text style={styles.modalTitle}>{editingPartId ? 'Edit Part' : 'Add Part'}</Text>
 
-              {/* Old Part Section */}
+              {/* Old Part Name */}
               <Text style={styles.partSectionTitle}>Old Part</Text>
               <TextInput
                 style={styles.otpInput}
@@ -1462,51 +1453,7 @@ export const BookingDetailScreen = () => {
                 placeholderTextColor={Colors.textTertiary}
               />
 
-              {/* Separate Photo and Video Buttons for Old Part */}
-              <View style={styles.mediaButtonRow}>
-                <TouchableOpacity
-                  style={[styles.mediaActionBtn, { backgroundColor: Colors.error }]}
-                  onPress={() => {
-                    setMediaBottomSheet({ visible: false, target: 'oldPart' });
-                    takePhoto();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="camera" size={20} color="#fff" />
-                  <Text style={styles.mediaActionBtnText}>Photo</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.mediaActionBtn, { backgroundColor: Colors.error }]}
-                  onPress={() => {
-                    setMediaBottomSheet({ visible: false, target: 'oldPart' });
-                    recordVideo();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="videocam" size={20} color="#fff" />
-                  <Text style={styles.mediaActionBtnText}>Video</Text>
-                </TouchableOpacity>
-              </View>
-
-              {currentPart.oldPartMedia.length > 0 && (
-                <View style={styles.mediaGrid}>
-                  {currentPart.oldPartMedia.map((media, index) => (
-                    <View key={index} style={styles.mediaGridItem}>
-                      <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
-                      <TouchableOpacity
-                        style={styles.removeMediaBtn}
-                        onPress={() => removeMediaFromTarget('oldPart', index)}
-                      >
-                        <Ionicons name="close-circle" size={20} color={Colors.error} />
-                      </TouchableOpacity>
-                      <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* New Part Section */}
+              {/* New Part Name */}
               <Text style={[styles.partSectionTitle, { marginTop: Spacing.lg }]}>New Part</Text>
               <TextInput
                 style={styles.otpInput}
@@ -1516,12 +1463,13 @@ export const BookingDetailScreen = () => {
                 placeholderTextColor={Colors.textTertiary}
               />
 
-              {/* Separate Photo and Video Buttons for New Part */}
+              {/* Single Media Upload Section */}
+              <Text style={[styles.partSectionTitle, { marginTop: Spacing.lg }]}>Photo/Video</Text>
               <View style={styles.mediaButtonRow}>
                 <TouchableOpacity
-                  style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
+                  style={[styles.mediaActionBtn, { backgroundColor: Colors.primary }]}
                   onPress={() => {
-                    setMediaBottomSheet({ visible: false, target: 'newPart' });
+                    setMediaBottomSheet({ visible: false, target: 'part' });
                     takePhoto();
                   }}
                   activeOpacity={0.7}
@@ -1531,9 +1479,9 @@ export const BookingDetailScreen = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.mediaActionBtn, { backgroundColor: Colors.success }]}
+                  style={[styles.mediaActionBtn, { backgroundColor: Colors.primary }]}
                   onPress={() => {
-                    setMediaBottomSheet({ visible: false, target: 'newPart' });
+                    setMediaBottomSheet({ visible: false, target: 'part' });
                     recordVideo();
                   }}
                   activeOpacity={0.7}
@@ -1543,14 +1491,14 @@ export const BookingDetailScreen = () => {
                 </TouchableOpacity>
               </View>
 
-              {currentPart.newPartMedia.length > 0 && (
+              {currentPart.media.length > 0 && (
                 <View style={styles.mediaGrid}>
-                  {currentPart.newPartMedia.map((media, index) => (
+                  {currentPart.media.map((media, index) => (
                     <View key={index} style={styles.mediaGridItem}>
                       <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
                       <TouchableOpacity
                         style={styles.removeMediaBtn}
-                        onPress={() => removeMediaFromTarget('newPart', index)}
+                        onPress={() => removeMediaFromTarget('part', index)}
                       >
                         <Ionicons name="close-circle" size={20} color={Colors.error} />
                       </TouchableOpacity>
