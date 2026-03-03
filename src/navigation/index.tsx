@@ -31,6 +31,7 @@ import { TargetsScreen } from '../screens/TargetsScreen';
 import { RatingsDetailScreen } from '../screens/RatingsDetailScreen';
 import { WeekendUnavailableHoursScreen } from '../screens/WeekendUnavailableHoursScreen';
 import { UnifiedCalendarScreen } from '../screens/UnifiedCalendarScreen';
+import { NewCalendarScreen } from '../screens/NewCalendarScreen';
 import { PaymentQRScreen } from '../screens/PaymentQRScreen';
 import { BankAccountSetupScreen } from '../screens/BankAccountSetupScreen';
 import { PayoutAccountsScreen } from '../screens/PayoutAccountsScreen';
@@ -145,7 +146,8 @@ const DrawerNav = () => (
     }}
   >
     <Drawer.Screen name="MainTabs" component={MainTabs} />
-    <Drawer.Screen name="Calendar" component={UnifiedCalendarScreen} />
+    <Drawer.Screen name="Calendar" component={NewCalendarScreen} />
+    <Drawer.Screen name="OldCalendar" component={UnifiedCalendarScreen} />
     <Drawer.Screen name="Payouts" component={PayoutsScreen} />
     <Drawer.Screen name="Notifications" component={NotificationsScreen} />
     <Drawer.Screen name="Credits" component={CreditsScreen} />
