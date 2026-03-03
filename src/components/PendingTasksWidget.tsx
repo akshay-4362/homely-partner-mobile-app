@@ -16,24 +16,10 @@ export const PendingTasksWidget = () => {
     dispatch(fetchCreditStats());
   }, []);
 
-  if (!stats || !stats.needsRecharge) {
-    return null; // Only show if there are pending tasks
-  }
-
+  // No pending tasks to show (low credits is handled by banner in HomeScreen)
   const tasks = [];
 
-  // Low credit warning
-  if (stats.needsRecharge) {
-    tasks.push({
-      id: 'low-credits',
-      title: `Only ${stats.currentBalance} credits left`,
-      subtitle: 'Recharge credits to get new jobs',
-      icon: 'wallet-outline',
-      iconColor: Colors.error,
-      iconBg: Colors.errorBg,
-      action: () => navigation.navigate('Credits'),
-    });
-  }
+  // Note: Low credit warning removed - it's redundant with the "New jobs are paused" banner
 
   if (tasks.length === 0) return null;
 
