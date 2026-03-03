@@ -18,6 +18,7 @@ import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { CreditBalanceWidget } from '../components/CreditBalanceWidget';
 import { PendingTasksWidget } from '../components/PendingTasksWidget';
+import { CalendarWidget } from '../components/CalendarWidget';
 import { Notification } from '../types';
 import { usePayoutAccountCheck } from '../hooks/usePayoutAccountCheck';
 
@@ -108,6 +109,9 @@ export const HomeScreen = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         contentContainerStyle={styles.scroll}
       >
+        {/* Calendar Widget */}
+        <CalendarWidget />
+
         {/* Pending Tasks */}
         <PendingTasksWidget />
 
