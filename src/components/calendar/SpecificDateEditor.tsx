@@ -145,6 +145,31 @@ export const SpecificDateEditor: React.FC<Props> = ({
     }
   };
 
+  const markAllAvailable = async () => {
+    try {
+      setSaving(true);
+
+      // Set all slots to available
+      const availableSlots = slots.map((s) => ({ ...s, available: true }));
+
+      await client.post('/availability/date-override', {
+        date,
+        slots: availableSlots,
+      });
+
+      console.log('Date marked as available successfully');
+
+      // Wait for save to complete, then refresh and close
+      await onSave();
+      onClose();
+    } catch (error) {
+      console.error('Failed to mark available:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -278,18 +303,35 @@ export const SpecificDateEditor: React.FC<Props> = ({
             </View>
 
             {!showHourEditor && (
-              <TouchableOpacity
-                style={styles.unavailableBtn}
-                onPress={markAllUnavailable}
-                disabled={saving}
-                activeOpacity={0.7}
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color={Colors.primary} />
-                ) : (
-                  <Text style={styles.unavailableBtnText}>Mark as unavailable</Text>
-                )}
-              </TouchableOpacity>
+              availableHours === 0 ? (
+                // Show "Mark as available" when day is unavailable
+                <TouchableOpacity
+                  style={[styles.quickActionBtn, styles.availableBtn]}
+                  onPress={markAllAvailable}
+                  disabled={saving}
+                  activeOpacity={0.7}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color={Colors.success} />
+                  ) : (
+                    <Text style={styles.availableBtnText}>Mark as available</Text>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                // Show "Mark as unavailable" when day is available
+                <TouchableOpacity
+                  style={[styles.quickActionBtn, styles.unavailableBtn]}
+                  onPress={markAllUnavailable}
+                  disabled={saving}
+                  activeOpacity={0.7}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color={Colors.error} />
+                  ) : (
+                    <Text style={styles.unavailableBtnText}>Mark as unavailable</Text>
+                  )}
+                </TouchableOpacity>
+              )
             )}
           </TouchableOpacity>
 
@@ -442,11 +484,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   section: {
-    backgroundColor: '#F3E5F5',
+    backgroundColor: '#fff',
     marginHorizontal: Spacing.lg,
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.divider,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -463,19 +507,30 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textPrimary,
   },
-  unavailableBtn: {
+  quickActionBtn: {
     marginTop: Spacing.md,
-    backgroundColor: '#fff',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.primary,
+  },
+  availableBtn: {
+    backgroundColor: Colors.successBg,
+    borderColor: Colors.success,
+  },
+  availableBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.success,
+  },
+  unavailableBtn: {
+    backgroundColor: Colors.errorBg,
+    borderColor: Colors.error,
   },
   unavailableBtnText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.error,
   },
   collapsedSummary: {
     flexDirection: 'row',
@@ -507,10 +562,12 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   hoursEditor: {
-    backgroundColor: '#F3E5F5',
+    backgroundColor: '#fff',
     marginHorizontal: Spacing.lg,
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.divider,
   },
   hoursEditorHeader: {
     flexDirection: 'row',

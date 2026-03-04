@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
-  Platform } from 'react-native';
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchPayouts } from '../store/payoutSlice';
-import { fetchAccountingSummary, fetchMonthlyEarnings } from '../store/accountingSlice';
+import { fetchAccountingSummary } from '../store/accountingSlice';
 import { accountingApi } from '../api/accountingApi';
+import { creditApi } from '../api/creditApi';
 import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { formatCurrency, formatDateOnly } from '../utils/format';
@@ -19,27 +20,41 @@ import { Loader } from '../components/common/Loader';
 export const EarningsScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
-  const { items: payouts, status: payoutsStatus } = useAppSelector((s) => s.payouts);
-  const { summary, monthlyEarnings } = useAppSelector((s) => s.accounting);
+  const { items: payouts } = useAppSelector((s) => s.payouts);
+  const { summary } = useAppSelector((s) => s.accounting);
 
   const [monthlyData, setMonthlyData] = useState<ProfessionalMonthlyEarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // 0 = current month
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
+  const [expandEarnings, setExpandEarnings] = useState(true);
+  const [expandDeductions, setExpandDeductions] = useState(true);
+  const [pendingDeductionAmount, setPendingDeductionAmount] = useState(0);
 
   const load = async () => {
     try {
       dispatch(fetchAccountingSummary());
       dispatch(fetchPayouts());
 
-      // Fetch 6 months data (not cached yet, can be added later if needed)
-      const m = await accountingApi.getMonthlyEarnings(6);
+      const m = await accountingApi.getMonthlyEarnings(7);
       const monthlyList = m?.data || m?.months || m || [];
-      // Sort by month descending (most recent first)
       const sortedData = Array.isArray(monthlyList)
-        ? monthlyList.sort((a, b) => b.month.localeCompare(a.month))
+        ? monthlyList.sort((a: ProfessionalMonthlyEarning, b: ProfessionalMonthlyEarning) =>
+          b.month.localeCompare(a.month))
         : [];
       setMonthlyData(sortedData);
+
+      // Fetch pending cash deductions (partner received cash but hasn't paid back)
+      try {
+        const txResp = await creditApi.getCreditTransactions({ type: 'job_deduction' });
+        const txList = txResp?.data?.transactions || [];
+        const pendingTotal = txList
+          .filter((t: any) => t.status === 'pending')
+          .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
+        setPendingDeductionAmount(pendingTotal);
+      } catch (_) {
+        // pending deductions unavailable
+      }
     } catch (err) {
       console.error('Failed to load earnings:', err);
     }
@@ -50,12 +65,11 @@ export const EarningsScreen = () => {
     try {
       dispatch(fetchAccountingSummary(true));
       dispatch(fetchPayouts(true));
-
-      const m = await accountingApi.getMonthlyEarnings(6);
+      const m = await accountingApi.getMonthlyEarnings(7);
       const monthlyList = m?.data || m?.months || m || [];
-      // Sort by month descending (most recent first)
       const sortedData = Array.isArray(monthlyList)
-        ? monthlyList.sort((a, b) => b.month.localeCompare(a.month))
+        ? monthlyList.sort((a: ProfessionalMonthlyEarning, b: ProfessionalMonthlyEarning) =>
+          b.month.localeCompare(a.month))
         : [];
       setMonthlyData(sortedData);
     } catch (err) {
@@ -64,8 +78,6 @@ export const EarningsScreen = () => {
   };
 
   useEffect(() => { load(); }, []);
-
-  // No need for daily data - we'll use monthly data for the chart
 
   const debouncedRefresh = useDebouncedRefresh(loadForced);
 
@@ -77,49 +89,65 @@ export const EarningsScreen = () => {
 
   if (loading) return <Loader text="Loading earnings..." />;
 
-  // Get selected month data
+  // ── selected month ──────────────────────────────────────────
   const selectedMonth = monthlyData[selectedMonthIndex] || monthlyData[0];
   const selectedMonthEarnings = selectedMonth?.earnings || 0;
   const selectedMonthCommission = selectedMonth?.commission || 0;
   const selectedMonthServiceTaxes = selectedMonth?.serviceTaxes || 0;
   const selectedMonthTotalPaid = selectedMonth?.totalPaid || 0;
-  const selectedMonthName = selectedMonth?.month || 'This Month';
+  const selectedMonthName = selectedMonth?.month || '';
 
-  // Calculate breakdown for selected month
-  // selectedMonthTotalPaid = total amount customer paid (including service tax)
-  // selectedMonthServiceTaxes = GST on services (goes to government, not split)
-  // Revenue to split = totalPaid - serviceTaxes (what's split between platform and professional)
-  // selectedMonthCommission = platform's commission (10% of revenue to split)
-  // selectedMonthEarnings = professional's payout (90% of revenue to split)
-  const customerPaid = selectedMonthTotalPaid; // Total customer paid
-  const serviceTax = selectedMonthServiceTaxes; // Service GST (goes to govt)
-  const revenueToSplit = selectedMonthEarnings + selectedMonthCommission; // Amount split between platform & pro
-  const platformFee = selectedMonthCommission; // 10% of revenue to split
-  const grossEarnings = selectedMonthEarnings; // Professional's share (90% of revenue to split)
-  const gstAmount = grossEarnings * 0.18; // 18% GST on professional's earnings
-  const totalDeductions = serviceTax + platformFee + gstAmount; // All deductions
+  const customerPaid = selectedMonthTotalPaid;
+  const revenueToSplit = selectedMonthEarnings + selectedMonthCommission;
+  const platformFee = selectedMonthCommission;          // Paid to Homelyo
+  const grossEarnings = selectedMonthEarnings;
+  const gstAmount = grossEarnings * 0.18;               // GST on professional's earnings
+  const serviceTax = selectedMonthServiceTaxes;
+  const totalDeductions = platformFee + serviceTax + gstAmount;
+  const paidToGovernment = serviceTax + gstAmount;
   const netEarnings = customerPaid - totalDeductions;
+  // Job Value ≈ revenue to split (customer paid minus service tax)
+  const jobValue = revenueToSplit;
+  const cancellationIncentive = 0; // placeholder — no data field yet
 
-  // Prepare monthly chart data (show last 6 months, oldest to newest for timeline)
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthlyChartData = [...monthlyData]
-    .reverse() // Reverse to show oldest to newest (left to right)
-    .map((m) => {
-      const [year, month] = m.month.split('-');
-      const monthIndex = parseInt(month) - 1;
-      return {
-        label: monthNames[monthIndex],
-        amount: m.totalPaid || 0,
-        monthKey: m.month,
-      };
-    });
+  // ── month helpers ────────────────────────────────────────────
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+  const formatMonthTitle = (monthStr: string) => {
+    if (!monthStr) return 'This Month';
+    const [year, mon] = monthStr.split('-');
+    const fullNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    return `${fullNames[parseInt(mon) - 1]} ${year}`;
+  };
+
+  const goToPrevMonth = () => {
+    if (selectedMonthIndex < monthlyData.length - 1)
+      setSelectedMonthIndex(selectedMonthIndex + 1);
+  };
+  const goToNextMonth = () => {
+    if (selectedMonthIndex > 0)
+      setSelectedMonthIndex(selectedMonthIndex - 1);
+  };
+
+  // ── bar chart ─────────────────────────────────────────────────
+  const monthlyChartData = [...monthlyData].reverse().map((m) => {
+    const [, mon] = m.month.split('-');
+    return { label: monthNames[parseInt(mon) - 1], amount: m.totalPaid || 0, monthKey: m.month };
+  });
   const maxMonthlyAmount = Math.max(...monthlyChartData.map(d => d.amount), 1);
 
-  // Categorize payouts
-  const upcomingPayouts = payouts.filter(p => p.status === 'pending');
-  const processingPayouts = payouts.filter(p => p.status === 'processing');
-  const paidPayouts = payouts.filter(p => p.status === 'paid');
+  // ── payouts ───────────────────────────────────────────────────
+  const allPayouts = [...payouts].sort(
+    (a, b) => new Date(b.periodEnd).getTime() - new Date(a.periodEnd).getTime()
+  );
+
+  const getPayoutStatus = (status: string) => {
+    if (status === 'paid') return { label: 'Success', color: Colors.success };
+    if (status === 'processing') return { label: 'Processing', color: '#F59E0B' };
+    return { label: 'Upcoming', color: Colors.textSecondary };
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -128,77 +156,35 @@ export const EarningsScreen = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         contentContainerStyle={styles.scroll}
       >
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>Money</Text>
-        </View>
-
-        {/* Month Selector */}
-        <View style={styles.monthSelector}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.monthScrollContent}
-          >
-            {monthlyData.map((month, index) => {
-              // Format: "2026-02" -> "Feb 2026"
-              const [year, monthNum] = month.month.split('-');
-              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              const monthName = monthNames[parseInt(monthNum) - 1];
-              const displayText = `${monthName} ${year}`;
-
-              return (
-                <TouchableOpacity
-                  key={month.month}
-                  style={[
-                    styles.monthChip,
-                    selectedMonthIndex === index && styles.monthChipActive
-                  ]}
-                  onPress={() => setSelectedMonthIndex(index)}
-                >
-                  <Text
-                    style={[
-                      styles.monthChipText,
-                      selectedMonthIndex === index && styles.monthChipTextActive
-                    ]}
-                  >
-                    {displayText}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* Main Earnings Card */}
-        <View style={styles.earningsCard}>
+        {/* ── Month Navigation Header ── */}
+        <View style={styles.monthNav}>
           <TouchableOpacity
-            style={styles.earningsTop}
-            onPress={() => navigation.navigate('Payouts')}
+            onPress={goToPrevMonth}
+            disabled={selectedMonthIndex >= monthlyData.length - 1}
+            style={[styles.navArrow, selectedMonthIndex >= monthlyData.length - 1 && styles.navArrowDisabled]}
           >
-            <View>
-              <Text style={styles.mainAmount}>{formatCurrency(customerPaid)}</Text>
-              <Text style={styles.mainLabel}>
-                {selectedMonthIndex === 0 ? 'Customer paid this month' : `Customer paid in ${selectedMonthName}`}
-              </Text>
-              <Text style={styles.netLabel}>
-                Net to you: {formatCurrency(netEarnings)}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            <Ionicons name="chevron-back" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
+          <Text style={styles.monthTitle}>{formatMonthTitle(selectedMonthName)}</Text>
+          <TouchableOpacity
+            onPress={goToNextMonth}
+            disabled={selectedMonthIndex <= 0}
+            style={[styles.navArrow, selectedMonthIndex <= 0 && styles.navArrowDisabled]}
+          >
+            <Ionicons name="chevron-forward" size={22} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
 
-          {/* Bar Chart - Monthly */}
+        {/* ── Bar Chart ── */}
+        <View style={styles.chartCard}>
           <View style={styles.chartContainer}>
-            {monthlyChartData.map((month, index) => {
-              const barHeight = (month.amount / maxMonthlyAmount) * 80;
-              // Reverse index to match monthlyData order (newest first)
+            {monthlyChartData.map((mon, index) => {
+              const barHeight = (mon.amount / maxMonthlyAmount) * 70;
               const actualIndex = monthlyData.length - 1 - index;
               const isSelected = selectedMonthIndex === actualIndex;
-
               return (
                 <TouchableOpacity
-                  key={month.monthKey}
+                  key={mon.monthKey}
                   style={styles.barColumn}
                   onPress={() => setSelectedMonthIndex(actualIndex)}
                   activeOpacity={0.7}
@@ -207,15 +193,12 @@ export const EarningsScreen = () => {
                     <View
                       style={[
                         styles.bar,
-                        {
-                          height: Math.max(barHeight, 4),
-                          backgroundColor: isSelected ? Colors.primary : Colors.primaryBg,
-                        }
+                        { height: Math.max(barHeight, 4), backgroundColor: isSelected ? Colors.primary : Colors.primaryBg },
                       ]}
                     />
                   </View>
                   <Text style={[styles.barLabel, isSelected && { color: Colors.primary, fontWeight: '700' }]}>
-                    {month.label}
+                    {mon.label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -223,196 +206,178 @@ export const EarningsScreen = () => {
           </View>
         </View>
 
-        {/* Earnings Breakdown Card */}
-        <View style={styles.breakdownCard}>
-          <Text style={styles.breakdownTitle}>
-            {selectedMonthIndex === 0 ? "This month's breakdown" : `${selectedMonthName} breakdown`}
-          </Text>
-
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Customer paid (total)</Text>
-            <Text style={styles.breakdownValue}>{formatCurrency(customerPaid)}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.breakdownRow}>
-            <View style={styles.breakdownLabelWithIcon}>
-              <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
-              <Text style={styles.breakdownLabel}>Service tax (GST)</Text>
+        {/* ── Total Earnings Row ── */}
+        <View style={styles.earningsBlock}>
+          <TouchableOpacity
+            style={styles.summaryRow}
+            onPress={() => setExpandEarnings(!expandEarnings)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.iconBg}>
+              <Ionicons name="arrow-down" size={20} color={Colors.success} />
             </View>
-            <Text style={[styles.breakdownValue, styles.deductionValue]}>
-              -{formatCurrency(serviceTax)}
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Revenue to split</Text>
-            <Text style={styles.breakdownValue}>{formatCurrency(revenueToSplit)}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.breakdownRow}>
-            <View style={styles.breakdownLabelWithIcon}>
-              <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
-              <Text style={styles.breakdownLabel}>Platform fee (10%)</Text>
+            <View style={styles.summaryText}>
+              <Text style={styles.summaryAmount}>{formatCurrency(customerPaid)}</Text>
+              <Text style={styles.summaryLabel}>Total Earnings</Text>
             </View>
-            <Text style={[styles.breakdownValue, styles.deductionValue]}>
-              -{formatCurrency(platformFee)}
-            </Text>
-          </View>
+            <Ionicons
+              name={expandEarnings ? 'chevron-up' : 'chevron-down'}
+              size={20} color={Colors.textSecondary}
+            />
+          </TouchableOpacity>
 
-          <View style={styles.divider} />
-
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Your share (90%)</Text>
-            <Text style={styles.breakdownValue}>{formatCurrency(grossEarnings)}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.breakdownRow}>
-            <View style={styles.breakdownLabelWithIcon}>
-              <Ionicons name="remove-circle-outline" size={16} color={Colors.error} />
-              <Text style={styles.breakdownLabel}>GST on earnings (18%)</Text>
+          {expandEarnings && (
+            <View style={styles.expandedRows}>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.detailRow} activeOpacity={0.7}
+                onPress={() => navigation.navigate('Payouts')}>
+                <Text style={styles.detailLabel}>Job Value</Text>
+                <View style={styles.detailRight}>
+                  <Text style={styles.detailValue}>{formatCurrency(jobValue)}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </View>
+              </TouchableOpacity>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.detailRow} activeOpacity={0.7}>
+                <Text style={styles.detailLabel}>Cancellation incentive</Text>
+                <View style={styles.detailRight}>
+                  <Text style={styles.detailValue}>{formatCurrency(cancellationIncentive)}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </View>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.breakdownValue, styles.deductionValue]}>
-              -{formatCurrency(gstAmount)}
-            </Text>
-          </View>
+          )}
+        </View>
 
-          <View style={styles.divider} />
+        {/* ── Total Deductions Row ── */}
+        <View style={[styles.earningsBlock, styles.deductionsBlock]}>
+          <TouchableOpacity
+            style={styles.summaryRow}
+            onPress={() => setExpandDeductions(!expandDeductions)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.iconBg, styles.iconBgOrange]}>
+              <Ionicons name="arrow-up" size={20} color="#F97316" />
+            </View>
+            <View style={styles.summaryText}>
+              <Text style={[styles.summaryAmount, { color: '#F97316' }]}>
+                -{formatCurrency(totalDeductions)}
+              </Text>
+              <Text style={styles.summaryLabel}>Total Deductions</Text>
+            </View>
+            <Ionicons
+              name={expandDeductions ? 'chevron-up' : 'chevron-down'}
+              size={20} color={Colors.textSecondary}
+            />
+          </TouchableOpacity>
 
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabelBold}>Total deductions</Text>
-            <Text style={[styles.breakdownValueBold, styles.deductionValue]}>
-              -{formatCurrency(totalDeductions)}
-            </Text>
-          </View>
+          {expandDeductions && (
+            <View style={styles.expandedRows}>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.detailRow} activeOpacity={0.7}
+                onPress={() => navigation.navigate('Payouts')}>
+                <Text style={styles.detailLabel}>Paid to Homelyo</Text>
+                <View style={styles.detailRight}>
+                  <Text style={[styles.detailValue, { color: '#F97316' }]}>
+                    -{formatCurrency(platformFee)}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </View>
+              </TouchableOpacity>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.detailRow} activeOpacity={0.7}>
+                <Text style={styles.detailLabel}>Paid to Government</Text>
+                <View style={styles.detailRight}>
+                  <Text style={[styles.detailValue, { color: '#F97316' }]}>
+                    -{formatCurrency(paidToGovernment)}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabelBold}>Net to your bank</Text>
-            <Text style={[styles.breakdownValueBold, { color: Colors.success }]}>
-              {formatCurrency(netEarnings)}
-            </Text>
-          </View>
-
-          <View style={styles.infoBox}>
-            <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
-            <Text style={styles.infoText}>
-              Service tax goes to government. Platform takes 10%, you get 90% of remaining amount.
-            </Text>
+        {/* ── Net Earnings Row ── */}
+        <View style={[styles.earningsBlock, styles.netBlock]}>
+          <View style={styles.summaryRow}>
+            <View style={[styles.iconBg, styles.iconBgBlue]}>
+              <Ionicons name="hand-left" size={20} color="#6366F1" />
+            </View>
+            <View style={styles.summaryText}>
+              <Text style={[styles.summaryAmount, { color: Colors.textPrimary }]}>
+                {formatCurrency(netEarnings)}
+              </Text>
+              <Text style={styles.summaryLabel}>Net Earnings</Text>
+            </View>
           </View>
         </View>
 
-        {/* Bank Transfers Section */}
-        <View style={styles.section}>
+        {/* ── Bank Transfers ── */}
+        <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Bank transfers</Text>
-
-          {/* Upcoming Payouts */}
-          {upcomingPayouts.length > 0 && (
-            <View style={styles.payoutGroup}>
-              {upcomingPayouts.map((payout) => (
-                <TouchableOpacity
-                  key={payout.id}
-                  style={styles.payoutCard}
-                  onPress={() => navigation.navigate('Payouts')}
-                >
-                  <View style={styles.payoutLeft}>
-                    <Text style={styles.payoutAmount}>{formatCurrency(payout.amount)}</Text>
-                    <Text style={styles.payoutDate}>
-                      {formatDateOnly(payout.periodStart).split(' ')[0]} - {formatDateOnly(payout.periodEnd)}
-                    </Text>
-                  </View>
-                  <View style={styles.payoutRight}>
-                    <View style={[styles.statusBadge, styles.statusUpcoming]}>
-                      <Text style={styles.statusUpcomingText}>Upcoming</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* Processing Payouts */}
-          {processingPayouts.length > 0 && (
-            <View style={styles.payoutGroup}>
-              {processingPayouts.map((payout) => (
-                <TouchableOpacity
-                  key={payout.id}
-                  style={styles.payoutCard}
-                  onPress={() => navigation.navigate('Payouts')}
-                >
-                  <View style={styles.payoutLeft}>
-                    <Text style={styles.payoutAmount}>{formatCurrency(payout.amount)}</Text>
-                    <Text style={styles.payoutDate}>
-                      {formatDateOnly(payout.periodStart).split(' ')[0]} - {formatDateOnly(payout.periodEnd)}
-                    </Text>
-                  </View>
-                  <View style={styles.payoutRight}>
-                    <View style={[styles.statusBadge, styles.statusProcessing]}>
-                      <Text style={styles.statusProcessingText}>In processing</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* Paid Payouts (show only recent 3) */}
-          {paidPayouts.length > 0 && (
-            <View style={styles.payoutGroup}>
-              {paidPayouts.slice(0, 3).map((payout) => (
-                <TouchableOpacity
-                  key={payout.id}
-                  style={styles.payoutCard}
-                  onPress={() => navigation.navigate('Payouts')}
-                >
-                  <View style={styles.payoutLeft}>
-                    <Text style={styles.payoutAmount}>{formatCurrency(payout.amount)}</Text>
-                    <Text style={styles.payoutDate}>
-                      {formatDateOnly(payout.periodStart).split(' ')[0]} - {formatDateOnly(payout.periodEnd)}
-                    </Text>
-                  </View>
-                  <View style={styles.payoutRight}>
-                    <View style={[styles.statusBadge, styles.statusPaid]}>
-                      <Text style={styles.statusPaidText}>Paid</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* Empty State */}
-          {payouts.length === 0 && (
-            <View style={styles.emptyState}>
-              <Ionicons name="wallet-outline" size={48} color={Colors.gray300} />
-              <Text style={styles.emptyText}>No bank transfers yet</Text>
-              <Text style={styles.emptySubtext}>Complete jobs to earn and receive payouts</Text>
-            </View>
-          )}
-
-          {/* View All Link */}
-          {payouts.length > 3 && (
-            <TouchableOpacity
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate('Payouts')}
-            >
-              <Text style={styles.viewAllText}>View all transactions</Text>
-              <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={() => navigation.navigate('Payouts')} style={styles.sectionLink}>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
-        {/* Summary Stats */}
+        {allPayouts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="wallet-outline" size={40} color={Colors.gray300} />
+            <Text style={styles.emptyText}>No bank transfers yet</Text>
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.bankCardsScroll}
+          >
+            {allPayouts.slice(0, 8).map((payout) => {
+              const st = getPayoutStatus(payout.status);
+              return (
+                <TouchableOpacity
+                  key={payout.id}
+                  style={styles.bankCard}
+                  onPress={() => navigation.navigate('Payouts')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.bankCardAmount}>{formatCurrency(payout.amount)}</Text>
+                  <Text style={styles.bankCardDate}>
+                    {formatDateOnly(payout.periodStart).replace(/\d{4}/, '').trim().replace(',', '')} -{' '}
+                    {formatDateOnly(payout.periodEnd).replace(/\d{4}/, '').trim().replace(',', '')}
+                  </Text>
+                  <Text style={[styles.bankCardStatus, { color: st.color }]}>{st.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {/* ── Pending Deductions ── */}
+        {pendingDeductionAmount > 0 && (
+          <View style={styles.pendingRow}>
+            <View style={styles.pendingLeft}>
+              <View style={styles.pendingIconBg}>
+                <Ionicons name="timer-outline" size={22} color={Colors.textSecondary} />
+              </View>
+              <View>
+                <Text style={styles.pendingLabel}>PENDING DEDUCTIONS</Text>
+                <Text style={styles.pendingAmount}>{formatCurrency(pendingDeductionAmount)}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.payNowBtn}
+              onPress={() => navigation.navigate('Credits')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.payNowText}>Pay now</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── Overview ── */}
         {summary && (
-          <View style={styles.summarySection}>
+          <View style={styles.overviewSection}>
             <Text style={styles.sectionTitle}>Overview</Text>
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
@@ -444,87 +409,53 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   scroll: {
-    paddingTop: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
     paddingBottom: 100,
   },
-  headerRow: {
+
+  // ── Month Navigation
+  monthNav: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.md,
+    gap: Spacing.lg,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+  navArrow: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  navArrowDisabled: {
+    opacity: 0.3,
+  },
+  monthTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
     color: Colors.textPrimary,
   },
-  monthSelector: {
-    marginBottom: Spacing.lg,
-  },
-  monthScrollContent: {
-    paddingRight: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  monthChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.gray100,
-    borderWidth: 1.5,
-    borderColor: Colors.gray100,
-  },
-  monthChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  monthChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  monthChipTextActive: {
-    color: '#fff',
-  },
-  earningsCard: {
+
+  // ── Bar Chart
+  chartCard: {
     backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.xl,
     borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  earningsTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  mainAmount: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: Colors.primary,
-    marginBottom: 4,
-  },
-  mainLabel: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  netLabel: {
-    fontSize: 14,
-    color: Colors.success,
-    fontWeight: '700',
-    marginTop: 6,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.divider,
   },
   chartContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    height: 100,
+    height: 90,
     gap: 4,
   },
   barColumn: {
@@ -534,126 +465,230 @@ const styles = StyleSheet.create({
   },
   barWrapper: {
     width: '100%',
-    height: 80,
+    height: 70,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
   bar: {
-    width: '80%',
+    width: '65%',
     borderRadius: 4,
     minHeight: 4,
   },
   barLabel: {
     marginTop: 6,
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.textTertiary,
     fontWeight: '500',
   },
-  section: {
+
+  // ── Earnings / Deductions / Net blocks
+  earningsBlock: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  deductionsBlock: {
+    // same shape, different icon color handled inline
+  },
+  netBlock: {
     marginBottom: Spacing.xl,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-  },
-  payoutGroup: {
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
     gap: Spacing.md,
   },
-  payoutCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+  iconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBgOrange: {
+    backgroundColor: '#FEF3C7',
+  },
+  iconBgBlue: {
+    backgroundColor: '#EEF2FF',
+  },
+  summaryText: {
+    flex: 1,
+  },
+  summaryAmount: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.success,
+    marginBottom: 2,
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+
+  // ── Expanded detail rows
+  expandedRows: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingVertical: 12,
   },
-  payoutLeft: {
-    flex: 1,
+  detailLabel: {
+    fontSize: 14,
+    color: Colors.textPrimary,
+    fontWeight: '500',
   },
-  payoutAmount: {
-    fontSize: 20,
+  detailRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+  },
+
+  // ── Section header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 17,
     fontWeight: '700',
     color: Colors.textPrimary,
-    marginBottom: 4,
   },
-  payoutDate: {
+  sectionLink: {
+    padding: 4,
+  },
+
+  // ── Bank Transfer Cards
+  bankCardsScroll: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  bankCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    width: 150,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    gap: 6,
+  },
+  bankCardAmount: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  bankCardDate: {
     fontSize: 12,
     color: Colors.textSecondary,
     fontWeight: '500',
   },
-  payoutRight: {
-    marginLeft: Spacing.md,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-  },
-  statusUpcoming: {
-    backgroundColor: Colors.gray100,
-  },
-  statusUpcomingText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  statusProcessing: {
-    backgroundColor: '#FFF4E5',
-  },
-  statusProcessingText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#F59E0B',
-  },
-  statusPaid: {
-    backgroundColor: Colors.successBg || '#D4EDDA',
-  },
-  statusPaidText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.success,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxxl,
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  emptySubtext: {
+  bankCardStatus: {
     fontSize: 13,
-    color: Colors.textTertiary,
-    textAlign: 'center',
+    fontWeight: '700',
+    marginTop: 2,
   },
-  viewAllButton: {
+
+  // ── Pending Deductions
+  pendingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.xl,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  pendingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+  },
+  pendingIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    borderStyle: 'dashed',
+  },
+  pendingLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  pendingAmount: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  payNowBtn: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    marginTop: Spacing.md,
+    borderRadius: BorderRadius.lg,
   },
-  viewAllText: {
+  payNowText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // ── Empty
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.xl,
+  },
+  emptyText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
-  summarySection: {
+
+  // ── Overview
+  overviewSection: {
+    paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.xl,
   },
   statsGrid: {
     flexDirection: 'row',
     gap: Spacing.md,
+    marginTop: Spacing.md,
   },
   statCard: {
     flex: 1,
@@ -662,14 +697,11 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     alignItems: 'center',
     gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: Colors.divider,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: Colors.textPrimary,
   },
@@ -677,75 +709,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
     textAlign: 'center',
-  },
-  breakdownCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  breakdownTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  breakdownLabelWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  breakdownLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  breakdownValue: {
-    fontSize: 14,
-    color: Colors.textPrimary,
-    fontWeight: '600',
-  },
-  deductionValue: {
-    color: Colors.error,
-  },
-  breakdownLabelBold: {
-    fontSize: 15,
-    color: Colors.textPrimary,
-    fontWeight: '700',
-  },
-  breakdownValueBold: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.sm,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: Colors.primaryBg,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.md,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    color: Colors.primary,
-    lineHeight: 18,
   },
 });
