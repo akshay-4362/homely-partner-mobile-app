@@ -14,6 +14,7 @@ export const authApi = {
     lastName: string;
     email: string;
     password: string;
+    phone?: string;
   }) => {
     const { data } = await client.post('/auth/register', {
       ...payload,

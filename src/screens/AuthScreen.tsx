@@ -16,7 +16,7 @@ export const AuthScreen = () => {
   const dispatch = useAppDispatch();
   const { status, error } = useAppSelector((s) => s.auth);
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '' });
 
   const handleSubmit = async () => {
     if (mode === 'login') {
@@ -26,7 +26,7 @@ export const AuthScreen = () => {
         Alert.alert('Login Failed', (res.payload as string) || 'Invalid credentials');
       }
     } else {
-      if (!form.firstName || !form.email || !form.password) { Alert.alert('Error', 'Fill all fields'); return; }
+      if (!form.firstName || !form.email || !form.password || !form.phone) { Alert.alert('Error', 'Fill all fields'); return; }
       const res = await dispatch(register(form));
       if (res.meta.requestStatus === 'rejected') {
         Alert.alert('Registration Failed', (res.payload as string) || 'Could not register');
@@ -38,100 +38,110 @@ export const AuthScreen = () => {
     <SafeAreaView style={styles.flex} edges={['top']}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={styles.header}>
-          <Logo width={200} />
-          <Text style={styles.tagline}>Manage your jobs, earnings & schedule</Text>
-        </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <Logo width={200} />
+            <Text style={styles.tagline}>Manage your jobs, earnings & schedule</Text>
+          </View>
 
-        {/* Toggle */}
-        <View style={styles.toggleRow}>
-          {(['login', 'register'] as const).map((m) => (
-            <TouchableOpacity
-              key={m}
-              style={[styles.toggleBtn, mode === m && styles.toggleActive]}
-              onPress={() => { setMode(m); dispatch(clearError()); }}
-            >
-              <Text style={[styles.toggleText, mode === m && styles.toggleTextActive]}>
-                {m === 'login' ? 'Sign In' : 'Sign Up'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+          {/* Toggle */}
+          <View style={styles.toggleRow}>
+            {(['login', 'register'] as const).map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[styles.toggleBtn, mode === m && styles.toggleActive]}
+                onPress={() => { setMode(m); dispatch(clearError()); }}
+              >
+                <Text style={[styles.toggleText, mode === m && styles.toggleTextActive]}>
+                  {m === 'login' ? 'Sign In' : 'Sign Up'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-        {/* Form */}
-        <View style={styles.form}>
-          {mode === 'register' && (
-            <View style={styles.row}>
-              <View style={styles.flex}>
-                <Input
-                  label="First Name"
-                  placeholder="Raj"
-                  value={form.firstName}
-                  onChangeText={(v) => setForm({ ...form, firstName: v })}
-                />
+          {/* Form */}
+          <View style={styles.form}>
+            {mode === 'register' && (
+              <View style={styles.row}>
+                <View style={styles.flex}>
+                  <Input
+                    label="First Name"
+                    placeholder="Raj"
+                    value={form.firstName}
+                    onChangeText={(v) => setForm({ ...form, firstName: v })}
+                  />
+                </View>
+                <View style={styles.spacer} />
+                <View style={styles.flex}>
+                  <Input
+                    label="Last Name"
+                    placeholder="Kumar"
+                    value={form.lastName}
+                    onChangeText={(v) => setForm({ ...form, lastName: v })}
+                  />
+                </View>
               </View>
-              <View style={styles.spacer} />
-              <View style={styles.flex}>
-                <Input
-                  label="Last Name"
-                  placeholder="Kumar"
-                  value={form.lastName}
-                  onChangeText={(v) => setForm({ ...form, lastName: v })}
-                />
+            )}
+
+            {mode === 'register' && (
+              <Input
+                label="Phone Number"
+                placeholder="+91 98765 43210"
+                keyboardType="phone-pad"
+                value={form.phone}
+                onChangeText={(v) => setForm({ ...form, phone: v })}
+              />
+            )}
+
+            <Input
+              label="Email"
+              placeholder="pro@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={form.email}
+              onChangeText={(v) => setForm({ ...form, email: v })}
+            />
+
+            <Input
+              label="Password"
+              placeholder="••••••••"
+              password
+              value={form.password}
+              onChangeText={(v) => setForm({ ...form, password: v })}
+            />
+
+            {error && (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorText}>{error}</Text>
               </View>
+            )}
+
+            <Button
+              label={mode === 'login' ? 'Sign In' : 'Create Account'}
+              onPress={handleSubmit}
+              loading={status === 'loading'}
+              fullWidth
+              size="lg"
+              style={styles.submitBtn}
+            />
+          </View>
+
+          {/* Info */}
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>Join Homelyo Professionals</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoIcon}>✓</Text>
+              <Text style={styles.infoItem}>Get auto-assigned jobs in your city</Text>
             </View>
-          )}
-
-          <Input
-            label="Email"
-            placeholder="pro@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={form.email}
-            onChangeText={(v) => setForm({ ...form, email: v })}
-          />
-
-          <Input
-            label="Password"
-            placeholder="••••••••"
-            password
-            value={form.password}
-            onChangeText={(v) => setForm({ ...form, password: v })}
-          />
-
-          {error && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{error}</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoIcon}>✓</Text>
+              <Text style={styles.infoItem}>Track earnings & payouts in real-time</Text>
             </View>
-          )}
-
-          <Button
-            label={mode === 'login' ? 'Sign In' : 'Create Account'}
-            onPress={handleSubmit}
-            loading={status === 'loading'}
-            fullWidth
-            size="lg"
-            style={styles.submitBtn}
-          />
-        </View>
-
-        {/* Info */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Join Homelyo Professionals</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>✓</Text>
-            <Text style={styles.infoItem}>Get auto-assigned jobs in your city</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoIcon}>✓</Text>
+              <Text style={styles.infoItem}>Manage your availability & calendar</Text>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>✓</Text>
-            <Text style={styles.infoItem}>Track earnings & payouts in real-time</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>✓</Text>
-            <Text style={styles.infoItem}>Manage your availability & calendar</Text>
-          </View>
-        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
