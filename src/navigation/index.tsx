@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { Colors } from '../theme/colors';
 import { CustomDrawer } from '../components/CustomDrawer';
+import { HeaderLogo } from '../components/HeaderLogo';
 
 import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -68,12 +69,7 @@ const MainTabs = ({ navigation }: any) => {
           borderBottomWidth: 1,
           borderBottomColor: Colors.border,
         },
-        headerTitle: 'Homelyo Professional',
-        headerTitleStyle: {
-          fontSize: 18,
-          fontWeight: '700',
-          color: Colors.textPrimary,
-        },
+        headerTitle: () => <HeaderLogo />,
         headerLeft: () => (
           <TouchableOpacity
             onPress={() => navigation.openDrawer()}
