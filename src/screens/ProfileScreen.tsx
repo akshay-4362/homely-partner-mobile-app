@@ -28,6 +28,7 @@ export const ProfileScreen = () => {
 
   const [profile, setProfile] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [documents, setDocuments] = useState<ProfessionalDocument[]>([]);
   const [payoutAccounts, setPayoutAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +67,10 @@ export const ProfileScreen = () => {
       setServices(Array.isArray(svcList) ? svcList : []);
       const docList = docsData?.data || docsData?.documents || docsData || [];
       setDocuments(Array.isArray(docList) ? docList : []);
+
+      // Load categories (populated from profile)
+      const categoriesList = p?.categories || [];
+      setCategories(Array.isArray(categoriesList) ? categoriesList : []);
 
       // Load payout accounts (Razorpay)
       try {
@@ -140,6 +145,38 @@ export const ProfileScreen = () => {
           <Text style={styles.email}>{user?.email}</Text>
           <Text style={styles.role}>Professional Partner</Text>
         </View>
+
+        {/* My Expertise Categories */}
+        <Card style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Expertise</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('CategorySelection')}>
+              <Text style={styles.editLink}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+          {categories.length > 0 ? (
+            <View style={styles.categoriesContainer}>
+              {categories.map((category) => (
+                <View key={category._id} style={styles.categoryChip}>
+                  <Text style={styles.categoryIcon}>{category.icon || '🔨'}</Text>
+                  <Text style={styles.categoryChipText}>{category.name}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyCategories}>
+              <Ionicons name="grid-outline" size={40} color={Colors.textTertiary} />
+              <Text style={styles.emptyCategoriesText}>No categories selected yet</Text>
+              <TouchableOpacity
+                style={styles.addCategoriesBtn}
+                onPress={() => navigation.navigate('CategorySelection')}
+              >
+                <Ionicons name="add-circle" size={20} color={Colors.primary} />
+                <Text style={styles.addCategoriesText}>Add Categories</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Card>
 
         {/* Quick Nav */}
         <View style={styles.quickNav}>
@@ -487,5 +524,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.success,
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  categoryIcon: {
+    fontSize: 16,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  emptyCategories: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  emptyCategoriesText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  addCategoriesBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  addCategoriesText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 });

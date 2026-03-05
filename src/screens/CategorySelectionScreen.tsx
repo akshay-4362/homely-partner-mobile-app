@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
-import { apiClient } from '../api/client';
+import client from '../api/client';
 
 interface Category {
   _id: string;
@@ -47,13 +47,22 @@ export const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = (
       setLoading(true);
 
       // Load all categories
-      const categoriesRes = await apiClient.get('/categories');
-      setCategories(categoriesRes.data.data.categories || []);
+      const categoriesRes = await client.get('/categories');
+      // API returns: { data: [...categories...], meta: {...} }
+      // Axios wraps it, so categoriesRes.data.data is the categories array
+      const categoriesList = categoriesRes.data?.data;
+      if (Array.isArray(categoriesList)) {
+        setCategories(categoriesList);
+      } else {
+        console.warn('Categories response not in expected format:', categoriesRes.data);
+        setCategories([]);
+      }
 
       // Load current professional's categories (if not onboarding)
       if (!isOnboarding) {
-        const profileRes = await apiClient.get('/professionals/me');
-        const currentCategories = profileRes.data.data.categories || [];
+        const profileRes = await client.get('/professionals/me');
+        const profileData = profileRes.data?.data || profileRes.data;
+        const currentCategories = profileData?.categories || [];
         setSelectedCategories(new Set(currentCategories.map((c: any) => c._id || c)));
       }
     } catch (error) {
@@ -83,7 +92,7 @@ export const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = (
     try {
       setSaving(true);
 
-      await apiClient.put('/professionals/categories', {
+      await client.put('/professionals/categories', {
         categories: Array.from(selectedCategories)
       });
 
