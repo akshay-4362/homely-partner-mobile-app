@@ -664,8 +664,9 @@ export const BookingDetailScreen = () => {
       setAddChargeModal(false);
       setNewCharges([{ description: '', amount: '', category: 'materials' }]);
       loadCharges();
-    } catch {
-      Alert.alert('Error', 'Failed to add charges');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to add charges';
+      Alert.alert('Error', errorMessage);
     }
     setLoading(false);
   };
