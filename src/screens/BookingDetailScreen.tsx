@@ -1076,10 +1076,10 @@ export const BookingDetailScreen = () => {
               )}
             </Card>
 
-            {/* Collect Payment via QR - show for active jobs when there are charges */}
+            {/* Collect Payment via QR - show for active jobs when there are unpaid charges */}
             {['confirmed', 'in_progress'].includes(booking.status) &&
               ((booking.paymentMethod === 'pay_later' && !booking.paidAt) ||
-                (charges && charges.approved.length > 0)) && (
+                (charges && charges.approved.length > 0 && charges.approved.some(c => !c.paidAt))) && (
                 <Card style={{ borderColor: Colors.primary, borderWidth: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md }}>
                     <Ionicons name="qr-code" size={24} color={Colors.primary} style={{ marginRight: Spacing.sm }} />
@@ -1087,12 +1087,13 @@ export const BookingDetailScreen = () => {
                   </View>
                   <Text style={{ ...Typography.body, color: Colors.textSecondary, marginBottom: Spacing.md }}>
                     {(() => {
-                      const approvedTotal = charges
-                        ? charges.approved.reduce((sum, c) => sum + c.amount, 0)
-                        : (booking.additionalChargesTotal || 0);
+                      // Only count unpaid approved charges
+                      const unpaidApprovedTotal = charges
+                        ? charges.approved.filter(c => !c.paidAt).reduce((sum, c) => sum + c.amount, 0)
+                        : 0;
                       return booking.paidAt
-                        ? `Collect ₹${approvedTotal} for additional charges`
-                        : `Collect full amount ₹${(booking.finalTotal || booking.total) + approvedTotal}`;
+                        ? `Collect ₹${unpaidApprovedTotal} for additional charges`
+                        : `Collect full amount ₹${(booking.finalTotal || booking.total) + unpaidApprovedTotal}`;
                     })()}
                   </Text>
                   <Button

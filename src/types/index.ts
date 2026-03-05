@@ -53,6 +53,7 @@ export interface AdditionalCharge {
   category: 'materials' | 'extra_work' | 'transport' | 'other';
   approved: boolean;
   approvedAt?: string;
+  paidAt?: string;  // When this charge was paid
 }
 
 export interface ChargesResponse {
