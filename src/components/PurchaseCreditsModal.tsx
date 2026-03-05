@@ -45,7 +45,7 @@ const MAXIMUM_AMOUNT = 500000;
 
 // Helper to calculate jobs from amount
 const calculateJobs = (amount: number): number => {
-  return Math.floor(amount / 300); // ₹300 per complete job (₹150 x 2)
+  return Math.floor(amount / 300); // ₹300 per job (deducted on assignment)
 };
 
 export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
@@ -264,7 +264,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
             <View style={styles.infoCard}>
               <Ionicons name="information-circle" size={20} color={Colors.primary} />
               <Text style={styles.infoText}>
-                Credits are deducted twice per job: ₹150 on assignment + ₹150 on completion (₹300 total/job)
+                Credits are deducted once per job: ₹300 when job is assigned to you
               </Text>
             </View>
 
@@ -346,7 +346,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
             <View style={styles.pricingInfo}>
               <Ionicons name="calculator-outline" size={16} color={Colors.textSecondary} />
               <Text style={styles.pricingText}>
-                ₹300 per complete job (₹150 on assignment + ₹150 on completion)
+                ₹300 per job (deducted when assigned)
               </Text>
             </View>
 

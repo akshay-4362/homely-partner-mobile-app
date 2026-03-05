@@ -86,18 +86,6 @@ export const WeekendUnavailableHoursScreen = () => {
     };
   };
 
-  const getRankDetails = (hours: number) => {
-    if (hours <= 16) {
-      return { rank: 'Gold', threshold: 16, icon: '🏅', color: '#FFD700', status: 'good' as const };
-    } else if (hours <= 21) {
-      return { rank: 'Silver', threshold: 21, icon: '🥈', color: '#C0C0C0', status: 'warning' as const };
-    } else if (hours <= 31) {
-      return { rank: 'Bronze', threshold: 31, icon: '🥉', color: '#CD7F32', status: 'warning' as const };
-    } else {
-      return { rank: 'Below Bronze', threshold: 31, icon: '⚠️', color: Colors.error, status: 'bad' as const };
-    }
-  };
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-IN', {
@@ -135,7 +123,6 @@ export const WeekendUnavailableHoursScreen = () => {
     );
   }
 
-  const currentRank = getRankDetails(data.totalUnavailableHours);
   const exceedsBronze = data.totalUnavailableHours > 31;
 
   return (
@@ -175,25 +162,6 @@ export const WeekendUnavailableHoursScreen = () => {
               <Text style={styles.hoursText}>{day.unavailableHours} hours</Text>
             </View>
           ))}
-        </View>
-
-        {/* Rank Targets */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rank targets</Text>
-          <View style={styles.rankList}>
-            <View style={styles.rankItem}>
-              <Text style={styles.rankIcon}>🏅</Text>
-              <Text style={styles.rankText}>Keep 16 or below for Gold</Text>
-            </View>
-            <View style={styles.rankItem}>
-              <Text style={styles.rankIcon}>🥈</Text>
-              <Text style={styles.rankText}>Keep 21 or below for Silver</Text>
-            </View>
-            <View style={styles.rankItem}>
-              <Text style={styles.rankIcon}>🥉</Text>
-              <Text style={styles.rankText}>Keep 31 or below for Bronze</Text>
-            </View>
-          </View>
         </View>
 
         {/* Learn More Section */}
@@ -269,42 +237,7 @@ export const WeekendUnavailableHoursScreen = () => {
                 {'\n'}4. Consider being available for at least half-day on weekends
                 {'\n'}5. Use the Calendar screen to manage your weekly schedule
                 {'\n\n'}
-                Tip: Even being available for 4-6 hours on weekends can significantly improve your rank!
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.faqItem}
-            onPress={() => setExpandedFAQ(expandedFAQ === 'ranks' ? null : 'ranks')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.faqHeader}>
-              <Text style={styles.faqQuestion}>What are the rank thresholds?</Text>
-              <Ionicons
-                name={expandedFAQ === 'ranks' ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color={Colors.textSecondary}
-              />
-            </View>
-            {expandedFAQ === 'ranks' && (
-              <Text style={styles.faqAnswer}>
-                Rank thresholds for weekend unavailable hours:
-                {'\n\n'}🏅 Gold: 16 hours or less (best rank)
-                {'\n'}• Highest priority for weekend jobs
-                {'\n'}• Premium rewards and bonuses
-                {'\n'}• Top visibility to customers
-                {'\n\n'}
-                🥈 Silver: 17-21 hours
-                {'\n'}• High priority for jobs
-                {'\n'}• Good rewards eligibility
-                {'\n\n'}
-                🥉 Bronze: 22-31 hours
-                {'\n'}• Standard job allocation
-                {'\n'}• Basic rewards
-                {'\n\n'}
-                ⚠️ Above 31 hours: May affect job assignments significantly and exclude you from performance
-                rewards.
+                Tip: Even being available for 4-6 hours on weekends can significantly improve your performance!
               </Text>
             )}
           </TouchableOpacity>
@@ -401,21 +334,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
-  },
-  rankList: {
-    gap: Spacing.md,
-  },
-  rankItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  rankIcon: {
-    fontSize: 24,
-  },
-  rankText: {
-    fontSize: 16,
-    color: Colors.textPrimary,
   },
   faqItem: {
     backgroundColor: Colors.surface,

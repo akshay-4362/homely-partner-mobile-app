@@ -179,14 +179,6 @@ export const NewCalendarScreen = () => {
     setSelectedMonth(new Date());
   };
 
-  const goToPrevMonth = () => {
-    setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1));
-  };
-
-  const goToNextMonth = () => {
-    setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1));
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -212,25 +204,17 @@ export const NewCalendarScreen = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* Month Navigation */}
-        <View style={styles.monthNav}>
-          <TouchableOpacity onPress={goToPrevMonth} style={styles.monthNavBtn}>
-            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.monthTitle}>{monthName}</Text>
-          <TouchableOpacity onPress={goToNextMonth} style={styles.monthNavBtn}>
-            <Ionicons name="chevron-forward" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-
         {/* Calendar */}
         <Calendar
           current={selectedMonth.toISOString().split('T')[0]}
           markedDates={getMarkedDates()}
           dayComponent={renderDayComponent}
           hideExtraDays={true}
-          disableMonthChange={true}
-          enableSwipeMonths={false}
+          disableMonthChange={false}
+          enableSwipeMonths={true}
+          onMonthChange={(month) => {
+            setSelectedMonth(new Date(month.year, month.month - 1, 1));
+          }}
           theme={{
             calendarBackground: 'transparent',
             textSectionTitleColor: Colors.textSecondary,
@@ -352,27 +336,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: Spacing.lg,
-  },
-  monthNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-  },
-  monthNavBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.surface,
-  },
-  monthTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.textPrimary,
   },
   dayContainer: {
     alignItems: 'center',
