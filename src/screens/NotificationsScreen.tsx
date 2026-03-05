@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, RefreshControl,
   Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { notificationApi } from '../api/notificationApi';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { timeAgo } from '../utils/format';
@@ -28,6 +28,13 @@ export const NotificationsScreen = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [])
+  );
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 

@@ -170,7 +170,10 @@ export const AppNavigator = ({ navigationRef }: { navigationRef?: any }) => {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          <Stack.Screen name="Main" component={DrawerNav} />
+          <>
+            <Stack.Screen name="Main" component={DrawerNav} />
+            <Stack.Screen name="Onboarding" component={CategorySelectionScreen} />
+          </>
         ) : (
           <Stack.Screen name="Auth" component={AuthScreen} />
         )}

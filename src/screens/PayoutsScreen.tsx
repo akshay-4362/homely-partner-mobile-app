@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchPayouts } from '../store/payoutSlice';
@@ -26,6 +26,13 @@ export const PayoutsScreen = () => {
   const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => { dispatch(fetchPayouts()); }, []);
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(fetchPayouts());
+    }, [dispatch])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

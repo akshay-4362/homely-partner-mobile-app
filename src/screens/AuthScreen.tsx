@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   KeyboardAvoidingView, Platform, Image, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { login, register, clearError } from '../store/authSlice';
@@ -14,9 +15,22 @@ import { Colors, Spacing, BorderRadius } from '../theme/colors';
 
 export const AuthScreen = () => {
   const dispatch = useAppDispatch();
-  const { status, error } = useAppSelector((s) => s.auth);
+  const navigation = useNavigation<any>();
+  const { status, error, user } = useAppSelector((s) => s.auth);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '' });
+  const [justRegistered, setJustRegistered] = useState(false);
+
+  // Navigate to onboarding after successful registration
+  useEffect(() => {
+    if (justRegistered && user) {
+      setJustRegistered(false);
+      // Small delay to ensure navigation is ready
+      setTimeout(() => {
+        navigation.navigate('Onboarding', { isOnboarding: true });
+      }, 100);
+    }
+  }, [justRegistered, user, navigation]);
 
   const handleSubmit = async () => {
     if (mode === 'login') {
@@ -32,6 +46,9 @@ export const AuthScreen = () => {
       if (res.meta.requestStatus === 'rejected') {
         const errorMsg = typeof res.payload === 'string' ? res.payload : 'Could not register. Please try again.';
         Alert.alert('Registration Failed', errorMsg);
+      } else if (res.meta.requestStatus === 'fulfilled') {
+        // Mark that user just registered to trigger onboarding
+        setJustRegistered(true);
       }
     }
   };

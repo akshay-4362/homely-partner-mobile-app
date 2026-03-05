@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Modal, FlatList, Image, Linking, Platform, Dimensions,
@@ -11,7 +11,7 @@ const MAPPLS_API_KEY = process.env.EXPO_PUBLIC_MAPPLS_API_KEY || '77982c1e7ce80c
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
@@ -147,6 +147,34 @@ export const BookingDetailScreen = () => {
 
   // Socket connection for real-time updates
   const socket = useSocket();
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const loadFullBooking = async () => {
+        try {
+          if (booking.id) {
+            const raw = await bookingApi.getBookingById(booking.id);
+            const full = normalizeBooking(raw);
+            setBooking((prev) => ({
+              ...prev,
+              beforeMedia: full.beforeMedia,
+              afterMedia: full.afterMedia,
+              total: full.total || prev.total,
+              finalTotal: full.finalTotal || prev.finalTotal,
+              additionalChargesTotal: full.additionalChargesTotal ?? prev.additionalChargesTotal,
+            }));
+          }
+        } catch (e) {
+          console.log('Failed to load full booking details:', e);
+        }
+      };
+      loadFullBooking();
+      if (booking.status === 'in_progress' || booking.status === 'completed') {
+        loadCharges();
+      }
+    }, [booking.id])
+  );
 
   useEffect(() => {
     // Fetch full booking details to get media data (list API may not include it)
@@ -1095,8 +1123,8 @@ export const BookingDetailScreen = () => {
                           </View>
                         </View>
                         <View style={styles.partMediaRow}>
-                          <Text style={styles.partMediaLabel}>Old: {part.oldPartMedia.length} media</Text>
-                          <Text style={styles.partMediaLabel}>New: {part.newPartMedia.length} media</Text>
+                          <Text style={styles.partMediaLabel}>Old: {(part as any).oldPartMedia?.length || part.media?.length || 0} media</Text>
+                          <Text style={styles.partMediaLabel}>New: {(part as any).newPartMedia?.length || part.media?.length || 0} media</Text>
                         </View>
                       </View>
                     ))}

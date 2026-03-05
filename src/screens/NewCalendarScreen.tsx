@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { proApi } from '../api/proApi';
 import { WeeklyRoutineModal } from '../components/calendar/WeeklyRoutineModal';
@@ -43,6 +43,13 @@ export const NewCalendarScreen = () => {
   useEffect(() => {
     loadSchedule();
   }, []);
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadSchedule();
+    }, [])
+  );
 
   const loadSchedule = async () => {
     try {

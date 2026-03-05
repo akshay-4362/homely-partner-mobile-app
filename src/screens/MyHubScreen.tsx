@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
   Platform, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { Loader } from '../components/common/Loader';
@@ -44,6 +44,13 @@ export const MyHubScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { load(); }, []);
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [])
+  );
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
