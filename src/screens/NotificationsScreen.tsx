@@ -45,6 +45,34 @@ export const NotificationsScreen = () => {
     } catch {}
   };
 
+  const handleNotificationPress = async (notification: Notification) => {
+    // Mark as read
+    await markRead(notification._id);
+
+    // Navigate based on notification type and data
+    const navData = (navigation as any);
+
+    if (notification.type === 'booking' && notification.data?.bookingId) {
+      // Navigate to booking detail
+      navData.navigate('Jobs', {
+        screen: 'BookingDetail',
+        params: {
+          bookingId: notification.data.bookingId,
+          fromScreen: 'Notifications'
+        }
+      });
+    } else if (notification.type === 'payout' && notification.data?.payoutId) {
+      // Navigate to payouts screen
+      navData.navigate('Payouts');
+    } else if (notification.type === 'credit' || notification.title?.toLowerCase().includes('credit')) {
+      // Navigate to credits screen
+      navData.navigate('Credits');
+    } else if (notification.type === 'account' || notification.title?.toLowerCase().includes('account')) {
+      // Navigate to profile/payout accounts
+      navData.navigate('Profile');
+    }
+  };
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   if (loading && notifications.length === 0) {
@@ -54,7 +82,7 @@ export const NotificationsScreen = () => {
   const renderItem = ({ item }: { item: Notification }) => (
     <TouchableOpacity
       style={[styles.card, !item.read && styles.cardUnread]}
-      onPress={() => markRead(item._id)}
+      onPress={() => handleNotificationPress(item)}
       activeOpacity={0.7}
     >
       <View style={styles.iconWrap}>

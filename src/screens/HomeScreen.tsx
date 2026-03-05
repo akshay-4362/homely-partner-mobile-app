@@ -10,6 +10,7 @@ import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchCreditBalance } from '../store/creditSlice';
 import { fetchAccountingSummary, fetchTodayBookings } from '../store/accountingSlice';
+import { fetchProBookings } from '../store/bookingSlice';
 import { notificationApi } from '../api/notificationApi';
 import { formatCurrency, formatDate } from '../utils/format';
 import { Badge } from '../components/common/Badge';
@@ -28,8 +29,23 @@ export const HomeScreen = () => {
   const { user } = useAppSelector((s) => s.auth);
   const { balance: creditBalance } = useAppSelector((s) => s.credit);
   const { summary, todayBookings: todayJobs } = useAppSelector((s) => s.accounting);
+  const { items: allBookings } = useAppSelector((s) => s.bookings);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Get upcoming confirmed bookings (next 7 days)
+  const upcomingJobs = allBookings
+    .filter((b) => {
+      if (b.status !== 'confirmed') return false;
+      const scheduledDate = new Date(b.scheduledAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      return scheduledDate >= today && scheduledDate <= nextWeek;
+    })
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .slice(0, 3); // Show max 3 upcoming jobs
 
   // Check for payout account on mount
   const { hasPayoutAccount, recheckPayoutAccount } = usePayoutAccountCheck();
@@ -39,6 +55,7 @@ export const HomeScreen = () => {
     dispatch(fetchCreditBalance());
     dispatch(fetchAccountingSummary(false));
     dispatch(fetchTodayBookings());
+    dispatch(fetchProBookings(true)); // Fetch all bookings to show upcoming jobs
 
     // Fetch notifications (not cached in Redux)
     try {
@@ -53,6 +70,7 @@ export const HomeScreen = () => {
     dispatch(fetchCreditBalance());
     dispatch(fetchAccountingSummary(true));
     dispatch(fetchTodayBookings());
+    dispatch(fetchProBookings(true));
 
     try {
       const notifData = await notificationApi.list(5);
@@ -169,15 +187,37 @@ export const HomeScreen = () => {
           />
         </View>
 
-        {/* No New Jobs Card */}
-        <TouchableOpacity
-          style={styles.emptyCard}
-          onPress={() => navigation.navigate('Jobs')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.emptyTitle}>No new jobs</Text>
-          <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
-        </TouchableOpacity>
+        {/* Upcoming Jobs Section */}
+        <View style={styles.section}>
+          {upcomingJobs && upcomingJobs.length > 0 ? (
+            <>
+              <SectionHeader
+                title="Upcoming Jobs"
+                action="View All"
+                onAction={() => navigation.navigate('Jobs')}
+              />
+              {upcomingJobs.map((job) => (
+                <TodayJobCard
+                  key={job.bookingId || job._id}
+                  job={job}
+                  onPress={() => navigation.navigate('Jobs', {
+                    screen: 'BookingDetail',
+                    params: { booking: job, fromScreen: 'Home' }
+                  })}
+                />
+              ))}
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.emptyCard}
+              onPress={() => navigation.navigate('Jobs')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.emptyTitle}>No new jobs</Text>
+              <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Today's Schedule */}
         <View style={styles.section}>
@@ -223,21 +263,28 @@ const KpiCard = ({ label, value, icon, color, bg }: { label: string; value: stri
   </View>
 );
 
-const TodayJobCard = ({ job, onPress }: { job: any; onPress: () => void }) => (
-  <TouchableOpacity style={styles.todayCard} onPress={onPress} activeOpacity={0.7}>
-    <View style={styles.todayLeft}>
-      <Text style={styles.todayTime}>{new Date(job.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
-      <Badge status={job.status} label={job.status} />
-    </View>
-    <View style={styles.todayMid}>
-      <Text style={styles.todayName} numberOfLines={2}>{job.customerName}</Text>
-      <Text style={styles.todayService} numberOfLines={2}>{job.serviceName}</Text>
-    </View>
-    <View style={styles.todayRight}>
-      <Text style={styles.todayAmt}>{formatCurrency(job.earnings)}</Text>
-    </View>
-  </TouchableOpacity>
-);
+const TodayJobCard = ({ job, onPress }: { job: any; onPress: () => void }) => {
+  // Handle different data structures from todayBookings vs allBookings
+  const earnings = job.earnings || job.lockedPricing?.payout || job.payout || 0;
+  const customerName = job.customerName || (job.customer?.firstName + ' ' + job.customer?.lastName) || 'Customer';
+  const serviceName = job.serviceName || job.service?.name || 'Service';
+
+  return (
+    <TouchableOpacity style={styles.todayCard} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.todayLeft}>
+        <Text style={styles.todayTime}>{new Date(job.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Badge status={job.status} label={job.status} />
+      </View>
+      <View style={styles.todayMid}>
+        <Text style={styles.todayName} numberOfLines={2}>{customerName}</Text>
+        <Text style={styles.todayService} numberOfLines={2}>{serviceName}</Text>
+      </View>
+      <View style={styles.todayRight}>
+        <Text style={styles.todayAmt}>{formatCurrency(earnings)}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
