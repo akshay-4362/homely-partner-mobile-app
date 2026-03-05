@@ -48,10 +48,19 @@ export const MyHubScreen = () => {
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const statsRes = await apiClient.get('/professional/hub/stats');
-      setStats(statsRes.data?.data ?? DEMO_STATS);
-    } catch {
-      setStats(DEMO_STATS);
+      const statsRes = await apiClient.get('/professionals/hub/stats');
+      const data = statsRes.data?.data;
+
+      if (data) {
+        setStats(data);
+      } else {
+        console.warn('No hub stats data received from API');
+        setStats(null);
+      }
+    } catch (error: any) {
+      console.error('Failed to load hub stats:', error.response?.data || error.message);
+      // Don't fall back to demo data - show actual error state
+      setStats(null);
     }
     setLoading(false);
     setRefreshing(false);
@@ -61,7 +70,31 @@ export const MyHubScreen = () => {
 
   if (loading) return <Loader text="Loading My Hub..." />;
 
-  const s = stats!;
+  if (!stats) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Hub</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <View style={styles.emptyState}>
+          <Ionicons name="location-outline" size={64} color={Colors.textTertiary} />
+          <Text style={styles.emptyTitle}>Unable to Load Hub Data</Text>
+          <Text style={styles.emptyMessage}>
+            We couldn't load your hub statistics. Please try again.
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => load()}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const s = stats;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -138,24 +171,6 @@ export const MyHubScreen = () => {
       </ScrollView>
     </SafeAreaView>
   );
-};
-
-
-const DEMO_STATS: HubStats = {
-  totalJobsDelivered: 248,
-  repeatCustomers: 67,
-  avgRating: 4.7,
-  totalReviews: 183,
-  serviceAreas: ['Bangalore'],
-  activeCity: 'Bangalore',
-  monthlyEarnings: 42500,
-  thisWeekJobs: 12,
-  acceptanceRate: 91,
-  cancellationRate: 4,
-  completionRate: 97,
-  avgResponseTime: 8,
-  last30DaysJobs: 81,
-  last30DaysRepeatCustomers: 2,
 };
 
 
@@ -250,5 +265,39 @@ const styles = StyleSheet.create({
   helpDivider: {
     height: 1,
     backgroundColor: Colors.divider,
+  },
+
+  // Empty State
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xxl,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginTop: Spacing.lg,
+    textAlign: 'center',
+  },
+  emptyMessage: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  retryButton: {
+    marginTop: Spacing.xl,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

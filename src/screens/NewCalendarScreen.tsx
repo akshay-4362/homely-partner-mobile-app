@@ -78,7 +78,9 @@ export const NewCalendarScreen = () => {
       return daySchedule.slots.filter((s) => s.available).length;
     }
 
-    return 0;
+    // Default: All hours available (12 hours from 8 AM to 8 PM)
+    // This ensures new professionals see all days as available by default
+    return 12;
   };
 
   const getDateStatus = (dateString: string): 'full' | 'partial' | 'none' | 'past' => {

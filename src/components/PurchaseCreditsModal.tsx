@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   NativeModules,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -33,24 +34,77 @@ interface CreditPackage {
 }
 
 const CREDIT_PACKAGES: CreditPackage[] = [
-  { amount: 50000, label: '₹50,000', jobs: 166, popular: true, bonus: 'Standard Package' },
+  { amount: 10000, label: '₹10,000', jobs: 33, popular: true, bonus: 'Starter' },
+  { amount: 25000, label: '₹25,000', jobs: 83, bonus: 'Popular' },
+  { amount: 50000, label: '₹50,000', jobs: 166, bonus: 'Value' },
+  { amount: 100000, label: '₹1,00,000', jobs: 333, bonus: 'Best Value' },
 ];
+
+const MINIMUM_AMOUNT = 10000;
+const MAXIMUM_AMOUNT = 500000;
+
+// Helper to calculate jobs from amount
+const calculateJobs = (amount: number): number => {
+  return Math.floor(amount / 300); // ₹300 per complete job (₹150 x 2)
+};
 
 export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
   visible,
   onClose,
   onSuccess,
 }) => {
-  const [selectedAmount, setSelectedAmount] = useState<number>(50000);
+  const [selectedAmount, setSelectedAmount] = useState<number>(10000);
+  const [isCustomAmount, setIsCustomAmount] = useState(false);
+  const [customAmountText, setCustomAmountText] = useState<string>('');
   const [processing, setProcessing] = useState(false);
 
   React.useEffect(() => {
     console.log('🟢 PurchaseCreditsModal visible state changed:', visible);
   }, [visible]);
 
+  const handlePackageSelect = (amount: number) => {
+    setSelectedAmount(amount);
+    setIsCustomAmount(false);
+    setCustomAmountText('');
+  };
+
+  const handleCustomAmountChange = (text: string) => {
+    // Remove non-numeric characters
+    const numericText = text.replace(/[^0-9]/g, '');
+    setCustomAmountText(numericText);
+
+    const amount = parseInt(numericText) || 0;
+    if (amount >= MINIMUM_AMOUNT && amount <= MAXIMUM_AMOUNT) {
+      setSelectedAmount(amount);
+    }
+  };
+
+  const handleCustomAmountSelect = () => {
+    setIsCustomAmount(true);
+    setCustomAmountText(selectedAmount.toString());
+  };
+
+  const getValidatedAmount = (): number | null => {
+    if (isCustomAmount) {
+      const amount = parseInt(customAmountText) || 0;
+      if (amount < MINIMUM_AMOUNT) {
+        Alert.alert('Invalid Amount', `Minimum purchase amount is ${formatCurrency(MINIMUM_AMOUNT)}`);
+        return null;
+      }
+      if (amount > MAXIMUM_AMOUNT) {
+        Alert.alert('Invalid Amount', `Maximum purchase amount is ${formatCurrency(MAXIMUM_AMOUNT)}`);
+        return null;
+      }
+      return amount;
+    }
+    return selectedAmount;
+  };
+
   const handlePurchase = async () => {
+    const validAmount = getValidatedAmount();
+    if (!validAmount) return;
     try {
-      console.log('🟡 Purchase initiated, amount:', selectedAmount);
+      console.log('🟡 Purchase initiated, amount:', validAmount);
       setProcessing(true);
 
       if (Constants.appOwnership === 'expo') {
@@ -59,7 +113,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
 
       // Step 1: Create Razorpay order on backend
       console.log('🟡 Creating Razorpay order...');
-      const response = await creditApi.createPurchaseIntent(selectedAmount);
+      const response = await creditApi.createPurchaseIntent(validAmount);
       console.log('🟡 Full response:', JSON.stringify(response, null, 2));
 
       const { data } = response;
@@ -111,12 +165,12 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
         await creditApi.confirmPurchase(
           paymentData.razorpay_payment_id,
           paymentData.razorpay_order_id,
-          selectedAmount
+          validAmount
         );
 
         Alert.alert(
           'Success!',
-          `${formatCurrency(selectedAmount)} credits added to your account`,
+          `${formatCurrency(validAmount)} credits added to your account`,
           [
             {
               text: 'OK',
@@ -214,30 +268,86 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
               </Text>
             </View>
 
-            {/* Package Info */}
-            <Text style={styles.sectionTitle}>Credit Package</Text>
+            {/* Package Options */}
+            <Text style={styles.sectionTitle}>Choose Amount</Text>
             <View style={styles.packageContainer}>
-              <View style={styles.singlePackage}>
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularText}>MINIMUM PACKAGE</Text>
-                </View>
-                <Text style={styles.packageAmount}>₹50,000</Text>
-                <Text style={styles.packageJobs}>166 complete jobs</Text>
+              {CREDIT_PACKAGES.map((pkg) => (
+                <TouchableOpacity
+                  key={pkg.amount}
+                  style={[
+                    styles.packageCard,
+                    !isCustomAmount && selectedAmount === pkg.amount && styles.packageCardSelected,
+                  ]}
+                  onPress={() => handlePackageSelect(pkg.amount)}
+                  disabled={processing}
+                >
+                  {pkg.popular && (
+                    <View style={styles.popularBadge}>
+                      <Text style={styles.popularText}>POPULAR</Text>
+                    </View>
+                  )}
+                  <View style={styles.packageHeader}>
+                    <Text style={styles.packageAmount}>{pkg.label}</Text>
+                    {!isCustomAmount && selectedAmount === pkg.amount && (
+                      <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+                    )}
+                  </View>
+                  <Text style={styles.packageJobs}>{pkg.jobs} complete jobs</Text>
+                  {pkg.bonus && (
+                    <View style={styles.bonusBadge}>
+                      <Text style={styles.bonusText}>{pkg.bonus}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
 
-                {/* No Expiry Badge */}
-                <View style={styles.noExpiryBadge}>
-                  <Ionicons name="infinite" size={16} color={Colors.success} />
-                  <Text style={styles.noExpiryText}>No Expiry</Text>
+              {/* Custom Amount Option */}
+              <TouchableOpacity
+                style={[
+                  styles.packageCard,
+                  styles.customPackageCard,
+                  isCustomAmount && styles.packageCardSelected,
+                ]}
+                onPress={handleCustomAmountSelect}
+                disabled={processing}
+              >
+                <View style={styles.packageHeader}>
+                  <Text style={styles.packageAmount}>Custom Amount</Text>
+                  {isCustomAmount && (
+                    <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+                  )}
                 </View>
+                {isCustomAmount ? (
+                  <View style={styles.customInputContainer}>
+                    <Text style={styles.rupeeSymbol}>₹</Text>
+                    <TextInput
+                      style={styles.customInput}
+                      value={customAmountText}
+                      onChangeText={handleCustomAmountChange}
+                      placeholder="Enter amount"
+                      placeholderTextColor={Colors.textTertiary}
+                      keyboardType="numeric"
+                      maxLength={7}
+                      autoFocus
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.packageJobs}>Min: ₹10,000</Text>
+                )}
+                {isCustomAmount && customAmountText && parseInt(customAmountText) >= MINIMUM_AMOUNT && (
+                  <Text style={styles.packageJobs}>
+                    {calculateJobs(parseInt(customAmountText))} complete jobs
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
 
-                <View style={styles.bonusBadge}>
-                  <Ionicons name="star-outline" size={12} color={Colors.primary} />
-                  <Text style={styles.bonusText}>₹300/job (₹150 × 2)</Text>
-                </View>
-                <Text style={styles.packageNote}>
-                  ₹150 deducted on assignment + ₹150 on completion
-                </Text>
-              </View>
+            {/* Pricing Info */}
+            <View style={styles.pricingInfo}>
+              <Ionicons name="calculator-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.pricingText}>
+                ₹300 per complete job (₹150 on assignment + ₹150 on completion)
+              </Text>
             </View>
 
             {/* Payment Details */}
@@ -264,10 +374,14 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
           {/* Footer */}
           <View style={styles.footer}>
             <Button
-              label={processing ? 'Processing...' : `Pay ${formatCurrency(selectedAmount)}`}
+              label={
+                processing
+                  ? 'Processing...'
+                  : `Pay ${formatCurrency(isCustomAmount && customAmountText ? parseInt(customAmountText) || 0 : selectedAmount)}`
+              }
               onPress={handlePurchase}
               loading={processing}
-              disabled={processing}
+              disabled={processing || (isCustomAmount && (!customAmountText || parseInt(customAmountText) < MINIMUM_AMOUNT))}
             />
           </View>
         </View>
@@ -345,27 +459,34 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   packageContainer: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
   },
-  singlePackage: {
-    backgroundColor: Colors.primaryBg,
+  packageCard: {
+    backgroundColor: Colors.surface,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: Colors.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
-    alignItems: 'center',
+    padding: Spacing.lg,
     position: 'relative',
   },
-  packageNote: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
-    fontStyle: 'italic',
+  packageCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+  },
+  customPackageCard: {
+    borderStyle: 'dashed',
+  },
+  packageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
   },
   popularBadge: {
     position: 'absolute',
     top: -8,
+    left: Spacing.md,
     backgroundColor: Colors.warning,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -378,49 +499,60 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   packageAmount: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: Colors.textPrimary,
-    marginBottom: 4,
   },
   packageJobs: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  customInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.sm,
+  },
+  rupeeSymbol: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginRight: 4,
+  },
+  customInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    padding: 0,
+    margin: 0,
+  },
+  pricingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.gray50,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  pricingText: {
+    flex: 1,
     fontSize: 12,
     color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  noExpiryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.successBg,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.sm,
-  },
-  noExpiryText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.success,
+    lineHeight: 16,
   },
   bonusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.successBg,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: Colors.gray100,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start',
   },
   bonusText: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.success,
-  },
-  checkmark: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
+    color: Colors.textSecondary,
   },
   details: {
     backgroundColor: Colors.gray50,
