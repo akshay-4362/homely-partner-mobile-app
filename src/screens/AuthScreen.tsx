@@ -23,13 +23,15 @@ export const AuthScreen = () => {
       if (!form.email || !form.password) { Alert.alert('Error', 'Fill all fields'); return; }
       const res = await dispatch(login({ email: form.email, password: form.password }));
       if (res.meta.requestStatus === 'rejected') {
-        Alert.alert('Login Failed', (res.payload as string) || 'Invalid credentials');
+        const errorMsg = typeof res.payload === 'string' ? res.payload : 'Invalid credentials. Please check your email and password.';
+        Alert.alert('Login Failed', errorMsg);
       }
     } else {
       if (!form.firstName || !form.email || !form.password || !form.phone) { Alert.alert('Error', 'Fill all fields'); return; }
       const res = await dispatch(register(form));
       if (res.meta.requestStatus === 'rejected') {
-        Alert.alert('Registration Failed', (res.payload as string) || 'Could not register');
+        const errorMsg = typeof res.payload === 'string' ? res.payload : 'Could not register. Please try again.';
+        Alert.alert('Registration Failed', errorMsg);
       }
     }
   };
