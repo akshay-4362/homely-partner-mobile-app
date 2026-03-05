@@ -243,6 +243,7 @@ export const ProfileScreen = () => {
         {/* Menu Items */}
         <Card style={styles.section}>
           {[
+            { icon: 'grid-outline', label: 'My Categories', onPress: () => navigation.navigate('CategorySelection') },
             { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
             { icon: 'wallet-outline', label: 'Credits', onPress: () => navigation.navigate('Credits') },
             { icon: 'school-outline', label: 'Training', onPress: () => navigation.navigate('Training') },

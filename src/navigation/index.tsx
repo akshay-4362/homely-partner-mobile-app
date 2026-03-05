@@ -36,6 +36,7 @@ import { NewCalendarScreen } from '../screens/NewCalendarScreen';
 import { PaymentQRScreen } from '../screens/PaymentQRScreen';
 import { BankAccountSetupScreen } from '../screens/BankAccountSetupScreen';
 import { PayoutAccountsScreen } from '../screens/PayoutAccountsScreen';
+import { CategorySelectionScreen } from '../screens/CategorySelectionScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -157,6 +158,7 @@ const DrawerNav = () => (
     <Drawer.Screen name="WeekendUnavailableHours" component={WeekendUnavailableHoursScreen} />
     <Drawer.Screen name="PayoutAccounts" component={PayoutAccountsScreen} />
     <Drawer.Screen name="BankAccountSetup" component={BankAccountSetupScreen} />
+    <Drawer.Screen name="CategorySelection" component={CategorySelectionScreen} />
   </Drawer.Navigator>
 );
 

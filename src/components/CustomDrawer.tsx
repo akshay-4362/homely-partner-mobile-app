@@ -83,6 +83,7 @@ export const CustomDrawer: React.FC<DrawerContentComponentProps> = (props) => {
 
   const settingsItems: MenuItem[] = [
     { label: 'Profile', icon: 'person', screen: 'Profile' },
+    { label: 'My Categories', icon: 'grid', screen: 'CategorySelection' },
     { label: 'Privacy Policy', icon: 'shield-checkmark', onPress: () => {} },
     { label: 'Terms of Service', icon: 'document-text', onPress: () => {} },
   ];
