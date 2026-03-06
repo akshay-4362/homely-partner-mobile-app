@@ -4,6 +4,7 @@ import bookingReducer from './bookingSlice';
 import payoutReducer from './payoutSlice';
 import creditReducer from './creditSlice';
 import accountingReducer from './accountingSlice';
+import bookingWorkflowReducer from './booking-workflow/bookingWorkflowSlice';
 
 // Combine all reducers
 const rootReducer = combineReducers({
@@ -12,6 +13,7 @@ const rootReducer = combineReducers({
   payouts: payoutReducer,
   credit: creditReducer,
   accounting: accountingReducer,
+  bookingWorkflow: bookingWorkflowReducer,
 });
 
 // Root reducer with logout handling

@@ -65,4 +65,13 @@ export const bookingApi = {
     const { data } = await client.delete(`/bookings/${bookingId}/charges/${chargeId}`);
     return data.data || data;
   },
+
+  updateCharge: async (
+    bookingId: string,
+    chargeId: string,
+    updates: { description: string; amount: number; category: string }
+  ) => {
+    const { data } = await client.patch(`/bookings/${bookingId}/charges/${chargeId}`, updates);
+    return data.data || data;
+  },
 };

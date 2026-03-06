@@ -15,6 +15,7 @@ import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { BookingsScreen } from '../screens/BookingsScreen';
 import { BookingDetailScreen } from '../screens/BookingDetailScreen';
+import { BookingWorkflowScreen } from '../screens/booking-workflow/BookingWorkflowScreen';
 import { EarningsScreen } from '../screens/EarningsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AvailabilityScreen } from '../screens/AvailabilityScreen';
@@ -49,7 +50,7 @@ const BookingStackNav = () => {
       screenOptions={{ headerShown: false }}
     >
       <BookingStack.Screen name="BookingsList" component={BookingsScreen} />
-      <BookingStack.Screen name="BookingDetail" component={BookingDetailScreen} />
+      <BookingStack.Screen name="BookingDetail" component={BookingWorkflowScreen} />
       <BookingStack.Screen name="PaymentQR" component={PaymentQRScreen} />
       <BookingStack.Screen name="Chat" component={ChatScreen} />
     </BookingStack.Navigator>
