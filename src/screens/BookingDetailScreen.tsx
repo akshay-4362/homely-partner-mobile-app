@@ -1399,9 +1399,11 @@ export const BookingDetailScreen = () => {
                   <View>
                     <Text style={styles.chargesGroup}>Pending Approval</Text>
                     {charges.pending.map((c) => (
-                      <View key={c._id} style={[styles.chargeRow, { alignItems: 'center' }]}>
+                      <View key={c._id} style={[styles.chargeRow, { alignItems: 'center', marginBottom: Spacing.md }]}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.chargeName}>{c.description}</Text>
+                          <Text style={styles.chargeName}>
+                            {c.description || `${c.category?.charAt(0).toUpperCase()}${c.category?.slice(1).replace('_', ' ')}` || 'Additional Charge'}
+                          </Text>
                           <Text style={styles.chargeAmt}>{formatCurrency(c.amount)}</Text>
                         </View>
                         <TouchableOpacity
@@ -1418,9 +1420,23 @@ export const BookingDetailScreen = () => {
                   <View>
                     <Text style={[styles.chargesGroup, { color: Colors.success }]}>Approved</Text>
                     {charges.approved.map((c) => (
-                      <View key={c._id} style={styles.chargeRow}>
-                        <Text style={styles.chargeName}>{c.description}</Text>
-                        <Text style={[styles.chargeAmt, { color: Colors.success }]}>{formatCurrency(c.amount)}</Text>
+                      <View key={c._id} style={[styles.chargeRow, { marginBottom: Spacing.sm }]}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.chargeName}>
+                            {c.description || `${c.category?.charAt(0).toUpperCase()}${c.category?.slice(1).replace('_', ' ')}` || 'Additional Charge'}
+                          </Text>
+                          <Text style={[styles.chargeAmt, { color: Colors.success, fontSize: 12, marginTop: 2 }]}>
+                            {formatCurrency(c.amount)}
+                          </Text>
+                        </View>
+                        {c.paidAt && (
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={{ fontSize: 11, color: Colors.success, fontWeight: '600' }}>✓ Paid</Text>
+                            <Text style={{ fontSize: 10, color: Colors.textSecondary, marginTop: 2 }}>
+                              {formatDateOnly(c.paidAt)}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     ))}
                   </View>
