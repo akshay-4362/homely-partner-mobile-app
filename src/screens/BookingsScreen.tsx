@@ -40,6 +40,18 @@ export const BookingsScreen = () => {
     }, [])
   );
 
+  // Real-time polling - refresh every 30 seconds when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const interval = setInterval(() => {
+        console.log('🔄 Auto-refreshing bookings list...');
+        dispatch(fetchProBookings(true)); // Silent refresh
+      }, 30000); // 30 seconds
+
+      return () => clearInterval(interval);
+    }, [])
+  );
+
   const onRefresh = async () => {
     setRefreshing(true);
     await dispatch(fetchProBookings(true));

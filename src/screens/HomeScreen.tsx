@@ -89,6 +89,18 @@ export const HomeScreen = () => {
     }, [])
   );
 
+  // Real-time polling - refresh every 30 seconds when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const interval = setInterval(() => {
+        console.log('🔄 Auto-refreshing home screen data...');
+        loadData(); // Silent refresh (no loading indicators)
+      }, 30000); // 30 seconds
+
+      return () => clearInterval(interval);
+    }, [])
+  );
+
   const debouncedRefresh = useDebouncedRefresh(loadDataForced);
 
   const onRefresh = async () => {
@@ -198,7 +210,7 @@ export const HomeScreen = () => {
               />
               {upcomingJobs.map((job) => (
                 <TodayJobCard
-                  key={job.bookingId || job._id}
+                  key={job.id}
                   job={job}
                   onPress={() => navigation.navigate('Jobs', {
                     screen: 'BookingDetail',

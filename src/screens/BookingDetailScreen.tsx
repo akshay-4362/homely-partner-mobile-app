@@ -857,9 +857,15 @@ export const BookingDetailScreen = () => {
           <Card style={styles.otpCard}>
             <Text style={styles.sectionTitle}>Start Job</Text>
             <Text style={styles.otpHint}>Enter the 6-digit start OTP from customer</Text>
+            <View style={styles.otpInfoBox}>
+              <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
+              <Text style={styles.otpInfoText}>
+                If customer is not present, you can use last 4 digits of their phone number ({booking.customerPhone ? `****${booking.customerPhone.slice(-4)}` : 'N/A'})
+              </Text>
+            </View>
             <TextInput
               style={styles.otpInput}
-              placeholder="Enter 6-digit OTP from customer"
+              placeholder="Enter 6-digit OTP or last 4 digits of phone"
               keyboardType="number-pad"
               maxLength={6}
               value={otp}
@@ -1662,7 +1668,22 @@ const styles = StyleSheet.create({
   infoText: { fontSize: 14, color: Colors.textSecondary, flex: 1 },
   otpCard: {},
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
-  otpHint: { fontSize: 12, color: Colors.textSecondary, marginBottom: Spacing.md },
+  otpHint: { fontSize: 12, color: Colors.textSecondary, marginBottom: Spacing.sm },
+  otpInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: Colors.primaryBg,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  otpInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.primary,
+    lineHeight: 16,
+  },
   otpDisplay: {
     backgroundColor: Colors.primaryBg, borderRadius: BorderRadius.md,
     padding: Spacing.lg, alignItems: 'center', marginBottom: Spacing.md,
