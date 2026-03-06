@@ -145,6 +145,9 @@ export const BookingDetailScreen = () => {
   // Payment method for completion (cash vs online)
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('online');
 
+  // OTP help modal
+  const [showOtpHelp, setShowOtpHelp] = useState(false);
+
   // Socket connection for real-time updates
   const socket = useSocket();
 
@@ -857,15 +860,9 @@ export const BookingDetailScreen = () => {
           <Card style={styles.otpCard}>
             <Text style={styles.sectionTitle}>Start Job</Text>
             <Text style={styles.otpHint}>Enter the 6-digit start OTP from customer</Text>
-            <View style={styles.otpInfoBox}>
-              <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
-              <Text style={styles.otpInfoText}>
-                If customer is not present, you can use last 4 digits of their phone number ({booking.customerPhone ? `****${booking.customerPhone.slice(-4)}` : 'N/A'})
-              </Text>
-            </View>
             <TextInput
               style={styles.otpInput}
-              placeholder="Enter 6-digit OTP or last 4 digits of phone"
+              placeholder="Enter 6-digit OTP"
               keyboardType="number-pad"
               maxLength={6}
               value={otp}
@@ -873,6 +870,17 @@ export const BookingDetailScreen = () => {
               placeholderTextColor={Colors.textTertiary}
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            {/* Problem getting OTP button */}
+            <TouchableOpacity
+              style={styles.otpHelpButton}
+              onPress={() => setShowOtpHelp(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="help-circle-outline" size={18} color={Colors.primary} />
+              <Text style={styles.otpHelpText}>Problem in getting OTP?</Text>
+            </TouchableOpacity>
+
             <Button
               label="Start Job"
               onPress={() => handleStatusChange('in_progress')}
@@ -1645,6 +1653,72 @@ export const BookingDetailScreen = () => {
           )}
         </View>
       </Modal>
+
+      {/* OTP Help Modal */}
+      <Modal visible={showOtpHelp} transparent animationType="fade" onRequestClose={() => setShowOtpHelp(false)}>
+        <View style={styles.otpHelpOverlay}>
+          <View style={styles.otpHelpModal}>
+            <View style={styles.otpHelpHeader}>
+              <Ionicons name="help-circle" size={48} color={Colors.primary} />
+              <Text style={styles.otpHelpTitle}>Problem Getting OTP?</Text>
+            </View>
+
+            <View style={styles.otpHelpContent}>
+              <Text style={styles.otpHelpMainText}>
+                If the customer is not present at home, you can still start the job!
+              </Text>
+
+              <View style={styles.otpHelpStep}>
+                <View style={styles.otpHelpStepNumber}>
+                  <Text style={styles.otpHelpStepNumberText}>1</Text>
+                </View>
+                <Text style={styles.otpHelpStepText}>
+                  Ask the person present at home (family member, maid, etc.)
+                </Text>
+              </View>
+
+              <View style={styles.otpHelpStep}>
+                <View style={styles.otpHelpStepNumber}>
+                  <Text style={styles.otpHelpStepNumberText}>2</Text>
+                </View>
+                <Text style={styles.otpHelpStepText}>
+                  Request them to tell you the <Text style={styles.otpHelpBold}>last 6 digits</Text> of the phone number from which the booking was made
+                </Text>
+              </View>
+
+              <View style={styles.otpHelpStep}>
+                <View style={styles.otpHelpStepNumber}>
+                  <Text style={styles.otpHelpStepNumberText}>3</Text>
+                </View>
+                <Text style={styles.otpHelpStepText}>
+                  Enter those 6 digits as the OTP and tap "Start Job"
+                </Text>
+              </View>
+
+              {booking.customerPhone && (
+                <View style={styles.otpHelpPhoneBox}>
+                  <Ionicons name="call-outline" size={20} color={Colors.success} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.otpHelpPhoneLabel}>Customer Phone</Text>
+                    <Text style={styles.otpHelpPhoneNumber}>{booking.customerPhone}</Text>
+                    <Text style={styles.otpHelpPhoneLast6}>
+                      Last 6 digits: <Text style={styles.otpHelpPhoneLast6Bold}>{booking.customerPhone.slice(-6)}</Text>
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.otpHelpActions}>
+              <Button
+                label="Got it!"
+                onPress={() => setShowOtpHelp(false)}
+                fullWidth
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -2112,5 +2186,118 @@ const styles = StyleSheet.create({
   imageViewerImage: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
+  },
+  otpHelpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginBottom: Spacing.sm,
+  },
+  otpHelpText: {
+    fontSize: 13,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  otpHelpOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  otpHelpModal: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
+  },
+  otpHelpHeader: {
+    alignItems: 'center',
+    paddingTop: Spacing.xxl,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    backgroundColor: Colors.primaryBg,
+  },
+  otpHelpTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginTop: Spacing.md,
+  },
+  otpHelpContent: {
+    padding: Spacing.xl,
+    gap: Spacing.lg,
+  },
+  otpHelpMainText: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  otpHelpStep: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    alignItems: 'flex-start',
+  },
+  otpHelpStepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpHelpStepNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textInverse,
+  },
+  otpHelpStepText: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    lineHeight: 20,
+    paddingTop: 3,
+  },
+  otpHelpBold: {
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  otpHelpPhoneBox: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    backgroundColor: Colors.successBg,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.success,
+    marginTop: Spacing.sm,
+  },
+  otpHelpPhoneLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  otpHelpPhoneNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  otpHelpPhoneLast6: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  otpHelpPhoneLast6Bold: {
+    fontWeight: '700',
+    color: Colors.success,
+    fontSize: 15,
+  },
+  otpHelpActions: {
+    padding: Spacing.xl,
+    paddingTop: 0,
   },
 });
