@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal,
-  Platform } from 'react-native';
+  Platform, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -34,15 +35,19 @@ export const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
 
   // Edit modals
-  const [editBio, setEditBio] = useState(false);
-  const [bio, setBio] = useState('');
   const [editPhone, setEditPhone] = useState(false);
   const [phone, setPhone] = useState('');
   const [docModal, setDocModal] = useState(false);
-  const [docForm, setDocForm] = useState({ type: 'id_proof', url: '' });
+  const [selectedDocType, setSelectedDocType] = useState('aadhaar_card');
+  const [pickedFileUri, setPickedFileUri] = useState<string | null>(null);
+  const [pickedFileName, setPickedFileName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const DOC_TYPES = ['id_proof', 'address_proof', 'pan_card', 'bank_statement', 'experience_cert'];
+  const DOC_TYPES = [
+    { key: 'aadhaar_card', label: 'Aadhaar Card', icon: 'id-card-outline' },
+    { key: 'pan_card', label: 'PAN Card', icon: 'card-outline' },
+    { key: 'driving_licence', label: 'Driving Licence', icon: 'car-outline' },
+  ];
 
   useEffect(() => {
     loadData();
@@ -64,7 +69,6 @@ export const ProfileScreen = () => {
       ]);
       const p = profileData?.data || profileData;
       setProfile(p);
-      setBio(p?.bio || '');
       const svcList = servicesData?.data || servicesData?.services || servicesData || [];
       setServices(Array.isArray(svcList) ? svcList : []);
       const docList = docsData?.data || docsData?.documents || docsData || [];
@@ -84,15 +88,6 @@ export const ProfileScreen = () => {
     setLoading(false);
   };
 
-  const saveBio = async () => {
-    setSaving(true);
-    try {
-      await proApi.updateAvailability({ bio });
-      setEditBio(false);
-      Alert.alert('Saved', 'Bio updated');
-    } catch { Alert.alert('Error', 'Failed to save'); }
-    setSaving(false);
-  };
 
   const savePhone = async () => {
     const trimmed = phone.trim();
@@ -110,16 +105,36 @@ export const ProfileScreen = () => {
     setSaving(false);
   };
 
+  const pickDocument = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photo library');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.85,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPickedFileUri(result.assets[0].uri);
+      setPickedFileName(result.assets[0].uri.split('/').pop() || 'document.jpg');
+    }
+  };
+
   const submitDoc = async () => {
-    if (!docForm.url) { Alert.alert('Enter document URL'); return; }
+    if (!pickedFileUri) { Alert.alert('Select File', 'Please select a document file to upload'); return; }
     setSaving(true);
     try {
-      await documentApi.submit(docForm);
+      const url = await documentApi.uploadFile(selectedDocType, pickedFileUri);
+      await documentApi.submit({ type: selectedDocType, url });
       setDocModal(false);
-      setDocForm({ type: 'id_proof', url: '' });
+      setPickedFileUri(null);
+      setPickedFileName(null);
+      setSelectedDocType('aadhaar_card');
       loadData();
       Alert.alert('Submitted', 'Document submitted for review');
-    } catch { Alert.alert('Error', 'Failed to submit document'); }
+    } catch { Alert.alert('Error', 'Failed to upload document'); }
     setSaving(false);
   };
 
@@ -246,16 +261,6 @@ export const ProfileScreen = () => {
           )}
         </Card>
 
-        {/* Bio */}
-        <Card style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>About Me</Text>
-            <TouchableOpacity onPress={() => setEditBio(true)}>
-              <Text style={styles.editLink}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.bioText}>{profile?.bio || 'Add a bio to let customers know more about you.'}</Text>
-        </Card>
 
         {/* Documents */}
         <Card style={styles.section}>
@@ -316,63 +321,59 @@ export const ProfileScreen = () => {
         <Text style={styles.version}>Homelyo Pro v1.0.0</Text>
       </ScrollView>
 
-      {/* Bio Edit Modal */}
-      <Modal visible={editBio} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Edit Bio</Text>
-            <TextInput
-              style={styles.textArea}
-              multiline
-              numberOfLines={4}
-              value={bio}
-              onChangeText={setBio}
-              placeholder="Tell customers about yourself..."
-              placeholderTextColor={Colors.textTertiary}
-            />
-            <View style={styles.modalActions}>
-              <Button label="Cancel" onPress={() => setEditBio(false)} variant="ghost" />
-              <Button label="Save" onPress={saveBio} loading={saving} />
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Document Upload Modal */}
-      <Modal visible={docModal} animationType="slide" transparent>
+      <Modal visible={docModal} animationType="slide" transparent onRequestClose={() => setDocModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Upload Document</Text>
+
             <Text style={styles.fieldLabel}>Document Type</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {DOC_TYPES.map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[styles.typeChip, docForm.type === t && styles.typeChipActive]}
-                    onPress={() => setDocForm((prev) => ({ ...prev, type: t }))}
-                  >
-                    <Text style={[styles.typeText, docForm.type === t && styles.typeTextActive]}>
-                      {t.replace(/_/g, ' ')}
-                    </Text>
+            <View style={styles.docTypeList}>
+              {DOC_TYPES.map((dt) => (
+                <TouchableOpacity
+                  key={dt.key}
+                  style={[styles.docTypeRow, selectedDocType === dt.key && styles.docTypeRowActive]}
+                  onPress={() => { setSelectedDocType(dt.key); setPickedFileUri(null); setPickedFileName(null); }}
+                >
+                  <Ionicons
+                    name={dt.icon as any}
+                    size={22}
+                    color={selectedDocType === dt.key ? Colors.primary : Colors.textSecondary}
+                  />
+                  <Text style={[styles.docTypeLabel, selectedDocType === dt.key && styles.docTypeLabelActive]}>
+                    {dt.label}
+                  </Text>
+                  {selectedDocType === dt.key && (
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.fieldLabel, { marginTop: Spacing.lg }]}>Select File</Text>
+            <TouchableOpacity style={styles.filePickerBtn} onPress={pickDocument} disabled={saving}>
+              {pickedFileName ? (
+                <View style={styles.filePickedRow}>
+                  <Ionicons name="document" size={22} color={Colors.primary} />
+                  <Text style={styles.filePickedName} numberOfLines={1}>{pickedFileName}</Text>
+                  <TouchableOpacity onPress={() => { setPickedFileUri(null); setPickedFileName(null); }}>
+                    <Ionicons name="close-circle" size={18} color={Colors.error} />
                   </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-            <Text style={styles.fieldLabel}>Document URL</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value={docForm.url}
-              onChangeText={(v) => setDocForm((prev) => ({ ...prev, url: v }))}
-              placeholder="https://..."
-              placeholderTextColor={Colors.textTertiary}
-              autoCapitalize="none"
-            />
+                </View>
+              ) : (
+                <View style={styles.filePickerEmpty}>
+                  <Ionicons name="cloud-upload-outline" size={28} color={Colors.textTertiary} />
+                  <Text style={styles.filePickerText}>Tap to select image</Text>
+                  <Text style={styles.filePickerHint}>JPG, PNG supported</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
             <View style={styles.modalActions}>
-              <Button label="Cancel" onPress={() => setDocModal(false)} variant="ghost" />
-              <Button label="Submit" onPress={submitDoc} loading={saving} />
+              <Button label="Cancel" onPress={() => { setDocModal(false); setPickedFileUri(null); setPickedFileName(null); }} variant="ghost" />
+              <Button label={saving ? 'Uploading...' : 'Submit'} onPress={submitDoc} loading={saving} disabled={!pickedFileUri} />
             </View>
           </View>
         </View>
@@ -412,12 +413,6 @@ export const ProfileScreen = () => {
   );
 };
 
-const InfoRow = ({ label, value }: { label: string; value: string }) => (
-  <View style={styles.infoRow}>
-    <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value}</Text>
-  </View>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
@@ -516,6 +511,28 @@ const styles = StyleSheet.create({
   typeChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primary },
   typeText: { fontSize: 12, color: Colors.textSecondary, fontWeight: '500', textTransform: 'capitalize' },
   typeTextActive: { color: Colors.primary, fontWeight: '700' },
+
+  docTypeList: { gap: 8, marginBottom: Spacing.sm },
+  docTypeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    padding: Spacing.md, borderRadius: BorderRadius.md,
+    borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.surface,
+  },
+  docTypeRowActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryBg },
+  docTypeLabel: { flex: 1, fontSize: 15, color: Colors.textPrimary, fontWeight: '500' },
+  docTypeLabelActive: { color: Colors.primary, fontWeight: '700' },
+  filePickerBtn: {
+    borderWidth: 1.5, borderColor: Colors.border, borderRadius: BorderRadius.md,
+    borderStyle: 'dashed', backgroundColor: Colors.surfaceAlt, overflow: 'hidden',
+  },
+  filePickerEmpty: { alignItems: 'center', paddingVertical: Spacing.xl, gap: 6 },
+  filePickerText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
+  filePickerHint: { fontSize: 12, color: Colors.textTertiary },
+  filePickedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    padding: Spacing.md,
+  },
+  filePickedName: { flex: 1, fontSize: 13, color: Colors.primary, fontWeight: '500' },
   alertBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',

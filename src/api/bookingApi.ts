@@ -74,4 +74,9 @@ export const bookingApi = {
     const { data } = await client.patch(`/bookings/${bookingId}/charges/${chargeId}`, updates);
     return data.data || data;
   },
+
+  cancelBooking: async (bookingId: string, reason: string) => {
+    const { data } = await client.post(`/bookings/${bookingId}/cancel`, { reason });
+    return data.data || data;
+  },
 };

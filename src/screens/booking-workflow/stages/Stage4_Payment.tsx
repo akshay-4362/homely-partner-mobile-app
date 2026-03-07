@@ -24,8 +24,12 @@ import { useAppSelector } from '../../../hooks/useAppSelector';
 import {
   selectPaymentMethod,
   setPaymentMethod,
+  selectCloseJobMode,
+  selectCloseJobReason,
+  clearCloseJobMode,
 } from '../../../store/booking-workflow/bookingWorkflowSlice';
 import { updateProBookingStatus } from '../../../store/bookingSlice';
+import { bookingApi } from '../../../api/bookingApi';
 
 export const Stage4_Payment: React.FC<StageComponentProps> = ({
   booking,
@@ -37,6 +41,8 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
   const dispatch = useAppDispatch();
 
   const selectedPaymentMethod = useAppSelector(selectPaymentMethod);
+  const closeJobMode = useAppSelector(selectCloseJobMode);
+  const closeJobReason = useAppSelector(selectCloseJobReason);
   const [loading, setLoading] = useState(false);
 
   // Calculate totals
@@ -57,16 +63,36 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
    * Handle cash payment confirmation
    */
   const handleCashPayment = () => {
-    Alert.alert(
-      'Confirm Cash Payment',
-      `Did you receive ₹${totalAmount} in cash from the customer?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Received',
-          onPress: async () => {
-            setLoading(true);
-            try {
+    const confirmMsg = closeJobMode
+      ? `Did you receive ₹${totalAmount} visit fee in cash from the customer?`
+      : `Did you receive ₹${totalAmount} in cash from the customer?`;
+
+    Alert.alert('Confirm Cash Payment', confirmMsg, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Yes, Received',
+        onPress: async () => {
+          setLoading(true);
+          try {
+            if (closeJobMode && closeJobReason) {
+              // Close job flow: collect visit fee then cancel booking
+              await dispatch(
+                updateProBookingStatus({
+                  bookingId: booking.id,
+                  status: 'completed',
+                  cashPayment: true,
+                })
+              );
+              await bookingApi.cancelBooking(booking.id, closeJobReason);
+              dispatch(clearCloseJobMode());
+              setLoading(false);
+              Alert.alert(
+                'Job Closed',
+                'Visit fee collected. The job has been closed.',
+                [{ text: 'OK', onPress: () => onStageComplete(5) }]
+              );
+            } else {
+              // Normal completion
               const res = await dispatch(
                 updateProBookingStatus({
                   bookingId: booking.id,
@@ -74,36 +100,28 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
                   cashPayment: true,
                 })
               );
-
               setLoading(false);
-
               if (res.meta.requestStatus === 'fulfilled') {
-                // Move to completion stage
                 Alert.alert(
                   'Job Completed! ✓',
                   'Cash payment received. Invoice has been generated.',
-                  [
-                    {
-                      text: 'Continue',
-                      onPress: () => onStageComplete(5),
-                    },
-                  ]
+                  [{ text: 'Continue', onPress: () => onStageComplete(5) }]
                 );
               } else {
                 const errorMsg = (res.payload as string) || 'Failed to complete job';
                 Alert.alert('Error', errorMsg);
                 onError(errorMsg);
               }
-            } catch (error) {
-              setLoading(false);
-              const errorMsg = error instanceof Error ? error.message : 'Failed to complete job';
-              Alert.alert('Error', errorMsg);
-              onError(errorMsg);
             }
-          },
+          } catch (error) {
+            setLoading(false);
+            const errorMsg = error instanceof Error ? error.message : 'Failed to process';
+            Alert.alert('Error', errorMsg);
+            onError(errorMsg);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   /**
@@ -119,6 +137,17 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Close Job Banner */}
+      {closeJobMode && (
+        <View style={styles.closeJobBanner}>
+          <Ionicons name="information-circle" size={20} color={Colors.warning} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.closeJobBannerTitle}>Closing Job — Collect Visit Fee</Text>
+            <Text style={styles.closeJobBannerReason}>Reason: {closeJobReason}</Text>
+          </View>
+        </View>
+      )}
+
       {/* Job Summary Card */}
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>Job Summary</Text>
@@ -302,6 +331,30 @@ const styles = StyleSheet.create({
 
   card: {
     marginBottom: Spacing.md,
+  },
+
+  closeJobBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.warningBg,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.warning,
+  },
+
+  closeJobBannerTitle: {
+    ...Typography.body,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+
+  closeJobBannerReason: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
 
   sectionTitle: {

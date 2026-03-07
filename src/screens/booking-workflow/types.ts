@@ -3,7 +3,7 @@
  * Types for the sequential job execution workflow
  */
 
-import { ProBooking, AdditionalCharge } from '../../types';
+import { ProBooking, AdditionalCharge, MediaItem } from '../../types';
 
 // Re-export MediaItem from main types
 export type { MediaItem } from '../../types';
@@ -38,6 +38,10 @@ export interface BookingWorkflowState {
   // Upload progress
   uploadProgress: number;
   uploading: boolean;
+
+  // Close job mode (professional closes job without completing service)
+  closeJobMode: boolean;
+  closeJobReason: string | null;
 }
 
 /**

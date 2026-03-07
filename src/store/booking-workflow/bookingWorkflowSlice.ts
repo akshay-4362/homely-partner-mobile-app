@@ -23,6 +23,8 @@ const initialState: BookingWorkflowState = {
   qrCodeData: null,
   uploadProgress: 0,
   uploading: false,
+  closeJobMode: false,
+  closeJobReason: null,
 };
 
 /**
@@ -86,6 +88,17 @@ const bookingWorkflowSlice = createSlice({
       state.uploading = action.payload;
     },
 
+    // Close job mode
+    setCloseJobMode: (state, action: PayloadAction<{ reason: string }>) => {
+      state.closeJobMode = true;
+      state.closeJobReason = action.payload.reason;
+    },
+
+    clearCloseJobMode: (state) => {
+      state.closeJobMode = false;
+      state.closeJobReason = null;
+    },
+
     // Complete stage transition
     completeStageTransition: (state, action: PayloadAction<WorkflowStage>) => {
       state.currentStage = action.payload;
@@ -123,6 +136,8 @@ export const {
   setUploadProgress,
   setUploading,
   completeStageTransition,
+  setCloseJobMode,
+  clearCloseJobMode,
 } = bookingWorkflowSlice.actions;
 
 // Export reducer
@@ -152,3 +167,9 @@ export const selectUploadProgress = (state: any): number =>
 
 export const selectUploading = (state: any): boolean =>
   state.bookingWorkflow.uploading;
+
+export const selectCloseJobMode = (state: any): boolean =>
+  state.bookingWorkflow.closeJobMode;
+
+export const selectCloseJobReason = (state: any): string | null =>
+  state.bookingWorkflow.closeJobReason;

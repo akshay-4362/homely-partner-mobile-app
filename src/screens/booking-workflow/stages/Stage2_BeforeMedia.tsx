@@ -33,6 +33,7 @@ import {
   clearBeforeMedia,
   setUploading,
   setUploadProgress,
+  setCloseJobMode,
 } from '../../../store/booking-workflow/bookingWorkflowSlice';
 import { bookingApi } from '../../../api/bookingApi';
 import { useSocket } from '../../../hooks/useSocket';
@@ -55,6 +56,21 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
   const [loadingCharges, setLoadingCharges] = useState(false);
   const [editingCharge, setEditingCharge] = useState<any>(null);
   const [editChargeModal, setEditChargeModal] = useState(false);
+
+  // Close job state
+  const [closeJobModal, setCloseJobModal] = useState(false);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
+  const [closingJob, setClosingJob] = useState(false);
+
+  const CLOSE_JOB_REASONS = [
+    'Service not provided by UC',
+    'Appliance is commercial',
+    'Spare parts not available for appliance',
+    'Product damaged/Unserviceable',
+    'Nothing wrong with appliance',
+    'Other Reason',
+  ];
 
   // Check if before media already uploaded
   const beforeMediaUploaded = (booking.beforeMedia?.length || 0) > 0;
@@ -358,40 +374,52 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
   };
 
   /**
-   * Cancel job if customer doesn't want to proceed
+   * Open the close job reason modal
    */
-  const handleCancelJob = () => {
-    Alert.alert(
-      'Cancel Job',
-      'Customer declined the service? This will mark the job as cancelled.',
-      [
-        { text: 'No, Continue Working', style: 'cancel' },
-        {
-          text: 'Yes, Cancel Job',
-          style: 'destructive',
-          onPress: async () => {
-            setUploadingLocal(true);
-            try {
-              await dispatch(updateProBookingStatus({
-                bookingId: booking.id,
-                status: 'cancelled',
-              }));
+  const openCloseJobModal = () => {
+    setSelectedReason('');
+    setCustomReason('');
+    setCloseJobModal(true);
+  };
 
-              Alert.alert(
-                'Job Cancelled',
-                'The job has been cancelled. Customer will be notified.',
-                [{ text: 'OK', onPress: () => onStageComplete(5) }]
-              );
-            } catch (error: any) {
-              const errorMsg = error.response?.data?.message || 'Failed to cancel job';
-              Alert.alert('Error', errorMsg);
-              onError(errorMsg);
-            }
-            setUploadingLocal(false);
-          },
-        },
-      ]
-    );
+  /**
+   * Submit close job: cancel directly if already paid, else go to payment first
+   */
+  const handleCloseJobSubmit = async () => {
+    const finalReason = selectedReason === 'Other Reason'
+      ? customReason.trim()
+      : selectedReason;
+
+    if (!finalReason) {
+      Alert.alert('Reason Required', 'Please select or enter a reason to close the job');
+      return;
+    }
+
+    const alreadyPaid = !!booking.paidAt;
+
+    if (alreadyPaid) {
+      // Customer already paid — cancel directly
+      setClosingJob(true);
+      try {
+        await bookingApi.cancelBooking(booking.id, finalReason);
+        setCloseJobModal(false);
+        Alert.alert(
+          'Job Closed',
+          'The job has been closed. Customer will be notified.',
+          [{ text: 'OK', onPress: () => onStageComplete(5) }]
+        );
+      } catch (error: any) {
+        const errorMsg = error.response?.data?.message || 'Failed to close job';
+        Alert.alert('Error', errorMsg);
+        onError(errorMsg);
+      }
+      setClosingJob(false);
+    } else {
+      // Not paid — store reason in Redux and navigate to payment stage to collect first
+      dispatch(setCloseJobMode({ reason: finalReason }));
+      setCloseJobModal(false);
+      onStageComplete(4);
+    }
   };
 
   /**
@@ -703,23 +731,87 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
           </Text>
         )}
 
-        {/* Cancel Job Option */}
-        {hasPendingCharges && (
-          <View style={styles.cancelJobSection}>
-            <Text style={styles.cancelJobHint}>
-              If customer doesn't want to proceed with service:
+        {/* Close Job Option - always visible */}
+        <View style={styles.cancelJobSection}>
+          <Text style={styles.cancelJobHint}>
+            Customer doesn't want to proceed?
+          </Text>
+          <Button
+            label="Close Job"
+            icon="close-circle-outline"
+            variant="ghost"
+            onPress={openCloseJobModal}
+            fullWidth
+            style={{ marginTop: Spacing.sm }}
+          />
+        </View>
+      </View>
+
+      {/* Close Job Modal */}
+      <Modal visible={closeJobModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setCloseJobModal(false)}
+            >
+              <Ionicons name="close" size={22} color={Colors.textSecondary} />
+            </TouchableOpacity>
+
+            <Text style={styles.modalTitle}>Why is no work needed?</Text>
+            <Text style={styles.modalSubtitle}>
+              Please tell us why no work is needed on this job
             </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 340 }}>
+              {CLOSE_JOB_REASONS.map((reason) => (
+                <TouchableOpacity
+                  key={reason}
+                  style={styles.reasonRow}
+                  onPress={() => setSelectedReason(reason)}
+                >
+                  <View style={styles.radioOuter}>
+                    {selectedReason === reason && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.reasonText}>{reason}</Text>
+                </TouchableOpacity>
+              ))}
+
+              {selectedReason === 'Other Reason' && (
+                <TextInput
+                  style={styles.otherReasonInput}
+                  placeholder="Please describe the reason..."
+                  value={customReason}
+                  onChangeText={setCustomReason}
+                  multiline
+                  numberOfLines={3}
+                  placeholderTextColor={Colors.textTertiary}
+                />
+              )}
+            </ScrollView>
+
+            {!booking.paidAt && (
+              <View style={styles.paymentNoticeBox}>
+                <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
+                <Text style={styles.paymentNoticeText}>
+                  Customer hasn't paid yet. You'll be taken to collect the visit fee before closing.
+                </Text>
+              </View>
+            )}
+
             <Button
-              label="Cancel Job (Customer Declined)"
-              icon="close-circle-outline"
-              variant="ghost"
-              onPress={handleCancelJob}
+              label={closingJob ? 'Closing...' : booking.paidAt ? 'Close Job' : 'Continue to Payment'}
+              icon={booking.paidAt ? 'checkmark-circle-outline' : 'card-outline'}
+              onPress={handleCloseJobSubmit}
+              loading={closingJob}
+              disabled={!selectedReason || (selectedReason === 'Other Reason' && !customReason.trim())}
               fullWidth
-              style={{ marginTop: Spacing.sm }}
+              style={{ marginTop: Spacing.lg }}
             />
           </View>
-        )}
-      </View>
+        </View>
+      </Modal>
 
       {/* Edit Charge Modal */}
       <Modal visible={editChargeModal} animationType="slide" transparent>
@@ -1036,54 +1128,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  chargesHeader: {
-    marginBottom: Spacing.sm,
-  },
-
-  chargesSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.md,
-    padding: Spacing.md,
-    backgroundColor: Colors.successBg,
-    borderRadius: BorderRadius.md,
-  },
-
-  totalLabel: {
-    ...Typography.body,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-
-  totalValue: {
-    ...Typography.h4,
-    color: Colors.success,
-  },
-
-  infoNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.xs,
-    marginTop: Spacing.sm,
-    padding: Spacing.sm,
-    backgroundColor: Colors.primaryBg,
-    borderRadius: BorderRadius.sm,
-  },
-
-  infoText: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    flex: 1,
-  },
-
   continueContainer: {
     marginTop: Spacing.lg,
     marginBottom: Spacing.xxl,
@@ -1329,16 +1373,90 @@ const styles = StyleSheet.create({
   cancelJobSection: {
     marginTop: Spacing.xl,
     padding: Spacing.md,
-    backgroundColor: Colors.errorBg,
+    backgroundColor: Colors.surfaceAlt,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.error,
-    borderStyle: 'dashed',
+    borderColor: Colors.border,
   },
 
   cancelJobHint: {
     ...Typography.caption,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+
+  modalCloseBtn: {
+    position: 'absolute',
+    top: Spacing.lg,
+    right: Spacing.xl,
+    padding: 4,
+  },
+
+  modalSubtitle: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+  },
+
+  reasonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    gap: Spacing.md,
+  },
+
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  radioInner: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: Colors.primary,
+  },
+
+  reasonText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+
+  otherReasonInput: {
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: 15,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.surface,
+    marginTop: Spacing.md,
+    textAlignVertical: 'top',
+  },
+
+  paymentNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.lg,
+  },
+
+  paymentNoticeText: {
+    ...Typography.caption,
+    color: Colors.primary,
+    flex: 1,
+    lineHeight: 18,
   },
 });
