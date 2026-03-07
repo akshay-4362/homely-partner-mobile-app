@@ -127,7 +127,6 @@ export const EarningsScreen = () => {
   const netEarnings = customerPaid - totalDeductions;
   // Job Value ≈ revenue to split (customer paid minus service tax)
   const jobValue = revenueToSplit;
-  const cancellationIncentive = 0; // placeholder — no data field yet
 
   // ── month helpers ────────────────────────────────────────────
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -256,14 +255,7 @@ export const EarningsScreen = () => {
                   <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
                 </View>
               </TouchableOpacity>
-              <View style={styles.divider} />
-              <TouchableOpacity style={styles.detailRow} activeOpacity={0.7}>
-                <Text style={styles.detailLabel}>Cancellation incentive</Text>
-                <View style={styles.detailRight}>
-                  <Text style={styles.detailValue}>{formatCurrency(cancellationIncentive)}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
-                </View>
-              </TouchableOpacity>
+
             </View>
           )}
         </View>

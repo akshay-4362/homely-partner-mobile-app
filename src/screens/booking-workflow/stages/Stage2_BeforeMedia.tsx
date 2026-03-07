@@ -731,19 +731,22 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
           </Text>
         )}
 
-        {/* Close Job Option - always visible */}
+        {/* No Work Option - always visible */}
         <View style={styles.cancelJobSection}>
           <Text style={styles.cancelJobHint}>
-            Customer doesn't want to proceed?
+            If customer doesn't want to proceed with service:
           </Text>
-          <Button
-            label="Close Job"
-            icon="close-circle-outline"
-            variant="ghost"
+          <TouchableOpacity
+            style={styles.noWorkBtn}
             onPress={openCloseJobModal}
-            fullWidth
-            style={{ marginTop: Spacing.sm }}
-          />
+            activeOpacity={0.75}
+          >
+            <View style={styles.noWorkIconWrap}>
+              <Ionicons name="hammer-outline" size={18} color="#c0392b" />
+              <Ionicons name="ban-outline" size={30} color="#c0392b" style={styles.noWorkBanIcon} />
+            </View>
+            <Text style={styles.noWorkLabel}>No Work</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -1383,6 +1386,39 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textSecondary,
     textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+
+  noWorkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: '#e74c3c',
+    backgroundColor: '#fff5f5',
+    marginTop: Spacing.xs,
+  },
+
+  noWorkIconWrap: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  noWorkBanIcon: {
+    position: 'absolute',
+  },
+
+  noWorkLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#c0392b',
+    letterSpacing: 0.3,
   },
 
   modalCloseBtn: {
