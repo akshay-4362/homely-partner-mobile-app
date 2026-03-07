@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   RefreshControl,
   Alert,
@@ -17,24 +17,31 @@ import { Loader } from '../components/common/Loader';
 import { EmptyState } from '../components/common/EmptyState';
 import client from '../api/client';
 
-interface PayoutAccount {
-  _id: string;
-  accountType: 'bank_account' | 'vpa';
-  accountHolderName?: string;
-  accountNumber?: string;
-  ifscCode?: string;
-  bankAccountType?: 'savings' | 'current';
-  upiId?: string;
-  isPrimary: boolean;
-  status: 'active' | 'inactive' | 'suspended';
-  isVerified: boolean;
-  kycStatus: 'pending' | 'verified' | 'failed';
-  createdAt: string;
+interface LinkedAccountStatus {
+  hasLinkedAccount: boolean;
+  linkedAccountId?: string;
+  status: 'created' | 'activated' | 'suspended' | 'needs_clarification' | null;
+  canReceivePayments: boolean;
+  message: string;
 }
+
+const STATUS_COLORS: Record<string, string> = {
+  activated: '#22c55e',
+  created: '#f59e0b',
+  suspended: '#ef4444',
+  needs_clarification: '#f97316',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  activated: 'Active',
+  created: 'Pending Activation',
+  suspended: 'Suspended',
+  needs_clarification: 'Needs Clarification',
+};
 
 export const PayoutAccountsScreen = () => {
   const navigation = useNavigation<any>();
-  const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
+  const [linkedAccount, setLinkedAccount] = useState<LinkedAccountStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -42,7 +49,6 @@ export const PayoutAccountsScreen = () => {
     loadAccounts();
   }, []);
 
-  // Reload data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadAccounts();
@@ -51,10 +57,11 @@ export const PayoutAccountsScreen = () => {
 
   const loadAccounts = async () => {
     try {
-      const response = await client.get('/payout-accounts');
-      setAccounts(response.data.data.accounts || []);
+      const response = await client.get('/linked-accounts/status');
+      setLinkedAccount(response.data?.data ?? null);
     } catch (error) {
-      console.error('Failed to load payout accounts:', error);
+      console.error('Failed to load linked account status:', error);
+      setLinkedAccount(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -70,42 +77,13 @@ export const PayoutAccountsScreen = () => {
     navigation.navigate('BankAccountSetup');
   };
 
-  const handleSetPrimary = async (accountId: string) => {
-    try {
-      await client.put(`/payout-accounts/${accountId}/set-primary`);
-      Alert.alert('Success', 'Primary account updated successfully');
-      loadAccounts();
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update primary account');
-    }
-  };
-
-  const handleDeleteAccount = async (accountId: string) => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete this payout account?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await client.delete(`/payout-accounts/${accountId}`);
-              Alert.alert('Success', 'Account deleted successfully');
-              loadAccounts();
-            } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to delete account');
-            }
-          },
-        },
-      ]
-    );
-  };
-
   if (loading) {
-    return <Loader text="Loading payout accounts..." />;
+    return <Loader text="Loading payout account..." />;
   }
+
+  const statusKey = linkedAccount?.status ?? '';
+  const statusColor = STATUS_COLORS[statusKey] ?? Colors.textTertiary;
+  const statusLabel = STATUS_LABELS[statusKey] ?? 'Unknown';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -114,122 +92,82 @@ export const PayoutAccountsScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payout Accounts</Text>
-        <TouchableOpacity onPress={handleAddAccount} style={styles.addBtn}>
-          <Ionicons name="add" size={24} color={Colors.primary} />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Payout Account</Text>
+        {!linkedAccount?.hasLinkedAccount && (
+          <TouchableOpacity onPress={handleAddAccount} style={styles.addBtn}>
+            <Ionicons name="add" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+        )}
+        {linkedAccount?.hasLinkedAccount && <View style={{ width: 36 }} />}
       </View>
 
-      {/* Info Banner */}
-      {accounts.length === 0 && (
-        <View style={styles.infoBanner}>
-          <Ionicons name="information-circle" size={20} color={Colors.warning} />
-          <Text style={styles.infoBannerText}>
-            Add a payout account to receive your earnings. You can add bank account or UPI.
-          </Text>
-        </View>
-      )}
-
-      {/* Accounts List */}
-      <FlatList
-        data={accounts}
-        keyExtractor={(item) => item._id}
+      <ScrollView
         contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="wallet-outline"
-            title="No Payout Accounts"
-            subtitle="Add a bank account or UPI to receive payouts"
-            actionLabel="Add Account"
-            onAction={handleAddAccount}
-          />
-        }
-        renderItem={({ item }) => (
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+      >
+        {!linkedAccount?.hasLinkedAccount ? (
+          <>
+            {/* Info Banner */}
+            <View style={styles.infoBanner}>
+              <Ionicons name="information-circle" size={20} color={Colors.warning} />
+              <Text style={styles.infoBannerText}>
+                Add a payout account to receive your earnings automatically via Razorpay Route.
+              </Text>
+            </View>
+            <EmptyState
+              icon="wallet-outline"
+              title="No Payout Account"
+              subtitle="Add your bank account or UPI to receive payouts"
+              actionLabel="Add Account"
+              onAction={handleAddAccount}
+            />
+          </>
+        ) : (
           <Card style={styles.accountCard}>
-            {/* Header */}
+            {/* Razorpay Route badge */}
+            <View style={styles.routeBadge}>
+              <Ionicons name="git-network-outline" size={14} color={Colors.primary} />
+              <Text style={styles.routeBadgeText}>Razorpay Route</Text>
+            </View>
+
             <View style={styles.accountHeader}>
               <View style={styles.accountIcon}>
-                <Ionicons
-                  name={item.accountType === 'bank_account' ? 'business' : 'flash'}
-                  size={24}
-                  color={Colors.primary}
-                />
+                <Ionicons name="wallet" size={26} color={Colors.primary} />
               </View>
               <View style={styles.accountInfo}>
-                <View style={styles.accountTitleRow}>
-                  <Text style={styles.accountTitle}>
-                    {item.accountType === 'bank_account' ? 'Bank Account' : 'UPI'}
-                  </Text>
-                  {item.isPrimary && (
-                    <View style={styles.primaryBadge}>
-                      <Text style={styles.primaryText}>Primary</Text>
-                    </View>
-                  )}
-                </View>
-                {item.accountType === 'bank_account' ? (
-                  <>
-                    <Text style={styles.accountDetail}>{item.accountHolderName}</Text>
-                    <Text style={styles.accountDetail}>
-                      {item.ifscCode} • {item.accountNumber?.slice(-4).padStart(item.accountNumber.length, '×')}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.accountDetail}>{item.upiId}</Text>
-                )}
+                <Text style={styles.accountTitle}>Linked Payout Account</Text>
+                <Text style={styles.accountId} numberOfLines={1}>
+                  {linkedAccount.linkedAccountId}
+                </Text>
               </View>
             </View>
 
-            {/* Status */}
+            {/* Status row */}
             <View style={styles.statusRow}>
-              <View style={styles.statusBadge}>
-                <View
-                  style={[
-                    styles.statusDot,
-                    {
-                      backgroundColor:
-                        item.status === 'active' ? Colors.success : Colors.textTertiary,
-                    },
-                  ]}
-                />
-                <Text style={styles.statusText}>
-                  {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                </Text>
+              <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
               </View>
 
-              {item.isVerified && (
+              {linkedAccount.canReceivePayments && (
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
-                  <Text style={styles.verifiedText}>Verified</Text>
+                  <Text style={styles.verifiedText}>Can receive payments</Text>
                 </View>
               )}
             </View>
 
-            {/* Actions */}
-            {!item.isPrimary && (
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => handleSetPrimary(item._id)}
-                >
-                  <Ionicons name="star-outline" size={18} color={Colors.primary} />
-                  <Text style={styles.actionText}>Set as Primary</Text>
-                </TouchableOpacity>
+            {/* Status message */}
+            <Text style={styles.statusMessage}>{linkedAccount.message}</Text>
 
-                <TouchableOpacity
-                  style={[styles.actionBtn, styles.deleteBtn]}
-                  onPress={() => handleDeleteAccount(item._id)}
-                >
-                  <Ionicons name="trash-outline" size={18} color={Colors.error} />
-                  <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            {/* Action – add bank account to linked account */}
+            <TouchableOpacity style={styles.manageBtn} onPress={handleAddAccount}>
+              <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+              <Text style={styles.manageBtnText}>Add / Update Bank Account</Text>
+            </TouchableOpacity>
           </Card>
         )}
-      />
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -256,8 +194,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     backgroundColor: Colors.warningBg,
     padding: Spacing.md,
-    marginHorizontal: Spacing.xl,
-    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
     borderRadius: BorderRadius.md,
   },
   infoBannerText: {
@@ -270,6 +207,22 @@ const styles = StyleSheet.create({
   accountCard: {
     padding: Spacing.lg,
     marginBottom: Spacing.md,
+  },
+  routeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.md,
+  },
+  routeBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   accountHeader: {
     flexDirection: 'row',
@@ -286,44 +239,32 @@ const styles = StyleSheet.create({
   },
   accountInfo: {
     flex: 1,
-  },
-  accountTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: 4,
+    justifyContent: 'center',
   },
   accountTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.textPrimary,
+    marginBottom: 4,
   },
-  primaryBadge: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-  },
-  primaryText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  accountDetail: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginBottom: 2,
+  accountId: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+    fontFamily: 'monospace',
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
   },
   statusDot: {
     width: 8,
@@ -332,8 +273,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   verifiedBadge: {
     flexDirection: 'row',
@@ -349,15 +289,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.success,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingTop: Spacing.md,
+  statusMessage: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.lg,
   },
-  actionBtn: {
-    flex: 1,
+  manageBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -365,16 +303,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
     backgroundColor: Colors.primaryBg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
-  actionText: {
+  manageBtnText: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.primary,
-  },
-  deleteBtn: {
-    backgroundColor: Colors.errorBg,
-  },
-  deleteText: {
-    color: Colors.error,
   },
 });

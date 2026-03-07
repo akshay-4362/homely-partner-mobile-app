@@ -90,6 +90,7 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.refreshToken = null;
       state.status = 'idle';
+      state.hydrated = true;
       state.error = null;
 
       // Clear storage

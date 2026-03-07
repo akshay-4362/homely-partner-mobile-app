@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,18 +12,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useAppSelector } from '../hooks/useAppSelector';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import client from '../api/client';
 
-type AccountType = 'bank_account' | 'vpa';
 type BankAccountType = 'savings' | 'current';
 
 export const BankAccountSetupScreen = () => {
   const navigation = useNavigation<any>();
-  const [accountType, setAccountType] = useState<AccountType>('bank_account');
+  const { user } = useAppSelector((s) => s.auth);
   const [loading, setLoading] = useState(false);
+  const [hasLinkedAccount, setHasLinkedAccount] = useState(false);
+  const [checkingLinkedAccount, setCheckingLinkedAccount] = useState(true);
+
+  // Linked-account identity fields (only shown when no linked account exists yet)
+  const [businessName, setBusinessName] = useState('');
+  const [contactName, setContactName] = useState('');
 
   // Bank account fields
   const [accountHolderName, setAccountHolderName] = useState('');
@@ -32,68 +38,92 @@ export const BankAccountSetupScreen = () => {
   const [ifscCode, setIfscCode] = useState('');
   const [bankAccountType, setBankAccountType] = useState<BankAccountType>('savings');
 
-  // UPI field
-  const [upiId, setUpiId] = useState('');
-
   // Optional PAN for KYC
   const [panNumber, setPanNumber] = useState('');
 
+  // Pre-fill contact name from logged-in user
+  useEffect(() => {
+    if (user) {
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      setContactName(fullName);
+      setBusinessName(fullName); // default business name to full name for individuals
+      setAccountHolderName(fullName);
+    }
+  }, [user]);
+
+  // Check whether the professional already has a Razorpay linked account
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const response = await client.get('/linked-accounts/status');
+        setHasLinkedAccount(response.data?.data?.hasLinkedAccount === true);
+      } catch {
+        setHasLinkedAccount(false);
+      } finally {
+        setCheckingLinkedAccount(false);
+      }
+    };
+    check();
+  }, []);
+
   const handleSubmit = async () => {
     // Validation
-    if (accountType === 'bank_account') {
-      if (!accountHolderName.trim()) {
-        Alert.alert('Error', 'Please enter account holder name');
+    if (!hasLinkedAccount) {
+      if (!businessName.trim()) {
+        Alert.alert('Error', 'Please enter your name / business name');
         return;
       }
-      if (!accountNumber.trim()) {
-        Alert.alert('Error', 'Please enter account number');
+      if (!contactName.trim()) {
+        Alert.alert('Error', 'Please enter your contact name');
         return;
       }
-      if (accountNumber !== confirmAccountNumber) {
-        Alert.alert('Error', 'Account numbers do not match');
-        return;
-      }
-      if (!ifscCode.trim()) {
-        Alert.alert('Error', 'Please enter IFSC code');
-        return;
-      }
-      if (ifscCode.length !== 11) {
-        Alert.alert('Error', 'IFSC code must be 11 characters');
-        return;
-      }
-    } else {
-      if (!upiId.trim()) {
-        Alert.alert('Error', 'Please enter UPI ID');
-        return;
-      }
-      if (!upiId.includes('@')) {
-        Alert.alert('Error', 'Invalid UPI ID format (e.g., yourname@paytm)');
-        return;
-      }
+    }
+
+    if (!accountHolderName.trim()) {
+      Alert.alert('Error', 'Please enter account holder name');
+      return;
+    }
+    if (!accountNumber.trim()) {
+      Alert.alert('Error', 'Please enter account number');
+      return;
+    }
+    if (accountNumber !== confirmAccountNumber) {
+      Alert.alert('Error', 'Account numbers do not match');
+      return;
+    }
+    if (!ifscCode.trim()) {
+      Alert.alert('Error', 'Please enter IFSC code');
+      return;
+    }
+    if (ifscCode.length !== 11) {
+      Alert.alert('Error', 'IFSC code must be 11 characters');
+      return;
     }
 
     try {
       setLoading(true);
 
-      const payload: any = {
-        accountType,
-        panNumber: panNumber.trim() || undefined,
-      };
-
-      if (accountType === 'bank_account') {
-        payload.accountHolderName = accountHolderName.trim();
-        payload.accountNumber = accountNumber.trim();
-        payload.ifscCode = ifscCode.trim().toUpperCase();
-        payload.bankAccountType = bankAccountType;
-      } else {
-        payload.upiId = upiId.trim();
+      // ── Step 1: Create Razorpay Route linked account if not already created ──
+      if (!hasLinkedAccount) {
+        await client.post('/linked-accounts', {
+          businessName: businessName.trim(),
+          contactName: contactName.trim(),
+          businessType: 'individual',
+          pan: panNumber.trim() || undefined,
+        });
       }
 
-      await client.post('/payout-accounts', payload);
+      // ── Step 2: Add bank account to the linked account ──
+      await client.post('/linked-accounts/add-bank-account', {
+        accountHolderName: accountHolderName.trim(),
+        accountNumber: accountNumber.trim(),
+        ifscCode: ifscCode.trim().toUpperCase(),
+        accountType: bankAccountType,
+      });
 
       Alert.alert(
-        'Success!',
-        'Your payout account has been added successfully. You can now receive payments.',
+        'Account Added!',
+        'Your payout account has been linked via Razorpay Route. Earnings will be transferred automatically after each completed job.',
         [
           {
             text: 'OK',
@@ -112,6 +142,24 @@ export const BankAccountSetupScreen = () => {
     }
   };
 
+  if (checkingLinkedAccount) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Add Payout Account</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: Spacing.md, color: Colors.textSecondary }}>Checking account status…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -128,58 +176,44 @@ export const BankAccountSetupScreen = () => {
         <Card style={styles.infoCard}>
           <Ionicons name="information-circle" size={20} color={Colors.primary} />
           <Text style={styles.infoText}>
-            Add your bank account or UPI ID to receive payouts for completed jobs. All payments are processed securely via Razorpay.
+            Add your bank account to receive payouts for completed jobs. Payments are transferred automatically via Razorpay Route.
           </Text>
         </Card>
 
-        {/* Account Type Selection */}
-        <Text style={styles.sectionTitle}>Select Account Type</Text>
-        <View style={styles.accountTypeContainer}>
-          <TouchableOpacity
-            style={[
-              styles.accountTypeBtn,
-              accountType === 'bank_account' && styles.accountTypeBtnActive,
-            ]}
-            onPress={() => setAccountType('bank_account')}
-          >
-            <Ionicons
-              name="business"
-              size={24}
-              color={accountType === 'bank_account' ? Colors.primary : Colors.textSecondary}
-            />
-            <Text
-              style={[
-                styles.accountTypeText,
-                accountType === 'bank_account' && styles.accountTypeTextActive,
-              ]}
-            >
-              Bank Account
-            </Text>
-            <Text style={styles.accountTypeSubtext}>IMPS/NEFT transfer</Text>
-          </TouchableOpacity>
+        {/* Identity section – only required when creating the linked account for the first time */}
+        {!hasLinkedAccount && (
+          <>
+            <Text style={styles.sectionTitle}>Your Identity</Text>
 
-          <TouchableOpacity
-            style={[styles.accountTypeBtn, accountType === 'vpa' && styles.accountTypeBtnActive]}
-            onPress={() => setAccountType('vpa')}
-          >
-            <Ionicons
-              name="flash"
-              size={24}
-              color={accountType === 'vpa' ? Colors.primary : Colors.textSecondary}
-            />
-            <Text
-              style={[styles.accountTypeText, accountType === 'vpa' && styles.accountTypeTextActive]}
-            >
-              UPI
-            </Text>
-            <Text style={styles.accountTypeSubtext}>Instant transfer</Text>
-          </TouchableOpacity>
-        </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Name / Business Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Ramesh Kumar"
+                value={businessName}
+                onChangeText={setBusinessName}
+                autoCapitalize="words"
+                editable={!loading}
+              />
+              <Text style={styles.hint}>As it should appear on payouts</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Contact Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Your full name"
+                value={contactName}
+                onChangeText={setContactName}
+                autoCapitalize="words"
+                editable={!loading}
+              />
+            </View>
+          </>
+        )}
 
         {/* Bank Account Form */}
-        {accountType === 'bank_account' && (
-          <>
-            <Text style={styles.sectionTitle}>Bank Account Details</Text>
+        <Text style={styles.sectionTitle}>Bank Account Details</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Account Holder Name</Text>
@@ -256,31 +290,6 @@ export const BankAccountSetupScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
-          </>
-        )}
-
-        {/* UPI Form */}
-        {accountType === 'vpa' && (
-          <>
-            <Text style={styles.sectionTitle}>UPI Details</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>UPI ID</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="yourname@paytm"
-                value={upiId}
-                onChangeText={setUpiId}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                editable={!loading}
-              />
-              <Text style={styles.hint}>
-                Enter your UPI ID (e.g., 9876543210@paytm, name@oksbi, etc.)
-              </Text>
-            </View>
-          </>
-        )}
 
         {/* Optional PAN */}
         <View style={styles.inputGroup}>
@@ -359,38 +368,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
     marginTop: Spacing.lg,
-  },
-  accountTypeContainer: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  accountTypeBtn: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    alignItems: 'center',
-  },
-  accountTypeBtnActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryBg,
-  },
-  accountTypeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginTop: Spacing.sm,
-  },
-  accountTypeTextActive: {
-    color: Colors.primary,
-  },
-  accountTypeSubtext: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    marginTop: 2,
   },
   inputGroup: {
     marginBottom: Spacing.lg,

@@ -30,14 +30,12 @@ export const ProfileScreen = () => {
   const [services, setServices] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [documents, setDocuments] = useState<ProfessionalDocument[]>([]);
-  const [payoutAccounts, setPayoutAccounts] = useState<any[]>([]);
+  const [hasLinkedAccount, setHasLinkedAccount] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Edit modals
   const [editBio, setEditBio] = useState(false);
   const [bio, setBio] = useState('');
-  const [editBank, setEditBank] = useState(false);
-  const [bankDetails, setBankDetails] = useState({ accountHolderName: '', accountNumber: '', ifscCode: '' });
   const [docModal, setDocModal] = useState(false);
   const [docForm, setDocForm] = useState({ type: 'id_proof', url: '' });
   const [saving, setSaving] = useState(false);
@@ -65,11 +63,6 @@ export const ProfileScreen = () => {
       const p = profileData?.data || profileData;
       setProfile(p);
       setBio(p?.bio || '');
-      setBankDetails({
-        accountHolderName: p?.bankDetails?.accountHolderName || '',
-        accountNumber: p?.bankDetails?.accountNumber || '',
-        ifscCode: p?.bankDetails?.ifscCode || '',
-      });
       const svcList = servicesData?.data || servicesData?.services || servicesData || [];
       setServices(Array.isArray(svcList) ? svcList : []);
       const docList = docsData?.data || docsData?.documents || docsData || [];
@@ -79,12 +72,11 @@ export const ProfileScreen = () => {
       const categoriesList = p?.categories || [];
       setCategories(Array.isArray(categoriesList) ? categoriesList : []);
 
-      // Load payout accounts (Razorpay)
+      // Load linked account status (Razorpay Route)
       try {
-        const response = await client.get('/payout-accounts');
-        const accounts = response.data.data.accounts || [];
-        setPayoutAccounts(accounts);
-      } catch {}
+        const response = await client.get('/linked-accounts/status');
+        setHasLinkedAccount(response.data?.data?.hasLinkedAccount === true);
+      } catch { setHasLinkedAccount(false); }
     } catch {}
     setLoading(false);
   };
@@ -95,16 +87,6 @@ export const ProfileScreen = () => {
       await proApi.updateAvailability({ bio });
       setEditBio(false);
       Alert.alert('Saved', 'Bio updated');
-    } catch { Alert.alert('Error', 'Failed to save'); }
-    setSaving(false);
-  };
-
-  const saveBank = async () => {
-    setSaving(true);
-    try {
-      await proApi.updateAvailability({ bankDetails });
-      setEditBank(false);
-      Alert.alert('Saved', 'Bank details updated');
     } catch { Alert.alert('Error', 'Failed to save'); }
     setSaving(false);
   };
@@ -202,19 +184,19 @@ export const ProfileScreen = () => {
           ))}
         </View>
 
-        {/* Razorpay Payout Accounts */}
+        {/* Razorpay Route Payout Account */}
         <Card style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Payout Accounts</Text>
-            {payoutAccounts.length > 0 && <Badge label="Connected" variant="completed" />}
+            <Text style={styles.sectionTitle}>Payout Account</Text>
+            {hasLinkedAccount && <Badge label="Connected" variant="completed" />}
           </View>
-          {payoutAccounts.length > 0 ? (
+          {hasLinkedAccount ? (
             <View>
               <Text style={styles.stripeHint}>
-                {payoutAccounts.length} account{payoutAccounts.length > 1 ? 's' : ''} connected
+                Your Razorpay Route linked account is active. Earnings are transferred automatically.
               </Text>
               <Button
-                label="Manage Accounts"
+                label="Manage Account"
                 onPress={() => navigation.navigate('PayoutAccounts')}
                 style={{ marginTop: Spacing.md }}
                 variant="outline"
@@ -223,7 +205,7 @@ export const ProfileScreen = () => {
           ) : (
             <View>
               <Text style={styles.stripeHint}>
-                Add your bank account or UPI to receive payouts via Razorpay.
+                Add your bank account or UPI to receive payouts via Razorpay Route.
               </Text>
               <Button
                 label="Add Payout Account"
@@ -243,19 +225,6 @@ export const ProfileScreen = () => {
             </TouchableOpacity>
           </View>
           <Text style={styles.bioText}>{profile?.bio || 'Add a bio to let customers know more about you.'}</Text>
-        </Card>
-
-        {/* Bank Details */}
-        <Card style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Bank Account</Text>
-            <TouchableOpacity onPress={() => setEditBank(true)}>
-              <Text style={styles.editLink}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-          <InfoRow label="Account Holder" value={bankDetails.accountHolderName || '—'} />
-          <InfoRow label="Account Number" value={bankDetails.accountNumber ? `****${bankDetails.accountNumber.slice(-4)}` : '—'} />
-          <InfoRow label="IFSC Code" value={bankDetails.ifscCode || '—'} />
         </Card>
 
         {/* Documents */}
@@ -335,37 +304,6 @@ export const ProfileScreen = () => {
             <View style={styles.modalActions}>
               <Button label="Cancel" onPress={() => setEditBio(false)} variant="ghost" />
               <Button label="Save" onPress={saveBio} loading={saving} />
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Bank Details Modal */}
-      <Modal visible={editBank} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Bank Details</Text>
-            {[
-              { label: 'Account Holder Name', key: 'accountHolderName', placeholder: 'Full name' },
-              { label: 'Account Number', key: 'accountNumber', placeholder: 'Account number', numeric: true },
-              { label: 'IFSC Code', key: 'ifscCode', placeholder: 'e.g. HDFC0001234' },
-            ].map((f) => (
-              <View key={f.key} style={styles.formField}>
-                <Text style={styles.fieldLabel}>{f.label}</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  value={bankDetails[f.key as keyof typeof bankDetails]}
-                  onChangeText={(v) => setBankDetails((prev) => ({ ...prev, [f.key]: v }))}
-                  placeholder={f.placeholder}
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType={f.numeric ? 'numeric' : 'default'}
-                />
-              </View>
-            ))}
-            <View style={styles.modalActions}>
-              <Button label="Cancel" onPress={() => setEditBank(false)} variant="ghost" />
-              <Button label="Save" onPress={saveBank} loading={saving} />
             </View>
           </View>
         </View>
