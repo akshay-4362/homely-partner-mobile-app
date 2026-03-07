@@ -17,6 +17,7 @@ import {
   createLinkedAccount,
   CreateLinkedAccountRequest,
 } from '../api/linkedAccountApi';
+import apiClient from '../api/client';
 
 type AccountStatus = 'created' | 'activated' | 'suspended' | 'needs_clarification' | null;
 
@@ -28,6 +29,8 @@ const LinkedAccountSetupScreen = () => {
   const [accountStatus, setAccountStatus] = useState<AccountStatus>(null);
   const [statusMessage, setStatusMessage] = useState('');
 
+  const [step, setStep] = useState(1); // 1 = business details, 2 = bank details
+
   const [formData, setFormData] = useState<CreateLinkedAccountRequest>({
     businessName: '',
     contactName: '',
@@ -36,11 +39,21 @@ const LinkedAccountSetupScreen = () => {
     gst: '',
   });
 
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: '',
+    accountNumber: '',
+    ifscCode: '',
+    accountType: 'savings' as 'savings' | 'current',
+  });
+
   const [errors, setErrors] = useState({
     businessName: '',
     contactName: '',
     pan: '',
     gst: '',
+    accountHolderName: '',
+    accountNumber: '',
+    ifscCode: '',
   });
 
   useEffect(() => {
@@ -61,12 +74,15 @@ const LinkedAccountSetupScreen = () => {
     }
   };
 
-  const validateForm = (): boolean => {
+  const validateBusinessDetails = (): boolean => {
     const newErrors = {
       businessName: '',
       contactName: '',
       pan: '',
       gst: '',
+      accountHolderName: '',
+      accountNumber: '',
+      ifscCode: '',
     };
 
     let isValid = true;
@@ -111,14 +127,73 @@ const LinkedAccountSetupScreen = () => {
     return isValid;
   };
 
+  const validateBankDetails = (): boolean => {
+    const newErrors = {
+      businessName: '',
+      contactName: '',
+      pan: '',
+      gst: '',
+      accountHolderName: '',
+      accountNumber: '',
+      ifscCode: '',
+    };
+
+    let isValid = true;
+
+    // Account Holder Name validation
+    if (!bankDetails.accountHolderName.trim()) {
+      newErrors.accountHolderName = 'Account holder name is required';
+      isValid = false;
+    } else if (bankDetails.accountHolderName.trim().length < 3) {
+      newErrors.accountHolderName = 'Name must be at least 3 characters';
+      isValid = false;
+    }
+
+    // Account Number validation
+    if (!bankDetails.accountNumber.trim()) {
+      newErrors.accountNumber = 'Account number is required';
+      isValid = false;
+    } else if (!/^\d{9,18}$/.test(bankDetails.accountNumber.trim())) {
+      newErrors.accountNumber = 'Invalid account number (9-18 digits)';
+      isValid = false;
+    }
+
+    // IFSC Code validation
+    if (!bankDetails.ifscCode.trim()) {
+      newErrors.ifscCode = 'IFSC code is required';
+      isValid = false;
+    } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankDetails.ifscCode.trim())) {
+      newErrors.ifscCode = 'Invalid IFSC format (e.g., SBIN0001234)';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleNextStep = () => {
+    if (step === 1) {
+      if (!validateBusinessDetails()) {
+        return;
+      }
+      setStep(2);
+    }
+  };
+
+  const handlePreviousStep = () => {
+    if (step === 2) {
+      setStep(1);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    if (!validateBankDetails()) {
       return;
     }
 
     Alert.alert(
       'Create Payment Account',
-      'This will create your Razorpay payment account. You can receive payments once activated (24-48 hours).',
+      'This will create your payment account with bank details. You can receive payments once activated (usually within 24-48 hours).',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -126,12 +201,27 @@ const LinkedAccountSetupScreen = () => {
           onPress: async () => {
             setSubmitting(true);
             try {
-              const response = await createLinkedAccount(formData);
+              // Step 1: Create linked account
+              const accountResponse = await createLinkedAccount(formData);
 
-              if (response.success) {
+              if (!accountResponse.success) {
+                Alert.alert('Error', accountResponse.message || 'Failed to create account');
+                setSubmitting(false);
+                return;
+              }
+
+              // Step 2: Add bank account details
+              const bankResponse = await apiClient.post('/linked-accounts/add-bank-account', {
+                accountHolderName: bankDetails.accountHolderName,
+                accountNumber: bankDetails.accountNumber,
+                ifscCode: bankDetails.ifscCode,
+                accountType: bankDetails.accountType,
+              });
+
+              if (bankResponse.data.success) {
                 Alert.alert(
                   'Success! ✅',
-                  'Your payment account has been created. You will be notified once it is activated (usually 24-48 hours).',
+                  'Your payment account has been created with bank details. You will be notified once it is activated (usually 24-48 hours).',
                   [
                     {
                       text: 'OK',
@@ -143,7 +233,7 @@ const LinkedAccountSetupScreen = () => {
                   ]
                 );
               } else {
-                Alert.alert('Error', response.message || 'Failed to create account');
+                Alert.alert('Error', 'Account created but failed to add bank details. Please contact support.');
               }
             } catch (error: any) {
               console.error('Failed to create linked account', error);
@@ -284,8 +374,26 @@ const LinkedAccountSetupScreen = () => {
           </Text>
         </View>
 
-        <View style={styles.form}>
-          <Text style={styles.sectionTitle}>Business Information</Text>
+        {/* Step Indicator */}
+        <View style={styles.stepIndicator}>
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircle, step >= 1 && styles.stepCircleActive]}>
+              <Text style={[styles.stepNumber, step >= 1 && styles.stepNumberActive]}>1</Text>
+            </View>
+            <Text style={styles.stepLabel}>Business Details</Text>
+          </View>
+          <View style={styles.stepLine} />
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircle, step >= 2 && styles.stepCircleActive]}>
+              <Text style={[styles.stepNumber, step >= 2 && styles.stepNumberActive]}>2</Text>
+            </View>
+            <Text style={styles.stepLabel}>Bank Account</Text>
+          </View>
+        </View>
+
+        {step === 1 && (
+          <View style={styles.form}>
+            <Text style={styles.sectionTitle}>Business Information</Text>
 
           {/* Business Name */}
           <View style={styles.inputGroup}>
@@ -374,20 +482,150 @@ const LinkedAccountSetupScreen = () => {
           </View>
 
           <TouchableOpacity
-            style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={submitting}
+            style={styles.submitButton}
+            onPress={handleNextStep}
           >
-            {submitting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.submitButtonText}>Create Payment Account</Text>
-                <Ionicons name="arrow-forward" size={20} color="#fff" />
-              </>
-            )}
+            <Text style={styles.submitButtonText}>Next: Bank Account Details</Text>
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
+        )}
+
+        {step === 2 && (
+          <View style={styles.form}>
+            <Text style={styles.sectionTitle}>Bank Account Details</Text>
+            <Text style={styles.sectionSubtitle}>
+              Add your savings or current account to receive payments
+            </Text>
+
+            {/* Account Holder Name */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Account Holder Name <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={[styles.input, errors.accountHolderName && styles.inputError]}
+                placeholder="e.g., John Doe"
+                value={bankDetails.accountHolderName}
+                onChangeText={(text) => {
+                  setBankDetails({ ...bankDetails, accountHolderName: text });
+                  setErrors({ ...errors, accountHolderName: '' });
+                }}
+              />
+              {errors.accountHolderName ? (
+                <Text style={styles.errorText}>{errors.accountHolderName}</Text>
+              ) : null}
+              <Text style={styles.helperText}>Name as per bank records</Text>
+            </View>
+
+            {/* Account Number */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Account Number <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={[styles.input, errors.accountNumber && styles.inputError]}
+                placeholder="e.g., 1234567890"
+                value={bankDetails.accountNumber}
+                onChangeText={(text) => {
+                  setBankDetails({ ...bankDetails, accountNumber: text.replace(/\D/g, '') });
+                  setErrors({ ...errors, accountNumber: '' });
+                }}
+                keyboardType="number-pad"
+                maxLength={18}
+              />
+              {errors.accountNumber ? (
+                <Text style={styles.errorText}>{errors.accountNumber}</Text>
+              ) : null}
+              <Text style={styles.helperText}>9-18 digit bank account number</Text>
+            </View>
+
+            {/* IFSC Code */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                IFSC Code <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={[styles.input, errors.ifscCode && styles.inputError]}
+                placeholder="e.g., SBIN0001234"
+                value={bankDetails.ifscCode}
+                onChangeText={(text) => {
+                  setBankDetails({ ...bankDetails, ifscCode: text.toUpperCase() });
+                  setErrors({ ...errors, ifscCode: '' });
+                }}
+                autoCapitalize="characters"
+                maxLength={11}
+              />
+              {errors.ifscCode ? (
+                <Text style={styles.errorText}>{errors.ifscCode}</Text>
+              ) : null}
+              <Text style={styles.helperText}>11-character bank IFSC code</Text>
+            </View>
+
+            {/* Account Type */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Account Type</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setBankDetails({ ...bankDetails, accountType: 'savings' })}
+                >
+                  <View style={styles.radioCircle}>
+                    {bankDetails.accountType === 'savings' && (
+                      <View style={styles.radioSelected} />
+                    )}
+                  </View>
+                  <Text style={styles.radioLabel}>Savings Account</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setBankDetails({ ...bankDetails, accountType: 'current' })}
+                >
+                  <View style={styles.radioCircle}>
+                    {bankDetails.accountType === 'current' && (
+                      <View style={styles.radioSelected} />
+                    )}
+                  </View>
+                  <Text style={styles.radioLabel}>Current Account</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="lock-closed" size={20} color="#7c3aed" />
+              <Text style={styles.infoText}>
+                Your bank details are encrypted and securely stored. Razorpay will verify your
+                account with a small test deposit (penny drop).
+              </Text>
+            </View>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={handlePreviousStep}
+              >
+                <Ionicons name="arrow-back" size={20} color="#7c3aed" />
+                <Text style={styles.backButtonText}>Back</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.submitButton, styles.submitButtonFlex, submitting && styles.submitButtonDisabled]}
+                onPress={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.submitButtonText}>Create Account</Text>
+                    <Ionicons name="checkmark" size={20} color="#fff" />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -588,6 +826,118 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#7c3aed',
     marginLeft: 8,
+  },
+  stepIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+  },
+  stepItem: {
+    alignItems: 'center',
+  },
+  stepCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stepCircleActive: {
+    backgroundColor: '#7c3aed',
+    borderColor: '#7c3aed',
+  },
+  stepNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#9ca3af',
+  },
+  stepNumberActive: {
+    color: '#fff',
+  },
+  stepLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  stepLine: {
+    width: 60,
+    height: 2,
+    backgroundColor: '#e5e7eb',
+    marginHorizontal: 8,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  radioGroup: {
+    gap: 12,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#7c3aed',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioSelected: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#7c3aed',
+  },
+  radioLabel: {
+    fontSize: 15,
+    color: '#1f2937',
+    fontWeight: '500',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  backButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#7c3aed',
+    backgroundColor: '#fff',
+    flex: 0.3,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#7c3aed',
+    marginLeft: 8,
+  },
+  submitButtonFlex: {
+    flex: 0.7,
   },
 });
 
