@@ -154,7 +154,7 @@ export const WeekendUnavailableHoursScreen = () => {
 
         {/* Weekend Days List */}
         <View style={styles.section}>
-          {data.weekendDays.map((day, index) => (
+          {data.weekendDays.filter((day) => day.unavailableHours > 0).map((day, index) => (
             <View key={index} style={styles.dayRow}>
               <Text style={styles.dayText}>
                 {formatDateShort(day.date)}, {day.dayName}
