@@ -134,7 +134,7 @@ export const BookingsScreen = () => {
   if (status === 'loading' && items.length === 0) return <Loader text="Loading bookings..." />;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       {/* Header */}

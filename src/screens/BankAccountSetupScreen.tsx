@@ -98,7 +98,7 @@ export const BankAccountSetupScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
@@ -370,7 +370,6 @@ const styles = StyleSheet.create({
   termsText: { flex: 1, fontSize: 12, color: Colors.success, lineHeight: 16 },
   footer: {
     padding: Spacing.xl,
-    paddingBottom: Spacing.xxl,
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,

@@ -92,7 +92,7 @@ export const AvailabilityScreen = () => {
     }, 0);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" />
       {/* Nav */}
       <View style={styles.nav}>

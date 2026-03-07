@@ -221,7 +221,7 @@ export const BookingWorkflowScreen = () => {
   const showProgressIndicator = currentStage > 1 && !isCompleted;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backBtn}>

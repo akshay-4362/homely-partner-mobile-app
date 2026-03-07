@@ -129,7 +129,7 @@ export const ReviewsScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <StatusBar barStyle="dark-content" />
         <View style={styles.loader}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -139,7 +139,7 @@ export const ReviewsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" />
 
       {/* Stats Card */}

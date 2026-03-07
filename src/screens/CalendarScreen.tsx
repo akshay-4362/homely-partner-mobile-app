@@ -144,7 +144,7 @@ export const CalendarScreen = () => {
   const selectedSlot = selectedDate ? allSlots.find((s) => s.day === selectedDate) : null;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" />
       {/* Nav */}
       <View style={styles.nav}>

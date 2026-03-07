@@ -9,7 +9,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
-import { logout } from '../store/authSlice';
+import { logout, updateUser } from '../store/authSlice';
 import { proApi } from '../api/proApi';
 import { documentApi } from '../api/documentApi';
 import client from '../api/client';
@@ -36,6 +36,8 @@ export const ProfileScreen = () => {
   // Edit modals
   const [editBio, setEditBio] = useState(false);
   const [bio, setBio] = useState('');
+  const [editPhone, setEditPhone] = useState(false);
+  const [phone, setPhone] = useState('');
   const [docModal, setDocModal] = useState(false);
   const [docForm, setDocForm] = useState({ type: 'id_proof', url: '' });
   const [saving, setSaving] = useState(false);
@@ -92,6 +94,22 @@ export const ProfileScreen = () => {
     setSaving(false);
   };
 
+  const savePhone = async () => {
+    const trimmed = phone.trim();
+    if (!trimmed) { Alert.alert('Invalid', 'Please enter a phone number'); return; }
+    if (!/^[6-9]\d{9}$/.test(trimmed)) {
+      Alert.alert('Invalid', 'Enter a valid 10-digit Indian mobile number'); return;
+    }
+    setSaving(true);
+    try {
+      await client.put('/users/me', { phone: trimmed });
+      dispatch(updateUser({ phone: trimmed }));
+      setEditPhone(false);
+      Alert.alert('Saved', 'Phone number updated');
+    } catch { Alert.alert('Error', 'Failed to update phone number'); }
+    setSaving(false);
+  };
+
   const submitDoc = async () => {
     if (!docForm.url) { Alert.alert('Enter document URL'); return; }
     setSaving(true);
@@ -122,7 +140,7 @@ export const ProfileScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
@@ -133,6 +151,17 @@ export const ProfileScreen = () => {
           />
           <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
           <Text style={styles.email}>{user?.email}</Text>
+          <TouchableOpacity
+            style={styles.phoneRow}
+            onPress={() => { setPhone(user?.phone || ''); setEditPhone(true); }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="call-outline" size={14} color={Colors.textSecondary} />
+            <Text style={styles.phoneText}>
+              {user?.phone ? user.phone : 'Add phone number'}
+            </Text>
+            <Ionicons name="pencil-outline" size={12} color={Colors.primary} />
+          </TouchableOpacity>
           <Text style={styles.role}>Professional Partner</Text>
         </View>
 
@@ -348,6 +377,37 @@ export const ProfileScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Phone Edit Modal */}
+      <Modal visible={editPhone} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>
+              {user?.phone ? 'Edit Phone Number' : 'Add Phone Number'}
+            </Text>
+            <Text style={styles.fieldLabel}>Mobile Number (10 digits)</Text>
+            <View style={styles.phoneInputRow}>
+              <View style={styles.phonePrefix}>
+                <Text style={styles.phonePrefixText}>+91</Text>
+              </View>
+              <TextInput
+                style={styles.phoneFieldInput}
+                value={phone}
+                onChangeText={(v) => setPhone(v.replace(/\D/g, '').slice(0, 10))}
+                placeholder="9876543210"
+                placeholderTextColor={Colors.textTertiary}
+                keyboardType="phone-pad"
+                maxLength={10}
+              />
+            </View>
+            <View style={styles.modalActions}>
+              <Button label="Cancel" onPress={() => setEditPhone(false)} variant="ghost" />
+              <Button label="Save" onPress={savePhone} loading={saving} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -373,6 +433,28 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 28, fontWeight: '800', color: '#fff' },
   name: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary, marginBottom: 4 },
+  phoneRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    marginTop: 2, marginBottom: 2,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray100,
+  },
+  phoneText: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
+  phoneInputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1.5, borderColor: Colors.border, borderRadius: BorderRadius.md,
+    overflow: 'hidden', marginBottom: Spacing.sm,
+  },
+  phonePrefix: {
+    paddingHorizontal: Spacing.md, paddingVertical: 11,
+    backgroundColor: Colors.gray100, borderRightWidth: 1.5, borderRightColor: Colors.border,
+  },
+  phonePrefixText: { fontSize: 14, color: Colors.textPrimary, fontWeight: '600' },
+  phoneFieldInput: {
+    flex: 1, paddingHorizontal: Spacing.md, paddingVertical: 10,
+    fontSize: 14, color: Colors.textPrimary,
+  },
   email: { fontSize: 14, color: Colors.textSecondary, marginBottom: 4 },
   role: { fontSize: 12, color: Colors.primary, fontWeight: '600', backgroundColor: Colors.primaryBg, paddingHorizontal: 12, paddingVertical: 4, borderRadius: BorderRadius.full },
   quickNav: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.xl },

@@ -283,7 +283,7 @@ export const RatingsDetailScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.loader}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -293,7 +293,7 @@ export const RatingsDetailScreen = () => {
 
   if (!stats) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.loader}>
           <Text style={styles.errorText}>Failed to load rating data</Text>
         </View>
@@ -307,7 +307,7 @@ export const RatingsDetailScreen = () => {
   const ratingTrend = last10Ratings.length > 1 ? last10Ratings[0] - last10Ratings[last10Ratings.length - 1] : 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -485,7 +485,7 @@ export const RatingsDetailScreen = () => {
 
       {/* How Rating Works Modal */}
       <Modal visible={showHowRatingWorks} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.modalContainer} edges={['top']}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>How ratings work</Text>
             <TouchableOpacity onPress={() => setShowHowRatingWorks(false)}>
@@ -701,7 +701,7 @@ export const RatingsDetailScreen = () => {
 
       {/* View All Ratings Modal */}
       <Modal visible={showAllRatings} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.modalContainer} edges={['top']}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowAllRatings(false)}>
               <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />

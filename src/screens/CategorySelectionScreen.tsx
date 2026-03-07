@@ -123,7 +123,7 @@ export const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = (
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.loader}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -132,7 +132,7 @@ export const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = (
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
         {!isOnboarding && (

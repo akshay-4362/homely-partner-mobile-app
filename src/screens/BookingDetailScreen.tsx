@@ -734,7 +734,7 @@ export const BookingDetailScreen = () => {
   const isCancelled = booking.status === 'cancelled' || booking.status === 'cancellation_pending';
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Nav */}
       <View style={styles.nav}>
         <TouchableOpacity
