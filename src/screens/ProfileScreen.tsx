@@ -72,10 +72,11 @@ export const ProfileScreen = () => {
       const categoriesList = p?.categories || [];
       setCategories(Array.isArray(categoriesList) ? categoriesList : []);
 
-      // Load linked account status (Razorpay Route)
+      // Check RazorpayX payout account
       try {
-        const response = await client.get('/linked-accounts/status');
-        setHasLinkedAccount(response.data?.data?.hasLinkedAccount === true);
+        const response = await client.get('/payout-accounts');
+        const accs = response.data?.data?.accounts || [];
+        setHasLinkedAccount(accs.some((a: any) => a.status === 'active'));
       } catch { setHasLinkedAccount(false); }
     } catch {}
     setLoading(false);
@@ -184,7 +185,7 @@ export const ProfileScreen = () => {
           ))}
         </View>
 
-        {/* Razorpay Route Payout Account */}
+        {/* RazorpayX Payout Account */}
         <Card style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Payout Account</Text>
@@ -193,7 +194,7 @@ export const ProfileScreen = () => {
           {hasLinkedAccount ? (
             <View>
               <Text style={styles.stripeHint}>
-                Your Razorpay Route linked account is active. Earnings are transferred automatically.
+                Your payout account is active. Earnings are transferred daily via RazorpayX.
               </Text>
               <Button
                 label="Manage Account"
@@ -205,7 +206,7 @@ export const ProfileScreen = () => {
           ) : (
             <View>
               <Text style={styles.stripeHint}>
-                Add your bank account or UPI to receive payouts via Razorpay Route.
+                Add your bank account or UPI to receive daily payouts via RazorpayX.
               </Text>
               <Button
                 label="Add Payout Account"
