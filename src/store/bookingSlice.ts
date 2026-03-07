@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { proApi } from '../api/proApi';
 import { ProBooking } from '../types';
+import { logout } from './authSlice';
 
 interface BookingState {
   items: ProBooking[];
@@ -111,6 +112,11 @@ const bookingSlice = createSlice({
       .addCase(updateProBookingStatus.fulfilled, (state, action) => {
         const booking = state.items.find((b) => b.id === action.payload.bookingId);
         if (booking) booking.status = action.payload.status;
+      })
+      // Reset bookings state on logout
+      .addCase(logout, () => {
+        console.log('🔴 Clearing bookings on logout');
+        return initialState;
       });
   },
 });

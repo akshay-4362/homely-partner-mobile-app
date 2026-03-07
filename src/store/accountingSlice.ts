@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { accountingApi } from '../api/accountingApi';
 import { ProfessionalAccountingSummary, ProfessionalMonthlyEarning, TodayBooking } from '../types';
+import { logout } from './authSlice';
 
 interface AccountingState {
   summary: ProfessionalAccountingSummary | null;
@@ -89,6 +90,11 @@ const accountingSlice = createSlice({
       // Fetch today bookings
       .addCase(fetchTodayBookings.fulfilled, (state, action: PayloadAction<TodayBooking[]>) => {
         state.todayBookings = action.payload;
+      })
+      // Reset accounting state on logout
+      .addCase(logout, () => {
+        console.log('🔴 Clearing accounting on logout');
+        return initialState;
       });
   },
 });

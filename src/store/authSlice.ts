@@ -85,11 +85,19 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     logout(state) {
+      // Clear auth state
       state.user = null;
       state.accessToken = null;
       state.refreshToken = null;
+      state.status = 'idle';
+      state.error = null;
+
+      // Clear storage
       clearTokens();
       clearUser();
+
+      // Note: Other Redux slices should listen to this action
+      // to clear their state as well
     },
     clearError(state) {
       state.error = null;

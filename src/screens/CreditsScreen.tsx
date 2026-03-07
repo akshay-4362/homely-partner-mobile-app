@@ -32,7 +32,7 @@ export const CreditsScreen = ({ route }: any) => {
 
   // Calculate total jobs: jobs assigned vs total available
   const jobsUsed = stats?.jobsAssigned || 0;
-  const totalJobs = stats ? Math.floor((stats.totalPurchased || 0) / (stats.creditPerJob * 2)) : 0;
+  const totalJobs = stats ? Math.floor((stats.totalPurchased || 0) / stats.creditPerJob) : 0;
 
   useEffect(() => {
     load();
@@ -103,7 +103,7 @@ export const CreditsScreen = ({ route }: any) => {
           <Text style={styles.balanceAmount}>{formatCurrency(balance)}</Text>
           {stats && (
             <Text style={styles.jobsRemaining}>
-              {jobsUsed}/{totalJobs} jobs used (₹{stats.creditPerJob * 2}/job)
+              {jobsUsed}/{totalJobs} jobs used (₹{stats.creditPerJob}/job)
             </Text>
           )}
 

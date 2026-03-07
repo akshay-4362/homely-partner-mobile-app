@@ -169,7 +169,11 @@ export const AppNavigator = ({ navigationRef }: { navigationRef?: any }) => {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        // Force remount by changing key when auth state changes
+        key={user ? 'authenticated' : 'guest'}
+      >
         {user ? (
           <>
             <Stack.Screen name="Main" component={DrawerNav} />

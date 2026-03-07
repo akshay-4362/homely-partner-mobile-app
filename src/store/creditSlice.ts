@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import * as creditApi from '../api/creditApi';
+import { logout } from './authSlice';
 
 interface CreditState {
   balance: number;
@@ -192,6 +193,11 @@ const creditSlice = createSlice({
       .addCase(confirmPurchase.rejected, (state, action) => {
         state.purchaseStatus = 'failed';
         state.purchaseError = action.payload as string;
+      })
+      // Reset credit state on logout
+      .addCase(logout, () => {
+        console.log('🔴 Clearing credits on logout');
+        return initialState;
       });
   },
 });
