@@ -72,6 +72,18 @@ export const EarningsScreen = () => {
           b.month.localeCompare(a.month))
         : [];
       setMonthlyData(sortedData);
+
+      // Refresh pending cash deductions
+      try {
+        const txResp = await creditApi.getCreditTransactions({ type: 'job_deduction' });
+        const txList = txResp?.data?.transactions || [];
+        const pendingTotal = txList
+          .filter((t: any) => t.status === 'pending')
+          .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
+        setPendingDeductionAmount(pendingTotal);
+      } catch (_) {
+        // pending deductions unavailable
+      }
     } catch (err) {
       console.error('Failed to load earnings:', err);
     }
