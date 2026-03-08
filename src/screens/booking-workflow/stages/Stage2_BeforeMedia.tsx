@@ -720,7 +720,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
             style={{ flex: 1 }}
           />
           <Button
-            label="Continue to After Photos"
+            label="Next"
             icon="arrow-forward"
             onPress={handleContinue}
             disabled={!canContinue}

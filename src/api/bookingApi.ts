@@ -7,6 +7,20 @@ export const bookingApi = {
     return data.data || data;
   },
 
+  fetchCompletedByMonth: async (month: string) => {
+    // month format: "2026-03"
+    const { data } = await client.get('/bookings/professional', {
+      params: { status: 'completed', month },
+    });
+    const list = data.data || data;
+    // If backend doesn't support month filter, filter client-side
+    const items = Array.isArray(list) ? list : list?.bookings || list?.data || [];
+    return items.filter((b: any) => {
+      const date = b.scheduledAt || b.completedAt || b.createdAt || '';
+      return date.startsWith(month);
+    });
+  },
+
   updateStatus: async (bookingId: string, status: string, otp?: string) => {
     const { data } = await client.patch(`/bookings/${bookingId}/status`, { status, otp });
     return data.data || data;

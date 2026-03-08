@@ -38,6 +38,7 @@ import { PaymentQRScreen } from '../screens/PaymentQRScreen';
 import { BankAccountSetupScreen } from '../screens/BankAccountSetupScreen';
 import { PayoutAccountsScreen } from '../screens/PayoutAccountsScreen';
 import { CategorySelectionScreen } from '../screens/CategorySelectionScreen';
+import { MonthJobsScreen } from '../screens/MonthJobsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -160,6 +161,7 @@ const DrawerNav = () => (
     <Drawer.Screen name="PayoutAccounts" component={PayoutAccountsScreen} />
     <Drawer.Screen name="BankAccountSetup" component={BankAccountSetupScreen} />
     <Drawer.Screen name="CategorySelection" component={CategorySelectionScreen} />
+    <Drawer.Screen name="MonthJobs" component={MonthJobsScreen} />
   </Drawer.Navigator>
 );
 
