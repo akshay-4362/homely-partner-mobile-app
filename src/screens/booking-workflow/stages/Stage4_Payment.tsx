@@ -1,6 +1,6 @@
 /**
  * Stage 4: Payment Collection
- * Partner collects payment via cash or QR code
+ * Partner collects payment via cash or QR code, then explicitly marks job complete.
  */
 
 import React, { useState } from 'react';
@@ -43,6 +43,7 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
   const closeJobMode = useAppSelector(selectCloseJobMode);
   const closeJobReason = useAppSelector(selectCloseJobReason);
   const [loading, setLoading] = useState(false);
+  const [cashConfirmed, setCashConfirmed] = useState(false);
 
   // Calculate totals
   const baseCharge = booking.total;
@@ -51,65 +52,38 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
   const totalAmount = booking.finalTotal || subtotal;
   const platformFee = booking.creditDeducted || 0;
 
-  /**
-   * Handle payment method selection
-   */
-  const handlePaymentMethodSelect = (method: 'cash' | 'online') => {
-    dispatch(setPaymentMethod(method));
-  };
+  // Payment status
+  const isOnlinePaid = !!booking.paidAt;
+  const paymentConfirmed = isOnlinePaid || cashConfirmed;
 
   /**
-   * Handle cash payment confirmation
+   * Mark job as complete (called explicitly by professional)
    */
-  const handleCashPayment = () => {
-    const confirmMsg = closeJobMode
-      ? `Did you receive ₹${totalAmount} visit fee in cash from the customer?`
-      : `Did you receive ₹${totalAmount} in cash from the customer?`;
-
-    Alert.alert('Confirm Cash Payment', confirmMsg, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Yes, Received',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            if (closeJobMode && closeJobReason) {
-              // Close job flow: collect visit fee and mark as completed
+  const handleMarkComplete = async () => {
+    Alert.alert(
+      'Mark Job Complete?',
+      'This will complete the job and generate the invoice.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Complete Job',
+          onPress: async () => {
+            setLoading(true);
+            try {
               const res = await dispatch(
                 updateProBookingStatus({
                   bookingId: booking.id,
                   status: 'completed',
-                  cashPayment: true,
-                  reason: closeJobReason,
+                  ...(cashConfirmed && !isOnlinePaid ? { cashPayment: true } : {}),
+                  ...(closeJobMode && closeJobReason ? { reason: closeJobReason } : {}),
                 })
               );
               dispatch(clearCloseJobMode());
               setLoading(false);
               if (res.meta.requestStatus === 'fulfilled') {
                 Alert.alert(
-                  'Job Closed',
-                  'Visit fee collected. The job has been closed.',
-                  [{ text: 'OK', onPress: () => onStageComplete(5) }]
-                );
-              } else {
-                const errorMsg = (res.payload as string) || 'Failed to close job';
-                Alert.alert('Error', errorMsg);
-                onError(errorMsg);
-              }
-            } else {
-              // Normal completion
-              const res = await dispatch(
-                updateProBookingStatus({
-                  bookingId: booking.id,
-                  status: 'completed',
-                  cashPayment: true,
-                })
-              );
-              setLoading(false);
-              if (res.meta.requestStatus === 'fulfilled') {
-                Alert.alert(
                   'Job Completed! ✓',
-                  'Cash payment received. Invoice has been generated.',
+                  'Invoice has been generated.',
                   [{ text: 'Continue', onPress: () => onStageComplete(5) }]
                 );
               } else {
@@ -117,26 +91,42 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
                 Alert.alert('Error', errorMsg);
                 onError(errorMsg);
               }
+            } catch (error) {
+              setLoading(false);
+              const errorMsg = error instanceof Error ? error.message : 'Failed to process';
+              Alert.alert('Error', errorMsg);
+              onError(errorMsg);
             }
-          } catch (error) {
-            setLoading(false);
-            const errorMsg = error instanceof Error ? error.message : 'Failed to process';
-            Alert.alert('Error', errorMsg);
-            onError(errorMsg);
-          }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   /**
-   * Handle online payment (QR code)
+   * Confirm cash received (does not complete the job yet)
+   */
+  const handleConfirmCash = () => {
+    Alert.alert(
+      'Confirm Cash Received',
+      `Did you receive ${formatCurrency(totalAmount)} in cash from the customer?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Received',
+          onPress: () => setCashConfirmed(true),
+        },
+      ]
+    );
+  };
+
+  /**
+   * Open QR payment screen
    */
   const handleOnlinePayment = () => {
-    // Navigate to PaymentQR screen (existing component)
     navigation.navigate('PaymentQR', {
       booking,
-      fromWorkflow: true, // Flag to return to workflow after payment
+      fromWorkflow: true,
     });
   };
 
@@ -156,13 +146,11 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
       {/* Job Summary Card */}
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>Job Summary</Text>
-
         <View style={styles.summaryBox}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Base Charge</Text>
             <Text style={styles.summaryValue}>{formatCurrency(baseCharge)}</Text>
           </View>
-
           {approvedChargesTotal > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Approved Extra Charges</Text>
@@ -171,22 +159,12 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
               </Text>
             </View>
           )}
-
           <View style={styles.divider} />
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
           <View style={[styles.summaryRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
           </View>
         </View>
-
         {platformFee > 0 && (
           <View style={styles.feeNote}>
             <Ionicons name="information-circle-outline" size={14} color={Colors.textSecondary} />
@@ -197,89 +175,112 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
         )}
       </Card>
 
-      {/* Payment Method Selection */}
-      <Card style={styles.card}>
-        <Text style={styles.sectionTitle}>How did customer pay?</Text>
-
-        <View style={styles.paymentOptions}>
-          {/* Cash Option */}
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPaymentMethod === 'cash' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => handlePaymentMethodSelect('cash')}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.radio,
-                selectedPaymentMethod === 'cash' && styles.radioSelected,
-              ]}
-            >
-              {selectedPaymentMethod === 'cash' && <View style={styles.radioDot} />}
+      {/* Payment Status Card */}
+      <Card style={[styles.card, isOnlinePaid && styles.paidCard]}>
+        <Text style={styles.sectionTitle}>Payment Status</Text>
+        {isOnlinePaid ? (
+          <View style={styles.paidRow}>
+            <View style={styles.paidIconBg}>
+              <Ionicons name="checkmark-circle" size={28} color={Colors.success} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.paymentMethodTitle}>Cash</Text>
-              <Text style={styles.paymentMethodSubtitle}>
-                I received ₹{totalAmount} in cash
+              <Text style={styles.paidTitle}>Payment Received</Text>
+              <Text style={styles.paidSubtitle}>
+                {formatCurrency(totalAmount)} via UPI/Online
               </Text>
             </View>
-            <Ionicons name="cash" size={24} color={Colors.success} />
-          </TouchableOpacity>
-
-          {/* Online Option */}
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPaymentMethod === 'online' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => handlePaymentMethodSelect('online')}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.radio,
-                selectedPaymentMethod === 'online' && styles.radioSelected,
-              ]}
-            >
-              {selectedPaymentMethod === 'online' && <View style={styles.radioDot} />}
+          </View>
+        ) : cashConfirmed ? (
+          <View style={styles.paidRow}>
+            <View style={styles.paidIconBg}>
+              <Ionicons name="checkmark-circle" size={28} color={Colors.success} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.paymentMethodTitle}>Online Payment</Text>
-              <Text style={styles.paymentMethodSubtitle}>
-                Customer paid via UPI/QR
+              <Text style={styles.paidTitle}>Cash Confirmed</Text>
+              <Text style={styles.paidSubtitle}>
+                {formatCurrency(totalAmount)} received in cash
               </Text>
             </View>
-            <Ionicons name="qr-code" size={24} color={Colors.primary} />
-          </TouchableOpacity>
-        </View>
+          </View>
+        ) : (
+          <View style={styles.pendingRow}>
+            <Ionicons name="time-outline" size={20} color={Colors.warning} />
+            <Text style={styles.pendingText}>Waiting for payment</Text>
+          </View>
+        )}
       </Card>
 
-      {/* Payment Action Buttons */}
+      {/* Payment Method Selection (only if not yet paid) */}
+      {!paymentConfirmed && (
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>Collect Payment</Text>
+          <View style={styles.paymentOptions}>
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                selectedPaymentMethod === 'cash' && styles.paymentOptionSelected,
+              ]}
+              onPress={() => dispatch(setPaymentMethod('cash'))}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.radio, selectedPaymentMethod === 'cash' && styles.radioSelected]}>
+                {selectedPaymentMethod === 'cash' && <View style={styles.radioDot} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.paymentMethodTitle}>Cash</Text>
+                <Text style={styles.paymentMethodSubtitle}>Customer paying in cash</Text>
+              </View>
+              <Ionicons name="cash" size={24} color={Colors.success} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                selectedPaymentMethod === 'online' && styles.paymentOptionSelected,
+              ]}
+              onPress={() => dispatch(setPaymentMethod('online'))}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.radio, selectedPaymentMethod === 'online' && styles.radioSelected]}>
+                {selectedPaymentMethod === 'online' && <View style={styles.radioDot} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.paymentMethodTitle}>Online Payment</Text>
+                <Text style={styles.paymentMethodSubtitle}>Customer pays via UPI/QR</Text>
+              </View>
+              <Ionicons name="qr-code" size={24} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </Card>
+      )}
+
+      {/* Action Buttons */}
       <View style={styles.actionContainer}>
-        {selectedPaymentMethod === 'cash' && (
-          <>
-            <Button
-              label="Confirm Cash Received"
-              icon="cash"
-              onPress={handleCashPayment}
-              loading={loading}
-              fullWidth
-              size="lg"
-            />
-            <Button
-              label="Back to After Photos"
-              icon="arrow-back"
-              onPress={() => onStageComplete(3)}
-              variant="ghost"
-              fullWidth
-              style={{ marginTop: Spacing.md }}
-            />
-          </>
+        {/* Mark Job Complete — shown only after payment confirmed */}
+        {paymentConfirmed && (
+          <Button
+            label="Mark Job Complete"
+            icon="checkmark-circle"
+            onPress={handleMarkComplete}
+            loading={loading}
+            fullWidth
+            size="lg"
+          />
         )}
 
-        {selectedPaymentMethod === 'online' && (
+        {/* Cash: confirm receipt button */}
+        {!paymentConfirmed && selectedPaymentMethod === 'cash' && (
+          <Button
+            label="Confirm Cash Received"
+            icon="cash"
+            onPress={handleConfirmCash}
+            fullWidth
+            size="lg"
+          />
+        )}
+
+        {/* Online: show QR button */}
+        {!paymentConfirmed && selectedPaymentMethod === 'online' && (
           <>
             <Button
               label="Show Payment QR Code"
@@ -292,38 +293,28 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
             <View style={styles.qrNote}>
               <Ionicons name="information-circle-outline" size={14} color={Colors.primary} />
               <Text style={styles.qrNoteText}>
-                Generate QR code for customer to scan and pay via UPI
+                After customer pays, come back here and tap "Mark Job Complete"
               </Text>
             </View>
-            <Button
-              label="Back to After Photos"
-              icon="arrow-back"
-              onPress={() => onStageComplete(3)}
-              variant="ghost"
-              fullWidth
-              style={{ marginTop: Spacing.md }}
-            />
           </>
         )}
 
-        {!selectedPaymentMethod && (
-          <>
-            <View style={styles.emptyState}>
-              <Ionicons name="hand-left-outline" size={48} color={Colors.textTertiary} />
-              <Text style={styles.emptyStateText}>
-                Select payment method to continue
-              </Text>
-            </View>
-            <Button
-              label="Back to After Photos"
-              icon="arrow-back"
-              onPress={() => onStageComplete(3)}
-              variant="ghost"
-              fullWidth
-              style={{ marginTop: Spacing.md }}
-            />
-          </>
+        {/* No method selected */}
+        {!paymentConfirmed && !selectedPaymentMethod && (
+          <View style={styles.emptyState}>
+            <Ionicons name="hand-left-outline" size={48} color={Colors.textTertiary} />
+            <Text style={styles.emptyStateText}>Select payment method above</Text>
+          </View>
         )}
+
+        <Button
+          label="Back to After Photos"
+          icon="arrow-back"
+          onPress={() => onStageComplete(3)}
+          variant="ghost"
+          fullWidth
+          style={{ marginTop: Spacing.md }}
+        />
       </View>
     </ScrollView>
   );
@@ -336,6 +327,11 @@ const styles = StyleSheet.create({
 
   card: {
     marginBottom: Spacing.md,
+  },
+
+  paidCard: {
+    borderColor: Colors.success,
+    borderWidth: 1.5,
   },
 
   closeJobBanner: {
@@ -427,6 +423,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // Payment status
+  paidRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.sm,
+  },
+
+  paidIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  paidTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.success,
+    marginBottom: 2,
+  },
+
+  paidSubtitle: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+  },
+
+  pendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+  },
+
+  pendingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+  },
+
+  // Payment method selection
   paymentOptions: {
     gap: Spacing.md,
   },

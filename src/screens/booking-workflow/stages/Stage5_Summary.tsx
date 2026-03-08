@@ -13,6 +13,8 @@ import {
   Image,
   Modal,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +24,7 @@ import { Button } from '../../../components/common/Button';
 import { formatCurrency, formatDate, formatDateOnly } from '../../../utils/format';
 import { StageComponentProps } from '../types';
 import { RateCustomerModal } from '../../../components/RateCustomerModal';
+import { bookingApi } from '../../../api/bookingApi';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -33,6 +36,9 @@ export const Stage5_Summary: React.FC<StageComponentProps> = ({
 
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [fullImageUri, setFullImageUri] = useState<string | null>(null);
+  const [showInvoice, setShowInvoice] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   // Calculate earnings
   const baseCharge = booking.total;
@@ -49,11 +55,21 @@ export const Stage5_Summary: React.FC<StageComponentProps> = ({
   };
 
   /**
-   * View invoice (placeholder)
+   * Fetch and display invoice
    */
-  const viewInvoice = () => {
-    // TODO: Implement invoice download/view
-    console.log('View invoice for booking:', booking.id);
+  const viewInvoice = async () => {
+    setShowInvoice(true);
+    if (invoiceData) return; // already loaded
+    setInvoiceLoading(true);
+    try {
+      const data = await bookingApi.getInvoice(booking.id);
+      setInvoiceData(data);
+    } catch (err: any) {
+      setShowInvoice(false);
+      Alert.alert('Error', err?.response?.data?.message || 'Could not load invoice');
+    } finally {
+      setInvoiceLoading(false);
+    }
   };
 
   /**
@@ -257,6 +273,116 @@ export const Stage5_Summary: React.FC<StageComponentProps> = ({
           fullWidth
         />
       </View>
+
+      {/* Invoice Modal */}
+      <Modal
+        visible={showInvoice}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowInvoice(false)}
+      >
+        <View style={styles.invoiceOverlay}>
+          <View style={styles.invoiceSheet}>
+            {/* Header */}
+            <View style={styles.invoiceHeader}>
+              <Text style={styles.invoiceHeaderTitle}>Invoice</Text>
+              <TouchableOpacity onPress={() => setShowInvoice(false)} style={styles.invoiceCloseBtn}>
+                <Ionicons name="close" size={22} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {invoiceLoading ? (
+              <View style={styles.invoiceLoader}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+                <Text style={styles.invoiceLoaderText}>Loading invoice...</Text>
+              </View>
+            ) : invoiceData ? (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.invoiceContent}>
+                {/* Invoice Number & Date */}
+                <View style={styles.invoiceMeta}>
+                  <Text style={styles.invoiceNumber}>#{invoiceData.invoiceNumber}</Text>
+                  <Text style={styles.invoiceDate}>{invoiceData.invoiceDate}</Text>
+                </View>
+
+                {/* From / To */}
+                <View style={styles.invoiceParties}>
+                  <View style={styles.invoiceParty}>
+                    <Text style={styles.invoicePartyLabel}>FROM</Text>
+                    <Text style={styles.invoicePartyName}>{invoiceData.business?.name}</Text>
+                    <Text style={styles.invoicePartyDetail}>{invoiceData.professional?.name}</Text>
+                    <Text style={styles.invoicePartyDetail}>{invoiceData.professional?.phone}</Text>
+                  </View>
+                  <View style={[styles.invoiceParty, { alignItems: 'flex-end' }]}>
+                    <Text style={styles.invoicePartyLabel}>TO</Text>
+                    <Text style={styles.invoicePartyName}>{invoiceData.customer?.name}</Text>
+                    <Text style={styles.invoicePartyDetail}>{invoiceData.customer?.phone}</Text>
+                    <Text style={styles.invoicePartyDetail}>{invoiceData.customer?.address?.city}</Text>
+                  </View>
+                </View>
+
+                {/* Service Info */}
+                <View style={styles.invoiceSection}>
+                  <Text style={styles.invoiceSectionTitle}>Service Details</Text>
+                  <View style={styles.invoiceRow}>
+                    <Text style={styles.invoiceRowLabel}>Service</Text>
+                    <Text style={styles.invoiceRowValue}>{invoiceData.booking?.serviceName}</Text>
+                  </View>
+                  <View style={styles.invoiceRow}>
+                    <Text style={styles.invoiceRowLabel}>Booking #</Text>
+                    <Text style={styles.invoiceRowValue}>{invoiceData.booking?.bookingNumber}</Text>
+                  </View>
+                  <View style={styles.invoiceRow}>
+                    <Text style={styles.invoiceRowLabel}>Completed</Text>
+                    <Text style={styles.invoiceRowValue}>{invoiceData.booking?.completedAt}</Text>
+                  </View>
+                </View>
+
+                {/* Line Items */}
+                <View style={styles.invoiceSection}>
+                  <Text style={styles.invoiceSectionTitle}>Items</Text>
+                  {(invoiceData.items || []).map((item: any, i: number) => (
+                    <View key={i} style={styles.invoiceItem}>
+                      <Text style={styles.invoiceItemDesc} numberOfLines={2}>{item.description}</Text>
+                      <Text style={styles.invoiceItemAmt}>{formatCurrency(item.total)}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Totals */}
+                <View style={styles.invoiceTotals}>
+                  <View style={styles.invoiceRow}>
+                    <Text style={styles.invoiceRowLabel}>Subtotal</Text>
+                    <Text style={styles.invoiceRowValue}>{formatCurrency(invoiceData.subtotal)}</Text>
+                  </View>
+                  {invoiceData.tax > 0 && (
+                    <View style={styles.invoiceRow}>
+                      <Text style={styles.invoiceRowLabel}>Tax ({invoiceData.taxRate}%)</Text>
+                      <Text style={styles.invoiceRowValue}>{formatCurrency(invoiceData.tax)}</Text>
+                    </View>
+                  )}
+                  <View style={styles.invoiceDivider} />
+                  <View style={styles.invoiceRow}>
+                    <Text style={styles.invoiceTotalLabel}>Total</Text>
+                    <Text style={styles.invoiceTotalValue}>{formatCurrency(invoiceData.grandTotal)}</Text>
+                  </View>
+                </View>
+
+                {/* Payment Status */}
+                <View style={styles.invoicePaymentRow}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
+                  <Text style={styles.invoicePaymentText}>
+                    Paid via {invoiceData.payment?.method || 'Cash'}
+                  </Text>
+                </View>
+
+                {invoiceData.notes && (
+                  <Text style={styles.invoiceNotes}>{invoiceData.notes}</Text>
+                )}
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
 
       {/* Rate Customer Modal */}
       <RateCustomerModal
@@ -513,5 +639,187 @@ const styles = StyleSheet.create({
   imageViewerImage: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
+  },
+
+  // ── Invoice Modal
+  invoiceOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  invoiceSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  invoiceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  invoiceHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  invoiceCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  invoiceLoader: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  invoiceLoaderText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  invoiceContent: {
+    padding: Spacing.xl,
+    paddingBottom: 40,
+  },
+  invoiceMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  invoiceNumber: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  invoiceDate: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  invoiceParties: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  invoiceParty: {
+    flex: 1,
+    gap: 2,
+  },
+  invoicePartyLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  invoicePartyName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  invoicePartyDetail: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  invoiceSection: {
+    marginBottom: Spacing.lg,
+  },
+  invoiceSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
+  },
+  invoiceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  invoiceRowLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  invoiceRowValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  invoiceItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    gap: Spacing.md,
+  },
+  invoiceItemDesc: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textPrimary,
+  },
+  invoiceItemAmt: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  invoiceTotals: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  invoiceDivider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+    marginVertical: Spacing.sm,
+  },
+  invoiceTotalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  invoiceTotalValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  invoicePaymentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.successBg,
+    borderRadius: BorderRadius.md,
+  },
+  invoicePaymentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.success,
+  },
+  invoiceNotes: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });

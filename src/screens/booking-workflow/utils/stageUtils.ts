@@ -25,16 +25,9 @@ export const getCurrentStage = (
     return 5;
   }
 
-  // Stage 5: Payment completed (only if after media exists, meaning workflow ran)
-  // NOTE: pay_now bookings have paidAt set upfront at booking time, before job starts.
-  // We must not treat them as completed — only use paidAt as a completion signal
-  // when the job has actually progressed through the workflow (afterMedia uploaded).
+  // Stage 4: After media uploaded and no pending charges → payment stage
+  // paidAt alone does NOT complete the job — professional must explicitly mark complete.
   const hasAfterMedia = (booking.afterMedia?.length || 0) > 0;
-  if (booking.paidAt && hasAfterMedia) {
-    return 5;
-  }
-
-  // Stage 4: Ready for payment (after media uploaded, charges approved)
   const noPendingCharges = (charges.pending?.length || 0) === 0;
   if (hasAfterMedia && noPendingCharges) {
     return 4;

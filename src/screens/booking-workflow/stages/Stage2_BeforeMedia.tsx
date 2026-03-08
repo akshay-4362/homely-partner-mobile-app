@@ -85,10 +85,9 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
   const allChargesApproved = hasCharges && !hasPendingCharges;
 
   // Can only continue if:
-  // 1. Charges added
-  // 2. ALL charges approved (no pending)
-  // 3. Before media uploaded
-  const canContinue = hasCharges && allChargesApproved && beforeMediaUploaded;
+  // 1. Before media uploaded
+  // 2. If any charges were added, all must be approved (none pending)
+  const canContinue = beforeMediaUploaded && !hasPendingCharges;
 
   /**
    * Load charges from backend
@@ -730,11 +729,9 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
         </View>
         {!canContinue && (
           <Text style={styles.disabledHint}>
-            {!hasCharges
-              ? '⚠️ Add additional parts first'
-              : hasPendingCharges
-              ? '⏳ Waiting for customer to approve charges...'
-              : '📸 Upload at least 1 before photo to continue'}
+            {!beforeMediaUploaded
+              ? '📸 Upload at least 1 before photo to continue'
+              : '⏳ Waiting for customer to approve charges...'}
           </Text>
         )}
 
