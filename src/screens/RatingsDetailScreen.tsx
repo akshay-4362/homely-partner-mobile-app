@@ -250,36 +250,68 @@ export const RatingsDetailScreen = () => {
     return complaints;
   };
 
-  const renderReview = ({ item }: { item: Review }) => (
-    <View style={styles.reviewItem}>
-      <View style={styles.reviewHeader}>
-        <View style={styles.customerInfo}>
-          {item.customer.profilePicture ? (
-            <Image source={{ uri: item.customer.profilePicture }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Ionicons name="person" size={24} color={Colors.textSecondary} />
+  const renderReview = ({ item }: { item: Review }) => {
+    const starColor = item.rating >= 4.5 ? Colors.success : item.rating >= 3 ? '#FFA500' : Colors.error;
+    const subRatings = [
+      { label: 'Punctuality', value: item.punctuality },
+      { label: 'Quality', value: item.quality },
+      { label: 'Professionalism', value: item.professionalism },
+      { label: 'Friendliness', value: item.friendliness },
+    ].filter((s) => s.value != null);
+
+    return (
+      <View style={styles.reviewItem}>
+        {/* Top row: avatar + name/date + star */}
+        <View style={styles.reviewHeader}>
+          <View style={styles.customerInfo}>
+            {item.customer.profilePicture ? (
+              <Image source={{ uri: item.customer.profilePicture }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Ionicons name="person" size={20} color={Colors.textSecondary} />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.customerName}>
+                {item.customer.firstName} {item.customer.lastName}
+              </Text>
+              <Text style={styles.reviewDate}>
+                {new Date(item.createdAt).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+                {item.booking?.bookingNumber ? `  ·  #${item.booking.bookingNumber}` : ''}
+              </Text>
             </View>
-          )}
-          <View>
-            <Text style={styles.customerName}>Verified customer</Text>
-            <Text style={styles.reviewDate}>
-              {new Date(item.createdAt).toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}
-            </Text>
+          </View>
+          <View style={styles.ratingBadge}>
+            <Ionicons name="star" size={14} color={starColor} />
+            <Text style={[styles.ratingText, { color: starColor }]}>{item.rating}</Text>
           </View>
         </View>
-        <View style={styles.ratingBadge}>
-          <Ionicons name="star" size={14} color="#FFD700" />
-          <Text style={styles.ratingText}>{item.rating}</Text>
-        </View>
+
+        {/* Sub-ratings */}
+        {subRatings.length > 0 && (
+          <View style={styles.subRatingsRow}>
+            {subRatings.map((s) => (
+              <View key={s.label} style={styles.subRatingChip}>
+                <Text style={styles.subRatingLabel}>{s.label}</Text>
+                <Text style={styles.subRatingValue}>{s.value}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Comment */}
+        {item.comment ? (
+          <Text style={styles.reviewComment}>{item.comment}</Text>
+        ) : (
+          <Text style={styles.noCommentText}>No comment</Text>
+        )}
       </View>
-      {item.comment && <Text style={styles.reviewComment}>{item.comment}</Text>}
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -348,25 +380,6 @@ export const RatingsDetailScreen = () => {
           )}
         </View>
 
-        {/* Rank Targets */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rank targets</Text>
-          <View style={styles.rankList}>
-            <View style={styles.rankItem}>
-              <Text style={styles.rankIcon}>🏅</Text>
-              <Text style={styles.rankText}>Keep 4.75 or above for Gold</Text>
-            </View>
-            <View style={styles.rankItem}>
-              <Text style={styles.rankIcon}>🥈</Text>
-              <Text style={styles.rankText}>Keep 4.65 or above for Silver</Text>
-            </View>
-            <View style={styles.rankItem}>
-              <Text style={styles.rankIcon}>🥉</Text>
-              <Text style={styles.rankText}>Keep 4.55 or above for Bronze</Text>
-            </View>
-          </View>
-        </View>
-
         {/* Last 10 Ratings */}
         {stats.totalReviews > 0 && (
           <View style={styles.section}>
@@ -399,13 +412,11 @@ export const RatingsDetailScreen = () => {
             </View>
 
             {reviews.length > 10 && (
-              <View>
-                <Text style={styles.comingSoonText}>{reviews.length - 10} ratings coming soon</Text>
-                <TouchableOpacity onPress={() => setShowAllRatings(true)}>
-                  <Text style={styles.viewAllLink}>View all ratings →</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.comingSoonText}>{reviews.length - 10} more ratings</Text>
             )}
+            <TouchableOpacity onPress={() => setShowAllRatings(true)}>
+              <Text style={styles.viewAllLink}>View all ratings ({reviews.length}) →</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -469,18 +480,6 @@ export const RatingsDetailScreen = () => {
           </View>
         )}
 
-        {/* Learn More Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Learn more</Text>
-          <TouchableOpacity
-            style={styles.linkItem}
-            onPress={() => setShowHowRatingWorks(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.linkText}>How ratings work</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
       </ScrollView>
 
       {/* How Rating Works Modal */}
@@ -541,73 +540,6 @@ export const RatingsDetailScreen = () => {
                   <Text style={styles.criteriaText}>
                     <Text style={styles.criteriaBold}>Friendliness:</Text> Were you polite and friendly?
                   </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Rank System */}
-            <View style={styles.howItWorksSection}>
-              <View style={styles.howItWorksIconContainer}>
-                <Text style={{ fontSize: 32 }}>🏅</Text>
-              </View>
-              <Text style={styles.howItWorksTitle}>Performance Ranks</Text>
-              <Text style={styles.howItWorksText}>
-                Your rating determines your performance rank, which affects job priority and rewards:
-              </Text>
-              <View style={styles.rankDetailsList}>
-                <View style={styles.rankDetailItem}>
-                  <Text style={styles.rankDetailIcon}>🏅</Text>
-                  <View style={styles.rankDetailContent}>
-                    <Text style={styles.rankDetailTitle}>Gold (4.75+)</Text>
-                    <Text style={styles.rankDetailDesc}>Highest priority for new jobs, premium rewards</Text>
-                  </View>
-                </View>
-                <View style={styles.rankDetailItem}>
-                  <Text style={styles.rankDetailIcon}>🥈</Text>
-                  <View style={styles.rankDetailContent}>
-                    <Text style={styles.rankDetailTitle}>Silver (4.65+)</Text>
-                    <Text style={styles.rankDetailDesc}>High priority for jobs, good rewards</Text>
-                  </View>
-                </View>
-                <View style={styles.rankDetailItem}>
-                  <Text style={styles.rankDetailIcon}>🥉</Text>
-                  <View style={styles.rankDetailContent}>
-                    <Text style={styles.rankDetailTitle}>Bronze (4.55+)</Text>
-                    <Text style={styles.rankDetailDesc}>Standard job allocation</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Impact on Performance */}
-            <View style={styles.howItWorksSection}>
-              <View style={styles.howItWorksIconContainer}>
-                <Ionicons name="trending-up" size={32} color={Colors.success} />
-              </View>
-              <Text style={styles.howItWorksTitle}>Impact on Your Performance</Text>
-              <Text style={styles.howItWorksText}>
-                Your rating directly affects:
-              </Text>
-              <View style={styles.impactList}>
-                <View style={styles.impactItem}>
-                  <Ionicons name="briefcase" size={16} color={Colors.success} />
-                  <Text style={styles.impactText}>Number of jobs you receive</Text>
-                </View>
-                <View style={styles.impactItem}>
-                  <Ionicons name="trophy" size={16} color={Colors.success} />
-                  <Text style={styles.impactText}>Your rank and rewards eligibility</Text>
-                </View>
-                <View style={styles.impactItem}>
-                  <Ionicons name="trending-up" size={16} color={Colors.success} />
-                  <Text style={styles.impactText}>Priority in job assignment</Text>
-                </View>
-                <View style={styles.impactItem}>
-                  <Ionicons name="star" size={16} color={Colors.success} />
-                  <Text style={styles.impactText}>Visibility to premium customers</Text>
                 </View>
               </View>
             </View>
@@ -706,6 +638,7 @@ export const RatingsDetailScreen = () => {
             <TouchableOpacity onPress={() => setShowAllRatings(false)}>
               <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
+            <Text style={styles.modalTitle}>All Ratings</Text>
             <TouchableOpacity onPress={() => setShowAllRatings(false)}>
               <Ionicons name="close" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
@@ -781,6 +714,11 @@ export const RatingsDetailScreen = () => {
             renderItem={renderReview}
             keyExtractor={(item) => item._id}
             contentContainerStyle={styles.reviewsList}
+            ListHeaderComponent={
+              <Text style={styles.reviewsCountLabel}>
+                {selectedFilter === 'all' ? `All ratings (${getFilterCount('all')})` : `★${selectedFilter} ratings (${getFilterCount(selectedFilter)})`}
+              </Text>
+            }
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Text style={styles.emptyText}>No ratings in this category</Text>
@@ -1054,15 +992,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
     backgroundColor: Colors.surface,
+    flexShrink: 0,
+    maxHeight: 60,
   },
   filterTabsContent: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: 10,
     gap: Spacing.sm,
+    alignItems: 'center',
   },
   filterTab: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     borderColor: Colors.divider,
@@ -1081,13 +1022,20 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   reviewsList: {
-    padding: Spacing.lg,
+    padding: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
+  reviewsCountLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
   },
   reviewItem: {
     backgroundColor: Colors.surface,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.divider,
   },
@@ -1132,9 +1080,41 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   reviewComment: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textPrimary,
-    lineHeight: 20,
+    lineHeight: 19,
+    marginTop: Spacing.xs,
+  },
+  noCommentText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: Spacing.xs,
+  },
+  subRatingsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  subRatingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  subRatingLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  subRatingValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textPrimary,
   },
   emptyState: {
     alignItems: 'center',

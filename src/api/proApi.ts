@@ -6,8 +6,8 @@ export const proApi = {
     return data.data || data;
   },
 
-  updateBookingStatus: async (bookingId: string, status: string, otp?: string, cashPayment?: boolean) => {
-    const { data } = await client.patch(`/bookings/${bookingId}/status`, { status, otp, cashPayment });
+  updateBookingStatus: async (bookingId: string, status: string, otp?: string, cashPayment?: boolean, reason?: string) => {
+    const { data } = await client.patch(`/bookings/${bookingId}/status`, { status, otp, cashPayment, reason });
     return data.data || data;
   },
 

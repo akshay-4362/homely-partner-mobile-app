@@ -76,11 +76,11 @@ export const fetchProBookings = createAsyncThunk(
 export const updateProBookingStatus = createAsyncThunk(
   'bookings/updateStatus',
   async (
-    { bookingId, status, otp, cashPayment }: { bookingId: string; status: string; otp?: string; cashPayment?: boolean },
+    { bookingId, status, otp, cashPayment, reason }: { bookingId: string; status: string; otp?: string; cashPayment?: boolean; reason?: string },
     { rejectWithValue }
   ) => {
     try {
-      await proApi.updateBookingStatus(bookingId, status, otp, cashPayment);
+      await proApi.updateBookingStatus(bookingId, status, otp, cashPayment, reason);
       return { bookingId, status };
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Failed to update status');

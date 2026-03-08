@@ -29,7 +29,6 @@ import {
   clearCloseJobMode,
 } from '../../../store/booking-workflow/bookingWorkflowSlice';
 import { updateProBookingStatus } from '../../../store/bookingSlice';
-import { bookingApi } from '../../../api/bookingApi';
 
 export const Stage4_Payment: React.FC<StageComponentProps> = ({
   booking,
@@ -75,22 +74,28 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
           setLoading(true);
           try {
             if (closeJobMode && closeJobReason) {
-              // Close job flow: collect visit fee then cancel booking
-              await dispatch(
+              // Close job flow: collect visit fee and mark as completed
+              const res = await dispatch(
                 updateProBookingStatus({
                   bookingId: booking.id,
                   status: 'completed',
                   cashPayment: true,
+                  reason: closeJobReason,
                 })
               );
-              await bookingApi.cancelBooking(booking.id, closeJobReason);
               dispatch(clearCloseJobMode());
               setLoading(false);
-              Alert.alert(
-                'Job Closed',
-                'Visit fee collected. The job has been closed.',
-                [{ text: 'OK', onPress: () => onStageComplete(5) }]
-              );
+              if (res.meta.requestStatus === 'fulfilled') {
+                Alert.alert(
+                  'Job Closed',
+                  'Visit fee collected. The job has been closed.',
+                  [{ text: 'OK', onPress: () => onStageComplete(5) }]
+                );
+              } else {
+                const errorMsg = (res.payload as string) || 'Failed to close job';
+                Alert.alert('Error', errorMsg);
+                onError(errorMsg);
+              }
             } else {
               // Normal completion
               const res = await dispatch(
