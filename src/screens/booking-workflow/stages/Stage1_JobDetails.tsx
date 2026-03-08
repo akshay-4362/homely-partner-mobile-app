@@ -3,7 +3,7 @@
  * Display job info, location, and OTP entry to start job
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Platform,
   Dimensions,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Typography } from '../../../theme/colors';
@@ -39,6 +40,7 @@ export const Stage1_JobDetails: React.FC<StageComponentProps> = ({
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [otpHelpVisible, setOtpHelpVisible] = useState(false);
 
   /**
    * Open location in maps app
@@ -233,7 +235,84 @@ export const Stage1_JobDetails: React.FC<StageComponentProps> = ({
           fullWidth
           style={{ marginTop: Spacing.md }}
         />
+
+        <TouchableOpacity
+          style={styles.otpHelpBtn}
+          onPress={() => setOtpHelpVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.otpHelpText}>Problem in getting OTP?</Text>
+        </TouchableOpacity>
       </Card>
+
+      {/* OTP Help Modal */}
+      <Modal
+        visible={otpHelpVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOtpHelpVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOtpHelpVisible(false)}
+        >
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="help-circle" size={26} color={Colors.primary} />
+              <Text style={styles.modalTitle}>Can't get the OTP?</Text>
+            </View>
+
+            <Text style={styles.modalBody}>
+              Ask the customer for their registered mobile number.
+            </Text>
+
+            <View style={styles.modalStep}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNum}>1</Text>
+              </View>
+              <Text style={styles.stepText}>
+                Ask the customer: <Text style={styles.stepBold}>"What is your registered mobile number?"</Text>
+              </Text>
+            </View>
+
+            <View style={styles.modalStep}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNum}>2</Text>
+              </View>
+              <Text style={styles.stepText}>
+                Take the <Text style={styles.stepBold}>last 6 digits</Text> of their mobile number.
+              </Text>
+            </View>
+
+            <View style={styles.modalStep}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNum}>3</Text>
+              </View>
+              <Text style={styles.stepText}>
+                Enter those 6 digits as the OTP to start the job.
+              </Text>
+            </View>
+
+            <View style={styles.modalExample}>
+              <Text style={styles.exampleLabel}>Example</Text>
+              <Text style={styles.exampleText}>
+                Mobile: 98765{' '}
+                <Text style={styles.exampleHighlight}>4 3 2 1 0 9</Text>
+                {'  →  OTP: '}
+                <Text style={styles.exampleHighlight}>4 3 2 1 0 9</Text>
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setOtpHelpVisible(false)}
+            >
+              <Text style={styles.modalCloseBtnText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -358,5 +437,140 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.error,
     marginTop: 4,
+  },
+
+  otpHelpBtn: {
+    alignSelf: 'center',
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+  },
+
+  otpHelpText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+
+  modalCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+
+  modalBody: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+    lineHeight: 20,
+  },
+
+  modalStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+
+  stepBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
+  },
+
+  stepNum: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  stepText: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+
+  stepBold: {
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+
+  modalExample: {
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+
+  exampleLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+
+  exampleText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+
+  exampleHighlight: {
+    fontWeight: '800',
+    color: Colors.primary,
+    letterSpacing: 3,
+  },
+
+  modalCloseBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+  },
+
+  modalCloseBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

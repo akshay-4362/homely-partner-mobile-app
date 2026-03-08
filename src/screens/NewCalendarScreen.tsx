@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,7 @@ export const NewCalendarScreen = () => {
   const [loading, setLoading] = useState(true);
   const [weeklySchedule, setWeeklySchedule] = useState<DaySchedule[]>([]);
   const [dateOverrides, setDateOverrides] = useState<DateOverride[]>([]);
+  const hasLoadedOnce = useRef(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [showWeeklyRoutine, setShowWeeklyRoutine] = useState(false);
   const [showDayPatternEditor, setShowDayPatternEditor] = useState(false);
@@ -40,34 +41,33 @@ export const NewCalendarScreen = () => {
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadSchedule();
-  }, []);
-
-  // Reload data when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      loadSchedule();
-    }, [])
-  );
-
-  const loadSchedule = async () => {
+  // silent=true → update data in place without showing the full-screen spinner
+  const loadSchedule = async (silent = false) => {
     try {
-      setLoading(true);
-      console.log('Loading schedule...');
+      if (!silent) setLoading(true);
       const profile = await proApi.fetchProfile();
-      console.log('Schedule loaded:', {
-        weeklyScheduleDays: profile.weeklySchedule?.length,
-        dateOverridesCount: profile.dateOverrides?.length,
-      });
       setWeeklySchedule(profile.weeklySchedule || []);
       setDateOverrides(profile.dateOverrides || []);
     } catch (error) {
       console.error('Failed to load schedule:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Single load path — no duplicate useEffect + useFocusEffect calls.
+  // First focus: show spinner. Every subsequent focus (returning from modal,
+  // navigating back, etc.): silent background refresh so calendar stays visible.
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasLoadedOnce.current) {
+        hasLoadedOnce.current = true;
+        loadSchedule(false);
+      } else {
+        loadSchedule(true);
+      }
+    }, [])
+  );
 
   const getAvailableHoursForDate = (dateString: string): number => {
     const date = new Date(dateString);
@@ -267,21 +267,19 @@ export const NewCalendarScreen = () => {
           setShowWeeklyRoutine(false);
           setShowDayPatternEditor(true);
         }}
-        onRefresh={loadSchedule}
+        onRefresh={() => loadSchedule(true)}
       />
 
       <DayPatternEditor
         visible={showDayPatternEditor}
         onClose={() => {
           setShowDayPatternEditor(false);
-          // Reload schedule when modal closes to ensure fresh data
-          loadSchedule();
+          loadSchedule(true);
         }}
         dayOfWeek={selectedDayOfWeek}
         weeklySchedule={weeklySchedule}
         onSave={async () => {
-          console.log('DayPatternEditor onSave called');
-          await loadSchedule();
+          await loadSchedule(true);
         }}
       />
 
@@ -289,15 +287,13 @@ export const NewCalendarScreen = () => {
         visible={showDateEditor}
         onClose={() => {
           setShowDateEditor(false);
-          // Reload schedule when modal closes to ensure fresh data
-          loadSchedule();
+          loadSchedule(true);
         }}
         date={selectedDate}
         weeklySchedule={weeklySchedule}
         dateOverrides={dateOverrides}
         onSave={async () => {
-          console.log('SpecificDateEditor onSave called');
-          await loadSchedule();
+          await loadSchedule(true);
         }}
         onChangeRoutine={() => {
           setShowDateEditor(false);

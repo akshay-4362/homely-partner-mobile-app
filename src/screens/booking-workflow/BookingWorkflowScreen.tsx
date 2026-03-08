@@ -4,7 +4,7 @@
  * Determines current stage and renders appropriate component
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   Text,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -98,6 +99,10 @@ export const BookingWorkflowScreen = () => {
   });
   const [loading, setLoading] = useState(false);
 
+  // Track whether the initial data load has happened so focus-triggered
+  // refreshes are always silent (no unmount/remount of stage components)
+  const hasLoadedOnce = useRef(false);
+
   // Redux state
   const currentStage = useAppSelector(selectCurrentStage);
 
@@ -111,8 +116,11 @@ export const BookingWorkflowScreen = () => {
     }
   }, [actualStage]);
 
-  // Load full booking data
-  const loadBookingData = async () => {
+  // Load full booking data.
+  // showLoading=true only on first mount; subsequent calls are background refreshes
+  // so stage components are never unmounted/remounted while data is fetching.
+  const loadBookingData = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const [bookingData, chargesData] = await Promise.all([
         bookingApi.getBookingById(booking.id),
@@ -123,13 +131,21 @@ export const BookingWorkflowScreen = () => {
       setCharges(chargesData?.data || chargesData);
     } catch (error) {
       console.error('Failed to load booking data:', error);
+    } finally {
+      if (showLoading) setLoading(false);
     }
   };
 
-  // Load data on mount and when screen focused
+  // On initial focus: show loading overlay. On re-focus (back navigation, etc.):
+  // refresh silently in the background — no spinner, no stage unmount.
   useFocusEffect(
     useCallback(() => {
-      loadBookingData();
+      if (!hasLoadedOnce.current) {
+        hasLoadedOnce.current = true;
+        loadBookingData(true);
+      } else {
+        loadBookingData(false);
+      }
     }, [booking.id])
   );
 
@@ -141,14 +157,13 @@ export const BookingWorkflowScreen = () => {
   }, []);
 
   /**
-   * Handle stage completion
+   * Handle stage completion.
+   * Advance stage immediately for instant UI transition, then refresh data
+   * silently in the background — no freeze, no loading screen between stages.
    */
-  const handleStageComplete = async (nextStage: WorkflowStage) => {
-    // Reload booking data to get latest state
-    await loadBookingData();
-
-    // Update Redux stage
+  const handleStageComplete = (nextStage: WorkflowStage) => {
     dispatch(setCurrentStage(nextStage));
+    loadBookingData(false); // background refresh, no await
   };
 
   /**
@@ -242,13 +257,19 @@ export const BookingWorkflowScreen = () => {
       {showProgressIndicator && <ProgressIndicator currentStage={currentStage} />}
 
       {/* Stage Content */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {renderStage()}
-      </ScrollView>
+      {loading ? (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {renderStage()}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -297,5 +318,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.xxl,
+  },
+
+  loadingOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background,
   },
 });

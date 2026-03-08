@@ -3,7 +3,7 @@
  * Partner uploads after-service photos/videos and waits for charge approvals
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,10 @@ export const Stage3_AfterMedia: React.FC<StageComponentProps> = ({
   const [uploading, setUploadingLocal] = useState(false);
   const [localBooking, setLocalBooking] = useState(booking);
   const [localCharges, setLocalCharges] = useState(charges);
+
+  // Sync with parent's background refreshes so Stage 3 always shows fresh data
+  useEffect(() => { setLocalBooking(booking); }, [booking]);
+  useEffect(() => { setLocalCharges(charges); }, [charges]);
 
   // Check if after media already uploaded
   const afterMediaUploaded = (localBooking.afterMedia?.length || 0) > 0;

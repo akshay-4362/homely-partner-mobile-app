@@ -54,6 +54,11 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
   const [newCharges, setNewCharges] = useState([{ description: '', amount: '', category: 'materials' }]);
   const [localCharges, setLocalCharges] = useState(charges);
   const [loadingCharges, setLoadingCharges] = useState(false);
+
+  // Keep localCharges in sync when parent refreshes charges in the background
+  useEffect(() => {
+    setLocalCharges(charges);
+  }, [charges]);
   const [editingCharge, setEditingCharge] = useState<any>(null);
   const [editChargeModal, setEditChargeModal] = useState(false);
 
@@ -65,7 +70,6 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
 
   const CLOSE_JOB_REASONS = [
     'Service not provided by UC',
-    'Appliance is commercial',
     'Spare parts not available for appliance',
     'Product damaged/Unserviceable',
     'Nothing wrong with appliance',
@@ -89,31 +93,34 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
   /**
    * Load charges from backend
    */
-  const loadCharges = async () => {
-    setLoadingCharges(true);
+  const loadCharges = async (silent = false) => {
+    if (!silent) setLoadingCharges(true);
     try {
       const data = await bookingApi.getCharges(booking.id);
       setLocalCharges(data?.data || data);
     } catch (error) {
       console.error('Failed to load charges:', error);
     }
-    setLoadingCharges(false);
+    if (!silent) setLoadingCharges(false);
   };
 
   /**
    * Setup socket listeners and auto-polling for charge updates
    */
   useEffect(() => {
-    // Load charges on mount
-    loadCharges();
+    // Only show spinner on mount if no charge data exists yet.
+    // When navigating back to this stage, `localCharges` is already populated
+    // from the parent's fresh data — skip the spinner and refresh silently.
+    const hasExistingData =
+      localCharges.pending.length > 0 || localCharges.approved.length > 0;
+    loadCharges(!hasExistingData ? false : true);
 
-    // Auto-poll charges every 5 seconds if there are pending charges
+    // Auto-poll every 5 seconds while charges are pending (always silent)
     let pollInterval: NodeJS.Timeout | null = null;
     if (hasPendingCharges) {
       pollInterval = setInterval(() => {
-        console.log('[Auto-Poll] Checking for charge updates...');
-        loadCharges();
-      }, 5000); // Poll every 5 seconds
+        loadCharges(true);
+      }, 5000);
     }
 
     if (socket) {
@@ -452,7 +459,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
           <View style={styles.chargesHeaderActions}>
             {hasPendingCharges && (
               <TouchableOpacity
-                onPress={loadCharges}
+                onPress={() => loadCharges(false)}
                 style={styles.refreshBtn}
                 disabled={loadingCharges}
               >

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
+  Modal, ActivityIndicator, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,11 +12,13 @@ import { fetchPayouts } from '../store/payoutSlice';
 import { fetchAccountingSummary } from '../store/accountingSlice';
 import { accountingApi } from '../api/accountingApi';
 import { creditApi } from '../api/creditApi';
+import { bookingApi } from '../api/bookingApi';
 import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { formatCurrency, formatDateOnly } from '../utils/format';
 import { ProfessionalMonthlyEarning } from '../types';
 import { Loader } from '../components/common/Loader';
+import { PayDeductionModal } from '../components/PayDeductionModal';
 
 export const EarningsScreen = () => {
   const navigation = useNavigation<any>();
@@ -30,6 +33,10 @@ export const EarningsScreen = () => {
   const [expandEarnings, setExpandEarnings] = useState(true);
   const [expandDeductions, setExpandDeductions] = useState(true);
   const [pendingDeductionAmount, setPendingDeductionAmount] = useState(0);
+  const [showPayDeductionModal, setShowPayDeductionModal] = useState(false);
+  const [showMonthJobsModal, setShowMonthJobsModal] = useState(false);
+  const [monthJobs, setMonthJobs] = useState<any[]>([]);
+  const [monthJobsLoading, setMonthJobsLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -49,7 +56,7 @@ export const EarningsScreen = () => {
         const txResp = await creditApi.getCreditTransactions({ type: 'job_deduction' });
         const txList = txResp?.data?.transactions || [];
         const pendingTotal = txList
-          .filter((t: any) => t.status === 'pending')
+          .filter((t: any) => t.status === 'pending' && t.metadata?.paidInCash === true)
           .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
         setPendingDeductionAmount(pendingTotal);
       } catch (_) {
@@ -78,7 +85,7 @@ export const EarningsScreen = () => {
         const txResp = await creditApi.getCreditTransactions({ type: 'job_deduction' });
         const txList = txResp?.data?.transactions || [];
         const pendingTotal = txList
-          .filter((t: any) => t.status === 'pending')
+          .filter((t: any) => t.status === 'pending' && t.metadata?.paidInCash === true)
           .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
         setPendingDeductionAmount(pendingTotal);
       } catch (_) {
@@ -149,6 +156,24 @@ export const EarningsScreen = () => {
       setSelectedMonthIndex(selectedMonthIndex - 1);
   };
 
+  const openMonthJobs = async () => {
+    setShowMonthJobsModal(true);
+    setMonthJobsLoading(true);
+    try {
+      const all = await bookingApi.fetchBookings();
+      const list = Array.isArray(all) ? all : all?.bookings || all?.data || [];
+      const filtered = list.filter((b: any) => {
+        const date = b.scheduledAt || b.createdAt || '';
+        return date.startsWith(selectedMonthName) && b.status === 'completed';
+      });
+      setMonthJobs(filtered);
+    } catch {
+      setMonthJobs([]);
+    } finally {
+      setMonthJobsLoading(false);
+    }
+  };
+
   // ── bar chart ─────────────────────────────────────────────────
   const monthlyChartData = [...monthlyData].reverse().map((m) => {
     const [, mon] = m.month.split('-');
@@ -193,29 +218,43 @@ export const EarningsScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* ── Bar Chart ── */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartContainer}>
+        {/* ── Hero Earnings Card ── */}
+        <View style={styles.heroCard}>
+          {/* Top row: amount + arrow */}
+          <View style={styles.heroTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroAmount}>{formatCurrency(customerPaid)}</Text>
+              <Text style={styles.heroSubtitle}>Customer paid this month</Text>
+              <Text style={styles.heroNet}>
+                Net to you: <Text style={styles.heroNetAmt}>{formatCurrency(netEarnings)}</Text>
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.heroArrowBtn} onPress={openMonthJobs} activeOpacity={0.7}>
+              <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Sparkline — monthly bars */}
+          <View style={styles.sparkline}>
             {monthlyChartData.map((mon, index) => {
-              const barHeight = (mon.amount / maxMonthlyAmount) * 70;
+              const barHeight = (mon.amount / maxMonthlyAmount) * 44;
               const actualIndex = monthlyData.length - 1 - index;
               const isSelected = selectedMonthIndex === actualIndex;
               return (
                 <TouchableOpacity
                   key={mon.monthKey}
-                  style={styles.barColumn}
+                  style={styles.sparkBarCol}
                   onPress={() => setSelectedMonthIndex(actualIndex)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.barWrapper}>
-                    <View
-                      style={[
-                        styles.bar,
-                        { height: Math.max(barHeight, 4), backgroundColor: isSelected ? Colors.primary : Colors.primaryBg },
-                      ]}
-                    />
+                  <View style={styles.sparkBarWrap}>
+                    <View style={[
+                      styles.sparkBar,
+                      { height: Math.max(barHeight, 3) },
+                      isSelected && styles.sparkBarSelected,
+                    ]} />
                   </View>
-                  <Text style={[styles.barLabel, isSelected && { color: Colors.primary, fontWeight: '700' }]}>
+                  <Text style={[styles.sparkLabel, isSelected && styles.sparkLabelSelected]}>
                     {mon.label}
                   </Text>
                 </TouchableOpacity>
@@ -378,7 +417,7 @@ export const EarningsScreen = () => {
             </View>
             <TouchableOpacity
               style={styles.payNowBtn}
-              onPress={() => navigation.navigate('Credits')}
+              onPress={() => setShowPayDeductionModal(true)}
               activeOpacity={0.85}
             >
               <Text style={styles.payNowText}>Pay now</Text>
@@ -410,6 +449,97 @@ export const EarningsScreen = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* ── Month Jobs Modal ── */}
+      <Modal
+        visible={showMonthJobsModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowMonthJobsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            {/* Handle */}
+            <View style={styles.modalHandle} />
+
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>{formatMonthTitle(selectedMonthName)}</Text>
+                <Text style={styles.modalSubtitle}>
+                  {selectedMonth?.bookings || 0} job{(selectedMonth?.bookings || 0) !== 1 ? 's' : ''} completed
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowMonthJobsModal(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={22} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Summary pill */}
+            <View style={styles.modalSummaryRow}>
+              <View style={styles.modalSummaryPill}>
+                <Text style={styles.modalSummaryLabel}>Customer paid</Text>
+                <Text style={styles.modalSummaryVal}>{formatCurrency(customerPaid)}</Text>
+              </View>
+              <View style={styles.modalSummaryPill}>
+                <Text style={styles.modalSummaryLabel}>Net to you</Text>
+                <Text style={[styles.modalSummaryVal, { color: Colors.success }]}>{formatCurrency(netEarnings)}</Text>
+              </View>
+            </View>
+
+            {/* Jobs list */}
+            {monthJobsLoading ? (
+              <View style={styles.modalLoader}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+              </View>
+            ) : monthJobs.length === 0 ? (
+              <View style={styles.modalEmpty}>
+                <Ionicons name="briefcase-outline" size={40} color={Colors.gray300} />
+                <Text style={styles.modalEmptyText}>No completed jobs this month</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={monthJobs}
+                keyExtractor={(item) => item._id || item.id || item.bookingId}
+                contentContainerStyle={styles.jobsList}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => {
+                  const earnings = item.finalTotal ?? item.total ?? item.earnings ?? 0;
+                  const serviceName = item.service?.name || item.serviceName || 'Service';
+                  const customerName = item.customer
+                    ? `${item.customer.firstName || ''} ${item.customer.lastName || ''}`.trim()
+                    : item.customerName || 'Customer';
+                  const date = item.scheduledAt
+                    ? new Date(item.scheduledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                    : '';
+                  return (
+                    <View style={styles.jobItem}>
+                      <View style={styles.jobIconBg}>
+                        <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+                      </View>
+                      <View style={styles.jobInfo}>
+                        <Text style={styles.jobName} numberOfLines={1}>{serviceName}</Text>
+                        <Text style={styles.jobMeta}>{customerName}{date ? `  ·  ${date}` : ''}</Text>
+                      </View>
+                      <Text style={styles.jobAmt}>{formatCurrency(earnings)}</Text>
+                    </View>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <PayDeductionModal
+        visible={showPayDeductionModal}
+        amount={pendingDeductionAmount}
+        onClose={() => setShowPayDeductionModal(false)}
+        onSuccess={() => {
+          setPendingDeductionAmount(0);
+          load();
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -720,5 +850,220 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+
+  // ── Hero Earnings Card
+  heroCard: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.lg,
+  },
+  heroAmount: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 6,
+  },
+  heroNet: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  heroNetAmt: {
+    fontWeight: '700',
+    color: Colors.success,
+  },
+  heroArrowBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    marginTop: 4,
+  },
+
+  // ── Sparkline
+  sparkline: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 6,
+    height: 60,
+  },
+  sparkBarCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  sparkBarWrap: {
+    width: '100%',
+    height: 44,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  sparkBar: {
+    width: '70%',
+    borderRadius: 3,
+    backgroundColor: Colors.divider,
+  },
+  sparkBarSelected: {
+    backgroundColor: Colors.primary,
+  },
+  sparkLabel: {
+    marginTop: 4,
+    fontSize: 10,
+    color: Colors.textTertiary,
+    fontWeight: '500',
+  },
+  sparkLabelSelected: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+
+  // ── Month Jobs Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: Spacing.md,
+    maxHeight: '85%',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.divider,
+    alignSelf: 'center',
+    marginBottom: Spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSummaryRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.lg,
+  },
+  modalSummaryPill: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  modalSummaryLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  modalSummaryVal: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  modalLoader: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  modalEmpty: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  modalEmptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  jobsList: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: 40,
+    gap: Spacing.md,
+  },
+  jobItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  jobIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  jobInfo: {
+    flex: 1,
+  },
+  jobName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  jobMeta: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '400',
+  },
+  jobAmt: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textPrimary,
   },
 });
