@@ -69,7 +69,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
   const [closingJob, setClosingJob] = useState(false);
 
   const CLOSE_JOB_REASONS = [
-    'Service not provided by UC',
+    'Service not provided by Homelyo',
     'Spare parts not available for appliance',
     'Product damaged/Unserviceable',
     'Nothing wrong with appliance',
