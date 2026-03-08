@@ -428,7 +428,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
   const handleContinue = () => {
     if (!canContinue) {
       if (!hasCharges) {
-        Alert.alert('Charges Required', 'Please add additional charges first');
+        Alert.alert('Parts Required', 'Please add additional parts first');
       } else if (hasPendingCharges) {
         Alert.alert('Approval Pending', 'Wait for customer to approve charges before proceeding');
       } else if (!beforeMediaUploaded) {
@@ -442,11 +442,11 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Additional Charges Card (First - Required) */}
+      {/* Additional Parts Card (First - Required) */}
       <Card style={styles.card}>
         <View style={styles.chargesHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>Additional Charges (Required)</Text>
+            <Text style={styles.sectionTitle}>Additional Parts (Required)</Text>
             <Text style={styles.subtitle}>Add parts/materials cost first</Text>
           </View>
           <View style={styles.chargesHeaderActions}>
@@ -627,7 +627,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
               <View style={styles.warningBox}>
                 <Ionicons name="alert-circle-outline" size={16} color={Colors.warning} />
                 <Text style={styles.warningText}>
-                  Add additional charges first before uploading photos
+                  Add additional parts first before uploading photos
                 </Text>
               </View>
             )}
@@ -724,7 +724,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
         {!canContinue && (
           <Text style={styles.disabledHint}>
             {!hasCharges
-              ? '⚠️ Add additional charges first'
+              ? '⚠️ Add additional parts first'
               : hasPendingCharges
               ? '⏳ Waiting for customer to approve charges...'
               : '📸 Upload at least 1 before photo to continue'}

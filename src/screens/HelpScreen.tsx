@@ -46,8 +46,8 @@ const FAQ_ITEMS = [
     a: 'You can request a cancellation from the job detail page. Frequent cancellations may affect your rating and penalty credits may be applied.',
   },
   {
-    q: 'How do I raise an additional charge?',
-    a: 'On the job detail screen, scroll down to find the "Additional Charges" section. Add charges with category and amount, and submit for customer approval.',
+    q: 'How do I raise additional parts?',
+    a: 'On the job detail screen, scroll down to find the "Additional Parts" section. Add parts with category and amount, and submit for customer approval.',
   },
 ];
 

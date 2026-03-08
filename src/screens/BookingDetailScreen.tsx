@@ -893,10 +893,10 @@ export const BookingDetailScreen = () => {
 
         {isInProgress && (
           <>
-            {/* Additional Charges - First Section */}
+            {/* Additional Parts - First Section */}
             <Card>
               <View style={styles.chargesHeader}>
-                <Text style={styles.sectionTitle}>Additional Charges</Text>
+                <Text style={styles.sectionTitle}>Additional Parts</Text>
                 <TouchableOpacity onPress={() => setChargesModal(true)}>
                   <Text style={styles.viewCharges}>View</Text>
                 </TouchableOpacity>
@@ -1106,7 +1106,7 @@ export const BookingDetailScreen = () => {
                         ? charges.approved.filter(c => !c.paidAt).reduce((sum, c) => sum + c.amount, 0)
                         : 0;
                       return booking.paidAt
-                        ? `Collect ₹${unpaidApprovedTotal} for additional charges`
+                        ? `Collect ₹${unpaidApprovedTotal} for additional parts`
                         : `Collect full amount ₹${(booking.finalTotal || booking.total) + unpaidApprovedTotal}`;
                     })()}
                   </Text>
@@ -1416,7 +1416,7 @@ export const BookingDetailScreen = () => {
                       <View key={c._id} style={[styles.chargeRow, { alignItems: 'center', marginBottom: Spacing.md }]}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.chargeName}>
-                            {c.description || `${c.category?.charAt(0).toUpperCase()}${c.category?.slice(1).replace('_', ' ')}` || 'Additional Charge'}
+                            {c.description || `${c.category?.charAt(0).toUpperCase()}${c.category?.slice(1).replace('_', ' ')}` || 'Additional Part'}
                           </Text>
                           <Text style={styles.chargeAmt}>{formatCurrency(c.amount)}</Text>
                         </View>
@@ -1437,7 +1437,7 @@ export const BookingDetailScreen = () => {
                       <View key={c._id} style={[styles.chargeRow, { marginBottom: Spacing.sm }]}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.chargeName}>
-                            {c.description || `${c.category?.charAt(0).toUpperCase()}${c.category?.slice(1).replace('_', ' ')}` || 'Additional Charge'}
+                            {c.description || `${c.category?.charAt(0).toUpperCase()}${c.category?.slice(1).replace('_', ' ')}` || 'Additional Part'}
                           </Text>
                           <Text style={[styles.chargeAmt, { color: Colors.success, fontSize: 12, marginTop: 2 }]}>
                             {formatCurrency(c.amount)}

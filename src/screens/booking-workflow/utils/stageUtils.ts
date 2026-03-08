@@ -126,7 +126,7 @@ export const validateAfterMediaStage = (
   if (pendingChargesCount > 0) {
     return {
       valid: false,
-      error: 'Wait for customer to approve additional charges before proceeding',
+      error: 'Wait for customer to approve additional parts before proceeding',
     };
   }
 

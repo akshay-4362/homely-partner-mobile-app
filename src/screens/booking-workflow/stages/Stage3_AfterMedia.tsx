@@ -198,7 +198,7 @@ export const Stage3_AfterMedia: React.FC<StageComponentProps> = ({
     if (hasPendingCharges) {
       Alert.alert(
         'Charges Pending',
-        'Wait for customer to approve additional charges before proceeding to payment'
+        'Wait for customer to approve additional parts before proceeding to payment'
       );
       return;
     }
@@ -325,7 +325,7 @@ export const Stage3_AfterMedia: React.FC<StageComponentProps> = ({
           { borderLeftColor: hasPendingCharges ? Colors.warning : Colors.success },
         ]}
       >
-        <Text style={styles.sectionTitle}>Additional Charges</Text>
+        <Text style={styles.sectionTitle}>Additional Parts</Text>
 
         {charges.pending.length > 0 && (
           <View style={styles.statusRow}>
@@ -355,7 +355,7 @@ export const Stage3_AfterMedia: React.FC<StageComponentProps> = ({
         {charges.pending.length === 0 && charges.approved.length === 0 && (
           <View style={styles.statusRow}>
             <Ionicons name="information-circle-outline" size={18} color={Colors.textSecondary} />
-            <Text style={styles.statusText}>No additional charges</Text>
+            <Text style={styles.statusText}>No additional parts</Text>
           </View>
         )}
 
