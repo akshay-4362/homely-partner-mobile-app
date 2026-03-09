@@ -236,7 +236,7 @@ export const SpecificDateEditor: React.FC<Props> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header */}
         <View style={styles.header}>
@@ -599,10 +599,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.lg,
     backgroundColor: Colors.background,
     borderTopWidth: 1,

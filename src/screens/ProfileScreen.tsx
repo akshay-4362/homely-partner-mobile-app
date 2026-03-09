@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal,
-  Platform, ActivityIndicator } from 'react-native';
+  Platform, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { logout, updateUser } from '../store/authSlice';
@@ -25,6 +26,7 @@ import { ProfessionalDocument } from '../types';
 export const ProfileScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
   const { user } = useAppSelector((s) => s.auth);
 
   const [profile, setProfile] = useState<any>(null);
@@ -380,9 +382,12 @@ export const ProfileScreen = () => {
       </Modal>
 
       {/* Phone Edit Modal */}
-      <Modal visible={editPhone} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+      <Modal visible={editPhone} animationType="slide" transparent onRequestClose={() => setEditPhone(false)}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior="padding"
+        >
+          <View style={[styles.modalSheet, { paddingBottom: Math.max(Spacing.xl, insets.bottom + Spacing.md) }]}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>
               {user?.phone ? 'Edit Phone Number' : 'Add Phone Number'}
@@ -407,7 +412,7 @@ export const ProfileScreen = () => {
               <Button label="Save" onPress={savePhone} loading={saving} />
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -488,7 +493,7 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: Spacing.xl, paddingBottom: Platform.OS === 'ios' ? 100 : 80,
+    padding: Spacing.xl,
   },
   modalHandle: { width: 40, height: 4, backgroundColor: Colors.gray300, borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.lg },
   modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.lg },

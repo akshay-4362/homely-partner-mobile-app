@@ -123,17 +123,16 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
       }, 5000);
     }
 
+    let handleChargeApproved: ((data: any) => void) | null = null;
+    let handleChargeRejected: ((data: any) => void) | null = null;
+
     if (socket) {
       console.log('[Socket] Setting up charge listeners for booking:', booking.id);
 
-      // Listen for charge approvals
-      const handleChargeApproved = (data: any) => {
+      handleChargeApproved = (data: any) => {
         console.log('[Socket] Charge approved event received:', data);
         if (data.bookingId === booking.id) {
-          console.log('[Socket] Charge approved for this booking');
-          // Refresh charges immediately
           loadCharges();
-          // Show alert to professional
           Alert.alert(
             'Charge Approved! ✅',
             `Customer approved your ₹${data.charge?.amount} charge for ${data.charge?.description}`
@@ -141,14 +140,10 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
         }
       };
 
-      // Listen for charge rejections
-      const handleChargeRejected = (data: any) => {
+      handleChargeRejected = (data: any) => {
         console.log('[Socket] Charge rejected event received:', data);
         if (data.bookingId === booking.id) {
-          console.log('[Socket] Charge rejected for this booking');
-          // Refresh charges immediately
           loadCharges();
-          // Show alert to professional
           Alert.alert(
             'Charge Rejected ❌',
             `Customer rejected your ₹${data.charge?.amount} charge for ${data.charge?.description}`
@@ -158,18 +153,12 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
 
       socket.on('charge_approved', handleChargeApproved);
       socket.on('charge_rejected', handleChargeRejected);
-
-      // Cleanup listeners on unmount
-      return () => {
-        if (pollInterval) clearInterval(pollInterval);
-        socket.off('charge_approved', handleChargeApproved);
-        socket.off('charge_rejected', handleChargeRejected);
-      };
     }
 
-    // Cleanup poll interval
     return () => {
       if (pollInterval) clearInterval(pollInterval);
+      if (socket && handleChargeApproved) socket.off('charge_approved', handleChargeApproved);
+      if (socket && handleChargeRejected) socket.off('charge_rejected', handleChargeRejected);
     };
   }, [booking.id, socket, hasPendingCharges]);
 
@@ -754,7 +743,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
       </View>
 
       {/* Close Job Modal */}
-      <Modal visible={closeJobModal} animationType="slide" transparent>
+      <Modal visible={closeJobModal} animationType="slide" transparent onRequestClose={() => setCloseJobModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
@@ -820,7 +809,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
       </Modal>
 
       {/* Edit Charge Modal */}
-      <Modal visible={editChargeModal} animationType="slide" transparent>
+      <Modal visible={editChargeModal} animationType="slide" transparent onRequestClose={() => setEditChargeModal(false)}>
         <View style={styles.modalOverlay}>
           <ScrollView>
             <View style={styles.modalSheet}>
@@ -863,7 +852,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
       </Modal>
 
       {/* Add Charge Modal */}
-      <Modal visible={addChargeModal} animationType="slide" transparent>
+      <Modal visible={addChargeModal} animationType="slide" transparent onRequestClose={() => setAddChargeModal(false)}>
         <View style={styles.modalOverlay}>
           <ScrollView>
             <View style={styles.modalSheet}>

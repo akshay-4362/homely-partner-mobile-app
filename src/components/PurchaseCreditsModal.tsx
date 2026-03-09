@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import RazorpayCheckout from 'react-native-razorpay';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Button } from './common/Button';
 import { formatCurrency } from '../utils/format';
@@ -53,6 +54,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const insets = useSafeAreaInsets();
   const [selectedAmount, setSelectedAmount] = useState<number>(10000);
   const [isCustomAmount, setIsCustomAmount] = useState(false);
   const [customAmountText, setCustomAmountText] = useState<string>('');
@@ -372,7 +374,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
           </ScrollView>
 
           {/* Footer */}
-          <View style={styles.footer}>
+          <View style={[styles.footer, { paddingBottom: insets.bottom || Spacing.md }]}>
             <Button
               label={
                 processing
@@ -594,7 +596,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: Spacing.xl,
-    paddingBottom: Spacing.xxl,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },

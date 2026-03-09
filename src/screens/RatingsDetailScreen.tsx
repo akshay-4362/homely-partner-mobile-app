@@ -483,7 +483,7 @@ export const RatingsDetailScreen = () => {
       </ScrollView>
 
       {/* How Rating Works Modal */}
-      <Modal visible={showHowRatingWorks} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={showHowRatingWorks} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowHowRatingWorks(false)}>
         <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>How ratings work</Text>
@@ -632,7 +632,7 @@ export const RatingsDetailScreen = () => {
       </Modal>
 
       {/* View All Ratings Modal */}
-      <Modal visible={showAllRatings} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={showAllRatings} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAllRatings(false)}>
         <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowAllRatings(false)}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet, Modal } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/colors';
 
 interface LoadingSpinnerProps {
@@ -30,9 +30,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   if (overlay) {
     return (
-      <Modal transparent visible={visible} animationType="fade">
+      <View style={styles.absoluteOverlay} pointerEvents="box-none">
         {content}
-      </Modal>
+      </View>
     );
   }
 
@@ -45,7 +45,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  absoluteOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
   overlayContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   spinnerBox: {

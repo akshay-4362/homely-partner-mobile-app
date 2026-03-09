@@ -8,9 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import { Colors, Spacing, BorderRadius } from '../../theme/colors';
 import client from '../../api/client';
 
@@ -38,9 +37,50 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8-20
 
 const formatHour = (hour: number): string => {
-  const period = hour >= 12 ? 'pm' : 'am';
+  const period = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
   return `${displayHour}:00 ${period}`;
+};
+
+interface TimePickerSheetProps {
+  visible: boolean;
+  title: string;
+  hours: number[];
+  selectedHour: number;
+  onSelect: (hour: number) => void;
+  onClose: () => void;
+}
+
+const TimePickerSheet: React.FC<TimePickerSheetProps> = ({
+  visible, title, hours, selectedHour, onSelect, onClose,
+}) => {
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={onClose} />
+      <View style={[styles.sheetContainer, { paddingBottom: insets.bottom + Spacing.md }]}>
+        <View style={styles.sheetHandle} />
+        <Text style={styles.sheetTitle}>{title}</Text>
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.sheetScroll}>
+          {hours.map((hour) => (
+            <TouchableOpacity
+              key={hour}
+              style={[styles.sheetOption, selectedHour === hour && styles.sheetOptionSelected]}
+              onPress={() => { onSelect(hour); onClose(); }}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sheetOptionText, selectedHour === hour && styles.sheetOptionTextSelected]}>
+                {formatHour(hour)}
+              </Text>
+              {selectedHour === hour && (
+                <Ionicons name="checkmark" size={20} color={Colors.primary} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
 };
 
 export const DayPatternEditor: React.FC<Props> = ({
@@ -50,21 +90,23 @@ export const DayPatternEditor: React.FC<Props> = ({
   weeklySchedule,
   onSave,
 }) => {
+  const insets = useSafeAreaInsets();
   const [startHour, setStartHour] = useState(8);
   const [endHour, setEndHour] = useState(17); // 5 PM
   const [saving, setSaving] = useState(false);
   const [markAllUnavailable, setMarkAllUnavailable] = useState(false);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   useEffect(() => {
     if (dayOfWeek !== null && visible) {
-      // Load current schedule for this day
       const daySchedule = weeklySchedule.find((d) => d.dayOfWeek === dayOfWeek);
       if (daySchedule && daySchedule.slots.length > 0) {
         const availableSlots = daySchedule.slots.filter((s) => s.available);
         if (availableSlots.length > 0) {
           const hours = availableSlots.map((s) => s.hour).sort((a, b) => a - b);
           setStartHour(hours[0]);
-          setEndHour(hours[hours.length - 1] + 1); // +1 because it's the end of the range
+          setEndHour(hours[hours.length - 1] + 1);
           setMarkAllUnavailable(false);
         } else {
           setMarkAllUnavailable(true);
@@ -85,27 +127,13 @@ export const DayPatternEditor: React.FC<Props> = ({
     try {
       setSaving(true);
 
-      // Create updated slots for this day
-      const newSlots: HourlySlot[] = [];
-      for (let hour = 8; hour < 20; hour++) {
-        if (markAllUnavailable) {
-          newSlots.push({ hour, available: false });
-        } else {
-          newSlots.push({ hour, available: hour >= startHour && hour < endHour });
-        }
-      }
-
-      // Update via API
       await client.post('/availability/batch-update-day', {
         dayOfWeek,
         startHour: markAllUnavailable ? 8 : startHour,
-        endHour: markAllUnavailable ? 8 : endHour - 1, // API expects inclusive end
+        endHour: markAllUnavailable ? 8 : endHour - 1,
         available: !markAllUnavailable,
       });
 
-      console.log('Day pattern saved successfully');
-
-      // Wait for save to complete, then refresh and close
       await onSave();
       onClose();
     } catch (error) {
@@ -116,8 +144,11 @@ export const DayPatternEditor: React.FC<Props> = ({
     }
   };
 
+  const startHours = HOURS.filter((h) => h < endHour);
+  const endHours = HOURS.filter((h) => h > startHour);
+
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header */}
         <View style={styles.header}>
@@ -148,32 +179,26 @@ export const DayPatternEditor: React.FC<Props> = ({
               <View style={styles.timePickersRow}>
                 <View style={styles.timePickerContainer}>
                   <Text style={styles.timePickerLabel}>Start Time</Text>
-                  <View style={styles.pickerWrapper}>
-                    <Picker
-                      selectedValue={startHour}
-                      onValueChange={(value) => setStartHour(value)}
-                      style={styles.picker}
-                    >
-                      {HOURS.filter((h) => h < endHour).map((hour) => (
-                        <Picker.Item key={hour} label={formatHour(hour)} value={hour} />
-                      ))}
-                    </Picker>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.timePickerBtn}
+                    onPress={() => setShowStartPicker(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.timePickerBtnText}>{formatHour(startHour)}</Text>
+                    <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.timePickerContainer}>
                   <Text style={styles.timePickerLabel}>End Time</Text>
-                  <View style={styles.pickerWrapper}>
-                    <Picker
-                      selectedValue={endHour}
-                      onValueChange={(value) => setEndHour(value)}
-                      style={styles.picker}
-                    >
-                      {HOURS.filter((h) => h > startHour).map((hour) => (
-                        <Picker.Item key={hour} label={formatHour(hour)} value={hour} />
-                      ))}
-                    </Picker>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.timePickerBtn}
+                    onPress={() => setShowEndPicker(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.timePickerBtnText}>{formatHour(endHour)}</Text>
+                    <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -228,6 +253,24 @@ export const DayPatternEditor: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {/* Time picker sheets rendered outside SafeAreaView so they overlay correctly */}
+      <TimePickerSheet
+        visible={showStartPicker}
+        title="Select Start Time"
+        hours={startHours}
+        selectedHour={startHour}
+        onSelect={setStartHour}
+        onClose={() => setShowStartPicker(false)}
+      />
+      <TimePickerSheet
+        visible={showEndPicker}
+        title="Select End Time"
+        hours={endHours}
+        selectedHour={endHour}
+        onSelect={setEndHour}
+        onClose={() => setShowEndPicker(false)}
+      />
     </Modal>
   );
 };
@@ -286,15 +329,21 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.sm,
   },
-  pickerWrapper: {
+  timePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.divider,
-    overflow: 'hidden',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 14,
   },
-  picker: {
-    height: 50,
+  timePickerBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
   warningBanner: {
     flexDirection: 'row',
@@ -347,10 +396,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.lg,
     backgroundColor: Colors.background,
     borderTopWidth: 1,
@@ -371,5 +416,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+  },
+  // Time picker sheet styles
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheetContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: Spacing.md,
+    maxHeight: '60%',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.gray300,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: Spacing.md,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  sheetScroll: {
+    paddingHorizontal: Spacing.lg,
+  },
+  sheetOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  sheetOptionSelected: {
+    // highlight handled by text color
+  },
+  sheetOptionText: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+  },
+  sheetOptionTextSelected: {
+    fontWeight: '700',
+    color: Colors.primary,
   },
 });
