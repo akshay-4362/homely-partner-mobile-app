@@ -197,7 +197,7 @@ export const PaymentQRScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Generating QR Code...</Text>
@@ -208,7 +208,7 @@ export const PaymentQRScreen = () => {
 
   if (error && !qrData) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={styles.errorContainer}>
           <Ionicons name="alert-circle" size={64} color={Colors.error} />
           <Text style={styles.errorTitle}>QR Code Not Available</Text>
@@ -261,7 +261,7 @@ export const PaymentQRScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>

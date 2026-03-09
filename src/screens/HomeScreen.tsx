@@ -112,7 +112,7 @@ export const HomeScreen = () => {
   const unreadNotifs = notifications.filter((n) => !n.read).length;
 
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       {/* Header */}

@@ -1046,6 +1046,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   customerInfo: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,

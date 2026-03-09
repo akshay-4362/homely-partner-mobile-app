@@ -50,6 +50,7 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
   const socket = useSocket();
 
   const [uploading, setUploadingLocal] = useState(false);
+  const [mediaJustUploaded, setMediaJustUploaded] = useState(false);
   const [addChargeModal, setAddChargeModal] = useState(false);
   const [newCharges, setNewCharges] = useState([{ description: '', amount: '', category: 'materials' }]);
   const [localCharges, setLocalCharges] = useState(charges);
@@ -76,8 +77,8 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
     'Other Reason',
   ];
 
-  // Check if before media already uploaded
-  const beforeMediaUploaded = (booking.beforeMedia?.length || 0) > 0;
+  // Check if before media already uploaded (from backend) or just uploaded in this session
+  const beforeMediaUploaded = (booking.beforeMedia?.length || 0) > 0 || mediaJustUploaded;
 
   // Check if charges added
   const hasCharges = (localCharges.pending?.length || 0) > 0 || (localCharges.approved?.length || 0) > 0;
@@ -264,10 +265,8 @@ export const Stage2_BeforeMedia: React.FC<StageComponentProps> = ({
       setUploadingLocal(false);
       dispatch(setUploading(false));
 
+      setMediaJustUploaded(true);
       Alert.alert('Success', 'Before service media uploaded successfully');
-
-      // Reload booking to get updated media
-      // This will be handled by parent component refreshing data
     } catch (error: any) {
       setUploadingLocal(false);
       dispatch(setUploading(false));

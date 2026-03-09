@@ -339,6 +339,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: Spacing.lg,
+    paddingBottom: 100,
   },
   dayContainer: {
     alignItems: 'center',

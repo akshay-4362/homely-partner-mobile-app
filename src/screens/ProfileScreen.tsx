@@ -295,9 +295,9 @@ export const ProfileScreen = () => {
             { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
             { icon: 'wallet-outline', label: 'Credits', onPress: () => navigation.navigate('Credits') },
             { icon: 'school-outline', label: 'Training', onPress: () => navigation.navigate('Training') },
-            { icon: 'help-circle-outline', label: 'Help Center', onPress: () => navigation.navigate('Help') },
-            { icon: 'shield-outline', label: 'Privacy Policy', onPress: () => {} },
-            { icon: 'document-text-outline', label: 'Terms of Service', onPress: () => {} },
+            { icon: 'help-circle-outline', label: 'Help Center', onPress: () => navigation.navigate('HelpCenter') },
+            { icon: 'shield-outline', label: 'Privacy Policy', onPress: () => navigation.navigate('PrivacyPolicy') homelyoapp.com
+            { icon: 'document-text-outline', label: 'Terms of Service', onPress: () => navigation.navigate('TermsOfService')homelyoapp.com
           ].map((item, i, arr) => (
             <TouchableOpacity
               key={item.label}

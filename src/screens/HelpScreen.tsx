@@ -81,7 +81,7 @@ export const HelpScreen = () => {
   };
 
   const handleEmail = () => {
-    Linking.openURL('mailto:pro-support@homelyo.com').catch(() => {
+    Linking.openURL('mailto:pro-support@homelyoapp.com').catch(() => {
       Alert.alert('Unable to open email app');
     });
   };

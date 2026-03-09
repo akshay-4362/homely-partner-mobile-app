@@ -39,6 +39,8 @@ import { BankAccountSetupScreen } from '../screens/BankAccountSetupScreen';
 import { PayoutAccountsScreen } from '../screens/PayoutAccountsScreen';
 import { CategorySelectionScreen } from '../screens/CategorySelectionScreen';
 import { MonthJobsScreen } from '../screens/MonthJobsScreen';
+import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
+import { TermsOfServiceScreen } from '../screens/TermsOfServiceScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -162,6 +164,8 @@ const DrawerNav = () => (
     <Drawer.Screen name="BankAccountSetup" component={BankAccountSetupScreen} />
     <Drawer.Screen name="CategorySelection" component={CategorySelectionScreen} />
     <Drawer.Screen name="MonthJobs" component={MonthJobsScreen} />
+    <Drawer.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+    <Drawer.Screen name="TermsOfService" component={TermsOfServiceScreen} />
   </Drawer.Navigator>
 );
 

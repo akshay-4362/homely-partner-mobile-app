@@ -2,6 +2,8 @@ import 'react-native-gesture-handler';
 import React, { useEffect, useRef } from 'react';
 import { Provider, useDispatch } from 'react-redux';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainerRef } from '@react-navigation/native';
 import { store } from './src/store';
@@ -59,9 +61,17 @@ const AppInner = () => {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Provider store={store}>
-        <AppInner />
-      </Provider>
+      <SafeAreaProvider>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          enabled={Platform.OS === 'ios'}
+        >
+          <Provider store={store}>
+            <AppInner />
+          </Provider>
+        </KeyboardAvoidingView>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

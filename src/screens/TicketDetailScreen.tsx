@@ -76,8 +76,9 @@ export const TicketDetailScreen = () => {
   }
 
   return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
@@ -187,6 +188,7 @@ export const TicketDetailScreen = () => {
         </View>
       )}
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 

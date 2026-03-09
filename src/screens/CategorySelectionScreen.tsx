@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
@@ -31,6 +31,7 @@ interface CategorySelectionScreenProps {
 
 export const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = ({ route }) => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const isOnboarding = route?.params?.isOnboarding || false;
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -219,7 +220,7 @@ export const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = (
       </ScrollView>
 
       {/* Save Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         <TouchableOpacity
           style={[
             styles.saveButton,

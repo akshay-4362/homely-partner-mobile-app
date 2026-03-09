@@ -8,7 +8,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
@@ -21,6 +21,7 @@ type BankAccountType = 'savings' | 'current';
 
 export const BankAccountSetupScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<AccountMode>('bank_account');
 
@@ -268,7 +269,7 @@ export const BankAccountSetupScreen = () => {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         <Button
           label={loading ? 'Adding Account...' : 'Add Payout Account'}
           onPress={validateAndSubmit}
