@@ -41,6 +41,8 @@ import { CategorySelectionScreen } from '../screens/CategorySelectionScreen';
 import { MonthJobsScreen } from '../screens/MonthJobsScreen';
 import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
 import { TermsOfServiceScreen } from '../screens/TermsOfServiceScreen';
+import { AgreementScreen } from '../screens/AgreementScreen';
+import { LegalScreen } from '../screens/LegalScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -166,6 +168,8 @@ const DrawerNav = () => (
     <Drawer.Screen name="MonthJobs" component={MonthJobsScreen} />
     <Drawer.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
     <Drawer.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+    <Drawer.Screen name="Agreement" component={AgreementScreen} />
+    <Drawer.Screen name="Legal" component={LegalScreen} />
   </Drawer.Navigator>
 );
 
@@ -177,13 +181,25 @@ export const AppNavigator = ({ navigationRef }: { navigationRef?: any }) => {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
-        // Force remount by changing key when auth state changes
         key={user ? 'authenticated' : 'guest'}
       >
         {user ? (
           <>
             <Stack.Screen name="Main" component={DrawerNav} />
             <Stack.Screen name="Onboarding" component={CategorySelectionScreen} />
+            {/* Agreement gate — navigated to when partner hasn't accepted */}
+            <Stack.Screen
+              name="AgreementGate"
+              options={{ gestureEnabled: false }}
+            >
+              {(props) => (
+                <AgreementScreen
+                  {...props}
+                  showBackButton={false}
+                  onAccepted={() => props.navigation.replace('Main')}
+                />
+              )}
+            </Stack.Screen>
           </>
         ) : (
           <Stack.Screen name="Auth" component={AuthScreen} />

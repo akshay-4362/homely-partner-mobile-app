@@ -22,6 +22,7 @@ import { PendingTasksWidget } from '../components/PendingTasksWidget';
 import { CalendarWidget } from '../components/CalendarWidget';
 import { Notification } from '../types';
 import { usePayoutAccountCheck } from '../hooks/usePayoutAccountCheck';
+import { agreementApi } from '../api/agreementApi';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -78,6 +79,15 @@ export const HomeScreen = () => {
       setNotifications(Array.isArray(notifs) ? notifs.slice(0, 5) : []);
     } catch {}
   };
+
+  // Check agreement on mount — redirect to gate if not accepted or version mismatch
+  useEffect(() => {
+    agreementApi.getMy().then((status) => {
+      if (status.active && !status.isCurrentVersion) {
+        navigation.replace('AgreementGate');
+      }
+    }).catch(() => { /* ignore — network issues shouldn't block the home screen */ });
+  }, []);
 
   useEffect(() => { loadData(); }, []);
 

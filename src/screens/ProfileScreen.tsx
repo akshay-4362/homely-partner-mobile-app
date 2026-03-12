@@ -298,6 +298,7 @@ export const ProfileScreen = () => {
             { icon: 'wallet-outline', label: 'Credits', onPress: () => navigation.navigate('Credits') },
             { icon: 'school-outline', label: 'Training', onPress: () => navigation.navigate('Training') },
             { icon: 'help-circle-outline', label: 'Help Center', onPress: () => navigation.navigate('HelpCenter') },
+            { icon: 'document-lock-outline', label: 'Partner Agreement', onPress: () => navigation.navigate('Legal') },
             { icon: 'shield-outline', label: 'Privacy Policy', onPress: () => navigation.navigate('PrivacyPolicy') },
             { icon: 'document-text-outline', label: 'Terms of Service', onPress: () => navigation.navigate('TermsOfService') },
           ].map((item, i, arr) => (
