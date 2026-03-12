@@ -26,6 +26,11 @@ export const proApi = {
     return data.data || data;
   },
 
+  updateProfile: async (payload: Record<string, unknown>) => {
+    const { data } = await client.put('/professionals/me', payload);
+    return data.data || data;
+  },
+
   fetchPayouts: async () => {
     const { data } = await client.get('/payouts/me');
     return data.data || data;
