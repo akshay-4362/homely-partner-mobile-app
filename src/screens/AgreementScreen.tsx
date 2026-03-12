@@ -27,6 +27,8 @@ export const AgreementScreen: React.FC<AgreementScreenProps> = ({
   const scrollRef = useRef<ScrollView>(null);
 
   const [agreement, setAgreement] = useState<Agreement | null>(null);
+  const [alreadyAccepted, setAlreadyAccepted] = useState(false);
+  const [acceptedAt, setAcceptedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -41,8 +43,15 @@ export const AgreementScreen: React.FC<AgreementScreenProps> = ({
     setLoading(true);
     setError('');
     try {
-      const data = await agreementApi.getActive();
-      setAgreement(data);
+      const [active, status] = await Promise.all([
+        agreementApi.getActive(),
+        agreementApi.getMy(),
+      ]);
+      setAgreement(active);
+      if (status.isCurrentVersion && status.acceptance) {
+        setAlreadyAccepted(true);
+        setAcceptedAt(status.acceptance.acceptedAt);
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load agreement. Please try again.');
     } finally {
@@ -102,6 +111,59 @@ export const AgreementScreen: React.FC<AgreementScreenProps> = ({
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading agreement…</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (alreadyAccepted && agreement) {
+    const plainText = agreement.content
+      .replace(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi, '\n\n$1\n')
+      .replace(/<p[^>]*>(.*?)<\/p>/gi, '\n$1\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          {showBackButton && (
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={24} color={Colors.text} />
+            </TouchableOpacity>
+          )}
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>{agreement.title}</Text>
+            <View style={styles.versionBadge}>
+              <Text style={styles.versionBadgeText}>v{agreement.version}</Text>
+            </View>
+          </View>
+        </View>
+
+        <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+          {/* Accepted banner */}
+          <View style={styles.acceptedBanner}>
+            <Ionicons name="shield-checkmark" size={20} color="#10b981" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.acceptedBannerTitle}>Agreement Accepted</Text>
+              {acceptedAt && (
+                <Text style={styles.acceptedBannerDate}>
+                  Accepted on{' '}
+                  {new Date(acceptedAt).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'long', year: 'numeric',
+                  })}
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {/* Agreement content */}
+          <Text style={styles.agreementText}>{plainText}</Text>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -312,6 +374,42 @@ const styles = StyleSheet.create({
   },
   acceptBtnDisabled: { opacity: 0.45 },
   acceptBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  acceptedBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#ecfdf5', borderRadius: BorderRadius.md,
+    borderWidth: 1, borderColor: '#6ee7b7',
+    padding: Spacing.md, marginBottom: Spacing.md,
+  },
+  acceptedBannerTitle: { fontSize: 14, fontWeight: '700', color: '#065f46' },
+  acceptedBannerDate: { fontSize: 12, color: '#047857', marginTop: 2 },
+
+  // Already accepted state (full-screen fallback, kept for reference)
+  acceptedContainer: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    padding: Spacing.xl, gap: Spacing.md,
+  },
+  acceptedIconWrap: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: '#ecfdf5',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  acceptedTitle: { fontSize: 22, fontWeight: '700', color: '#0f172a', textAlign: 'center' },
+  acceptedSubtitle: { fontSize: 14, color: '#64748b', textAlign: 'center' },
+  acceptedMeta: {
+    backgroundColor: '#f8fafc', borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: '#e2e8f0',
+    padding: Spacing.md, gap: 10, width: '100%', marginTop: Spacing.sm,
+  },
+  acceptedMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  acceptedMetaText: { fontSize: 13, color: '#475569' },
+  doneBtn: {
+    marginTop: Spacing.md, backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md, paddingHorizontal: Spacing.xl, paddingVertical: 13,
+    width: '100%', alignItems: 'center',
+  },
+  doneBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
 
 export default AgreementScreen;
