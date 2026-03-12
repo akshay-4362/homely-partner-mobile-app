@@ -43,6 +43,7 @@ import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
 import { TermsOfServiceScreen } from '../screens/TermsOfServiceScreen';
 import { AgreementScreen } from '../screens/AgreementScreen';
 import { LegalScreen } from '../screens/LegalScreen';
+import { WelfarePolicyScreen } from '../screens/WelfarePolicyScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -170,6 +171,7 @@ const DrawerNav = () => (
     <Drawer.Screen name="TermsOfService" component={TermsOfServiceScreen} />
     <Drawer.Screen name="Agreement" component={AgreementScreen} />
     <Drawer.Screen name="Legal" component={LegalScreen} />
+    <Drawer.Screen name="WelfarePolicy" component={WelfarePolicyScreen} />
   </Drawer.Navigator>
 );
 

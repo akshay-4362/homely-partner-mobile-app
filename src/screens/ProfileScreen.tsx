@@ -299,6 +299,7 @@ export const ProfileScreen = () => {
             { icon: 'school-outline', label: 'Training', onPress: () => navigation.navigate('Training') },
             { icon: 'help-circle-outline', label: 'Help Center', onPress: () => navigation.navigate('HelpCenter') },
             { icon: 'document-lock-outline', label: 'Partner Agreement', onPress: () => navigation.navigate('Legal') },
+            { icon: 'heart-outline', label: 'Partner Welfare Policy', onPress: () => navigation.navigate('WelfarePolicy') },
             { icon: 'shield-outline', label: 'Privacy Policy', onPress: () => navigation.navigate('PrivacyPolicy') },
             { icon: 'document-text-outline', label: 'Terms of Service', onPress: () => navigation.navigate('TermsOfService') },
           ].map((item, i, arr) => (
