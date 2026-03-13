@@ -17,6 +17,7 @@ import { proApi } from '../api/proApi';
 import { WeeklyRoutineModal } from '../components/calendar/WeeklyRoutineModal';
 import { DayPatternEditor } from '../components/calendar/DayPatternEditor';
 import { SpecificDateEditor } from '../components/calendar/SpecificDateEditor';
+import { formatDateIST, toISTDateKey, isSameISTDate } from '../utils/dateTime';
 
 interface DaySchedule {
   dayOfWeek: number; // 0-6 (Sunday-Saturday)
@@ -114,18 +115,18 @@ export const NewCalendarScreen = () => {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
-      const dateString = date.toISOString().split('T')[0];
+      const dateString = toISTDateKey(date);
       const status = getDateStatus(dateString);
 
       marked[dateString] = {
         customStyles: {
           container: {
-            backgroundColor: date.toDateString() === new Date().toDateString() ? '#F0F0F0' : 'transparent',
+            backgroundColor: isSameISTDate(date, new Date()) ? '#F0F0F0' : 'transparent',
             borderRadius: 8,
           },
           text: {
             color: Colors.textPrimary,
-            fontWeight: date.toDateString() === new Date().toDateString() ? '700' : '400',
+            fontWeight: isSameISTDate(date, new Date()) ? '700' : '400',
           },
         },
       };
@@ -139,7 +140,7 @@ export const NewCalendarScreen = () => {
 
     const dateString = date.dateString;
     const status = getDateStatus(dateString);
-    const isToday = new Date(dateString).toDateString() === new Date().toDateString();
+    const isToday = isSameISTDate(new Date(dateString), new Date());
 
     let icon = null;
     if (status === 'full') {
@@ -172,7 +173,7 @@ export const NewCalendarScreen = () => {
     let availableDays = 0;
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
-      const dateString = date.toISOString().split('T')[0];
+      const dateString = toISTDateKey(date);
       const status = getDateStatus(dateString);
       if (status === 'full' || status === 'partial') {
         availableDays++;
@@ -196,7 +197,7 @@ export const NewCalendarScreen = () => {
     );
   }
 
-  const monthName = selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthName = formatDateIST(selectedMonth, { month: 'long', year: 'numeric' }, 'en-US');
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -213,7 +214,7 @@ export const NewCalendarScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Calendar */}
         <Calendar
-          current={selectedMonth.toISOString().split('T')[0]}
+          current={toISTDateKey(selectedMonth)}
           markedDates={getMarkedDates()}
           dayComponent={renderDayComponent}
           hideExtraDays={true}

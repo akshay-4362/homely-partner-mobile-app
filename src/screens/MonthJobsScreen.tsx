@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { formatCurrency } from '../utils/format';
+import { formatDateIST } from '../utils/dateTime';
 import { bookingApi } from '../api/bookingApi';
 
 export const MonthJobsScreen = () => {
@@ -86,10 +87,7 @@ export const MonthJobsScreen = () => {
               ? `${item.customer.firstName || ''} ${item.customer.lastName || ''}`.trim()
               : item.customerName || 'Customer';
             const date = item.scheduledAt
-              ? new Date(item.scheduledAt).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                })
+              ? formatDateIST(item.scheduledAt, { day: 'numeric', month: 'short' })
               : '';
             return (
               <View style={styles.jobItem}>

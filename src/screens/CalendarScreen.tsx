@@ -11,6 +11,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Button } from '../components/common/Button';
 import { Loader } from '../components/common/Loader';
 import { useAppSelector } from '../hooks/useAppSelector';
+import { formatDateIST, toISTDateKey } from '../utils/dateTime';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => {
   const h = i + 8; // 8am to 7pm
@@ -55,7 +56,7 @@ export const CalendarScreen = () => {
     load();
   }, []);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toISTDateKey(new Date());
 
   const onDayPress = (day: { dateString: string }) => {
     const d = day.dateString;
@@ -194,7 +195,7 @@ export const CalendarScreen = () => {
         {selectedDate && (
           <View style={styles.datePanel}>
             <Text style={styles.datePanelTitle}>
-              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {formatDateIST(selectedDate + 'T00:00:00+05:30', { weekday: 'long', month: 'long', day: 'numeric' })}
             </Text>
             {bookingDates[selectedDate] && (
               <View style={styles.bookingDot}>

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { proApi } from '../api/proApi';
+import { formatDateIST } from '../utils/dateTime';
 
 interface DaySchedule {
   day: string;
@@ -241,11 +242,11 @@ export const UnifiedCalendarScreen = () => {
 
   // Format date for display
   const formatSelectedDate = () => {
-    return selectedDate.toLocaleDateString('en-US', {
+    return formatDateIST(selectedDate, {
       weekday: 'long',
       month: 'short',
       day: 'numeric',
-    });
+    }, 'en-US');
   };
 
   return (

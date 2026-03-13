@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { proApi } from '../api/proApi';
+import { formatDateIST } from '../utils/dateTime';
 
 interface WeekendDay {
   date: string;
@@ -87,8 +88,7 @@ export const WeekendUnavailableHoursScreen = () => {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
+    return formatDateIST(dateStr, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -96,8 +96,7 @@ export const WeekendUnavailableHoursScreen = () => {
   };
 
   const formatDateShort = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
+    return formatDateIST(dateStr, {
       day: 'numeric',
       month: 'long',
     });

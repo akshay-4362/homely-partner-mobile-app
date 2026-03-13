@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { useAppSelector } from '../hooks/useAppSelector';
+import { formatDateIST, toISTDateKey, isSameISTDate } from '../utils/dateTime';
 
 interface DayInfo {
   date: Date;
@@ -38,10 +39,10 @@ export const CalendarWidget = () => {
       const date = new Date();
       date.setDate(today.getDate() + i);
 
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-      const month = date.toLocaleDateString('en-US', { month: 'short' });
+      const dayName = formatDateIST(date, { weekday: 'short' }, 'en-US');
+      const month = formatDateIST(date, { month: 'short' }, 'en-US');
       const dayNumber = date.getDate();
-      const dateString = date.toISOString().split('T')[0];
+      const dateString = toISTDateKey(date);
 
       nextDays.push({
         date,
@@ -57,8 +58,7 @@ export const CalendarWidget = () => {
   };
 
   const isToday = (date: Date) => {
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
+    return isSameISTDate(date, new Date());
   };
 
   return (

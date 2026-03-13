@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../../theme/colors';
 import client from '../../api/client';
+import { formatDateIST, toISTDateKey, isSameISTDate } from '../../utils/dateTime';
 
 interface HourlySlot {
   hour: number;
@@ -193,7 +194,7 @@ export const SpecificDateEditor: React.FC<Props> = ({
   };
 
   const handleDateChange = (newDate: Date) => {
-    const dateString = newDate.toISOString().split('T')[0];
+    const dateString = toISTDateKey(newDate);
     loadSlotsForDate(dateString);
     generateNearbyDates(dateString);
   };
@@ -201,12 +202,12 @@ export const SpecificDateEditor: React.FC<Props> = ({
   if (!date) return null;
 
   const dateObj = new Date(date);
-  const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-  const monthDay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dayName = formatDateIST(dateObj, { weekday: 'long' }, 'en-US');
+  const monthDay = formatDateIST(dateObj, { month: 'short', day: 'numeric' }, 'en-US');
   const formattedDate = `${dayName}, ${monthDay}`;
 
   const getDayStatus = (checkDate: Date): 'full' | 'partial' | 'none' => {
-    const dateString = checkDate.toISOString().split('T')[0];
+    const dateString = toISTDateKey(checkDate);
     const dayOfWeek = checkDate.getDay();
 
     // Check override
@@ -256,10 +257,10 @@ export const SpecificDateEditor: React.FC<Props> = ({
             contentContainerStyle={styles.dateSelector}
           >
             {nearbyDates.map((d, index) => {
-              const isSelected = d.toDateString() === dateObj.toDateString();
+              const isSelected = isSameISTDate(d, dateObj);
               const status = getDayStatus(d);
               const dayNum = d.getDate();
-              const dayAbbr = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+              const dayAbbr = formatDateIST(d, { weekday: 'short' }, 'en-US').toUpperCase();
 
               return (
                 <TouchableOpacity

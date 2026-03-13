@@ -9,6 +9,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { supportTicketApi, SupportTicket, TicketMessage } from '../api/supportTicketApi';
 import { useAppSelector } from '../hooks/useAppSelector';
+import { formatDateIST, formatTimeIST } from '../utils/dateTime';
 
 export const TicketDetailScreen = () => {
   const navigation = useNavigation<any>();
@@ -108,8 +109,7 @@ export const TicketDetailScreen = () => {
         <View style={styles.infoRow}>
           <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
           <Text style={styles.infoText}>
-            {new Date(ticket.createdAt).toLocaleDateString()} at{' '}
-            {new Date(ticket.createdAt).toLocaleTimeString()}
+            {formatDateIST(ticket.createdAt)} at {formatTimeIST(ticket.createdAt)}
           </Text>
         </View>
         {ticket.priority === 'emergency' && (
@@ -133,7 +133,7 @@ export const TicketDetailScreen = () => {
         <View style={[styles.messageBubble, styles.userBubble]}>
           <Text style={styles.messageText}>{ticket.description}</Text>
           <Text style={styles.messageTime}>
-            {new Date(ticket.createdAt).toLocaleTimeString()}
+            {formatTimeIST(ticket.createdAt)}
           </Text>
         </View>
 
@@ -148,7 +148,7 @@ export const TicketDetailScreen = () => {
               {!isUser && <Text style={styles.adminLabel}>Support Team</Text>}
               <Text style={styles.messageText}>{msg.message}</Text>
               <Text style={styles.messageTime}>
-                {new Date(msg.createdAt).toLocaleTimeString()}
+                {formatTimeIST(msg.createdAt)}
               </Text>
             </View>
           );

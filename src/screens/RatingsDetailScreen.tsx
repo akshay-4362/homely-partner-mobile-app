@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { proApi } from '../api/proApi';
+import { formatDateIST } from '../utils/dateTime';
 
 interface Review {
   _id: string;
@@ -276,7 +277,7 @@ export const RatingsDetailScreen = () => {
                 {item.customer.firstName} {item.customer.lastName}
               </Text>
               <Text style={styles.reviewDate}>
-                {new Date(item.createdAt).toLocaleDateString('en-IN', {
+                {formatDateIST(item.createdAt, {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',

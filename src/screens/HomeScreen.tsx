@@ -13,6 +13,7 @@ import { fetchAccountingSummary, fetchTodayBookings } from '../store/accountingS
 import { fetchProBookings } from '../store/bookingSlice';
 import { notificationApi } from '../api/notificationApi';
 import { formatCurrency, formatDate } from '../utils/format';
+import { formatTimeIST } from '../utils/dateTime';
 import { Badge } from '../components/common/Badge';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
@@ -294,7 +295,7 @@ const TodayJobCard = ({ job, onPress }: { job: any; onPress: () => void }) => {
   return (
     <TouchableOpacity style={styles.todayCard} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.todayLeft}>
-        <Text style={styles.todayTime}>{new Date(job.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Text style={styles.todayTime}>{formatTimeIST(job.scheduledAt, { hour: '2-digit', minute: '2-digit' })}</Text>
         <Badge status={job.status} label={job.status} />
       </View>
       <View style={styles.todayMid}>

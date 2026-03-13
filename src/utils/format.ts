@@ -1,3 +1,5 @@
+const IST_TIME_ZONE = 'Asia/Kolkata';
+
 export const formatCurrency = (amount: number, currency = 'INR'): string => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -9,6 +11,7 @@ export const formatCurrency = (amount: number, currency = 'INR'): string => {
 
 export const formatDate = (date: string | Date): string => {
   return new Intl.DateTimeFormat('en-IN', {
+    timeZone: IST_TIME_ZONE,
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(date));
@@ -16,12 +19,14 @@ export const formatDate = (date: string | Date): string => {
 
 export const formatDateOnly = (date: string | Date): string => {
   return new Intl.DateTimeFormat('en-IN', {
+    timeZone: IST_TIME_ZONE,
     dateStyle: 'medium',
   }).format(new Date(date));
 };
 
 export const formatTime = (date: string | Date): string => {
   return new Intl.DateTimeFormat('en-IN', {
+    timeZone: IST_TIME_ZONE,
     timeStyle: 'short',
   }).format(new Date(date));
 };

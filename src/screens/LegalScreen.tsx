@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { agreementApi, PartnerAgreementStatus } from '../api/agreementApi';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
+import { formatDateIST } from '../utils/dateTime';
 
 export const LegalScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -92,7 +93,7 @@ export const LegalScreen: React.FC = () => {
                   )}
                 </View>
                 <Text style={styles.metaText}>
-                  Accepted on {new Date(current.acceptedAt).toLocaleDateString('en-IN', {
+                  Accepted on {formatDateIST(current.acceptedAt, {
                     day: 'numeric', month: 'long', year: 'numeric',
                   })}
                 </Text>
@@ -161,7 +162,7 @@ export const LegalScreen: React.FC = () => {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.historyVersion}>v{item.agreementVersion}</Text>
                   <Text style={styles.historyDate}>
-                    {new Date(item.acceptedAt).toLocaleDateString('en-IN', {
+                    {formatDateIST(item.acceptedAt, {
                       day: 'numeric', month: 'short', year: 'numeric',
                     })}
                   </Text>
