@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { proApi } from '../api/proApi';
-import { formatDateIST } from '../utils/dateTime';
+import { addISTDays, formatDateIST, getISTDayOfMonth, getISTDayOfWeek, isSameISTDate } from '../utils/dateTime';
 
 interface DaySchedule {
   day: string;
@@ -48,8 +48,7 @@ export const UnifiedCalendarScreen = () => {
     const dates = [];
     const today = new Date();
     for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
+      const date = addISTDays(today, i);
       dates.push(date);
     }
     return dates;
@@ -211,7 +210,7 @@ export const UnifiedCalendarScreen = () => {
   };
 
   // Get selected day's schedule
-  const selectedDayIndex = selectedDate.getDay(); // 0 = Sunday
+  const selectedDayIndex = getISTDayOfWeek(selectedDate); // 0 = Sunday
   const selectedDaySchedule = weeklySchedule[selectedDayIndex];
 
   // Count hours marked available for selected day
@@ -222,7 +221,7 @@ export const UnifiedCalendarScreen = () => {
 
   // Check if date has any availability
   const hasAvailability = (date: Date) => {
-    const dayIdx = date.getDay();
+    const dayIdx = getISTDayOfWeek(date);
     const schedule = weeklySchedule[dayIdx];
     return schedule?.hours?.some(h => h) || false;
   };
@@ -299,10 +298,9 @@ export const UnifiedCalendarScreen = () => {
           contentContainerStyle={styles.dateStrip}
         >
           {weekDates.map((date, idx) => {
-            const isSelected =
-              date.toDateString() === selectedDate.toDateString();
+            const isSelected = isSameISTDate(date, selectedDate);
             const available = hasAvailability(date);
-            const dayName = DAYS_SHORT[date.getDay()];
+            const dayName = DAYS_SHORT[getISTDayOfWeek(date)];
 
             return (
               <TouchableOpacity
@@ -314,7 +312,7 @@ export const UnifiedCalendarScreen = () => {
                   {dayName}
                 </Text>
                 <Text style={[styles.dayNumber, isSelected && styles.dayNumberSelected]}>
-                  {date.getDate()}
+                  {getISTDayOfMonth(date)}
                 </Text>
                 <Ionicons
                   name={available ? 'checkmark' : 'close'}

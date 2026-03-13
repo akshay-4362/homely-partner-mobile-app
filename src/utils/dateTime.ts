@@ -57,3 +57,22 @@ export function toISTDateKey(input: string | Date): string {
 export function isSameISTDate(a: string | Date, b: string | Date): boolean {
   return toISTDateKey(a) === toISTDateKey(b);
 }
+
+function toISTShiftedDate(input: string | Date): Date {
+  const date = normalizeDate(input);
+  return new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
+}
+
+export function getISTDayOfWeek(input: string | Date): number {
+  return toISTShiftedDate(input).getUTCDay();
+}
+
+export function getISTDayOfMonth(input: string | Date): number {
+  return toISTShiftedDate(input).getUTCDate();
+}
+
+export function addISTDays(input: string | Date, days: number): Date {
+  const shifted = toISTShiftedDate(input);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return new Date(shifted.getTime() - 5.5 * 60 * 60 * 1000);
+}

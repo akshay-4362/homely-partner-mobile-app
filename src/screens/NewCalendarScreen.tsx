@@ -17,7 +17,7 @@ import { proApi } from '../api/proApi';
 import { WeeklyRoutineModal } from '../components/calendar/WeeklyRoutineModal';
 import { DayPatternEditor } from '../components/calendar/DayPatternEditor';
 import { SpecificDateEditor } from '../components/calendar/SpecificDateEditor';
-import { formatDateIST, toISTDateKey, isSameISTDate } from '../utils/dateTime';
+import { formatDateIST, getISTDayOfMonth, getISTDayOfWeek, toISTDateKey, isSameISTDate } from '../utils/dateTime';
 
 interface DaySchedule {
   dayOfWeek: number; // 0-6 (Sunday-Saturday)
@@ -71,8 +71,7 @@ export const NewCalendarScreen = () => {
   );
 
   const getAvailableHoursForDate = (dateString: string): number => {
-    const date = new Date(dateString);
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = getISTDayOfWeek(dateString);
 
     // Check for date override first
     const override = dateOverrides.find((o) => o.date === dateString);
@@ -111,7 +110,7 @@ export const NewCalendarScreen = () => {
     const marked: any = {};
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInMonth = getISTDayOfMonth(new Date(year, month + 1, 0));
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
@@ -168,7 +167,7 @@ export const NewCalendarScreen = () => {
   const getAvailableDaysInMonth = (): number => {
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInMonth = getISTDayOfMonth(new Date(year, month + 1, 0));
 
     let availableDays = 0;
     for (let day = 1; day <= daysInMonth; day++) {

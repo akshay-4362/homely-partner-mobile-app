@@ -11,6 +11,7 @@ import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Loader } from '../components/common/Loader';
 import { availabilityApi, DaySchedule, HourlySlot, AvailabilityStats } from '../api/availabilityApi';
+import { addISTDays, getISTDayOfMonth, getISTDayOfWeek, isSameISTDate, formatDateIST } from '../utils/dateTime';
 
 const DAYS_SHORT = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -21,8 +22,7 @@ const getNext7Days = () => {
   const days = [];
   const today = new Date();
   for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
+    const date = addISTDays(today, i);
     days.push(date);
   }
   return days;
@@ -230,7 +230,7 @@ export const EnhancedCalendarScreen = () => {
   const isWeekend = (dayOfWeek: number) => dayOfWeek === 0 || dayOfWeek === 6;
 
   const getSelectedDaySchedule = () => {
-    const dayOfWeek = selectedDate.getDay();
+    const dayOfWeek = getISTDayOfWeek(selectedDate);
     return weeklySchedule.find((d) => d.dayOfWeek === dayOfWeek);
   };
 
@@ -241,16 +241,16 @@ export const EnhancedCalendarScreen = () => {
   };
 
   const isDayAvailable = (date: Date) => {
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = getISTDayOfWeek(date);
     const daySchedule = weeklySchedule.find((d) => d.dayOfWeek === dayOfWeek);
     if (!daySchedule) return false;
     return daySchedule.slots.some(s => s.available);
   };
 
   const formatDateForHeader = (date: Date) => {
-    const dayName = DAYS_FULL[date.getDay()];
-    const monthName = MONTHS[date.getMonth()];
-    const day = date.getDate();
+    const dayName = DAYS_FULL[getISTDayOfWeek(date)];
+    const monthName = formatDateIST(date, { month: 'short' }, 'en-US');
+    const day = getISTDayOfMonth(date);
     const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
     return `${dayName}, ${monthName} ${day}${suffix}`;
   };
@@ -313,9 +313,9 @@ export const EnhancedCalendarScreen = () => {
           contentContainerStyle={styles.dateSelector}
         >
           {availableDates.map((date, index) => {
-            const isSelected = date.toDateString() === selectedDate.toDateString();
+            const isSelected = isSameISTDate(date, selectedDate);
             const isAvailable = isDayAvailable(date);
-            const dayOfWeek = date.getDay();
+            const dayOfWeek = getISTDayOfWeek(date);
 
             return (
               <TouchableOpacity
@@ -336,7 +336,7 @@ export const EnhancedCalendarScreen = () => {
                   styles.dateCardDate,
                   isSelected && styles.dateCardDateSelected
                 ]}>
-                  {date.getDate()}
+                  {getISTDayOfMonth(date)}
                 </Text>
                 {isAvailable ? (
                   <Ionicons
@@ -410,7 +410,7 @@ export const EnhancedCalendarScreen = () => {
                     <Text style={styles.hourRowText}>{formatHourRange(hour)}</Text>
                     <Switch
                       value={available}
-                      onValueChange={() => toggleSlot(selectedDate.getDay(), hour)}
+                      onValueChange={() => toggleSlot(getISTDayOfWeek(selectedDate), hour)}
                       trackColor={{ false: '#d1d5db', true: Colors.success }}
                       thumbColor={'#fff'}
                       ios_backgroundColor="#d1d5db"

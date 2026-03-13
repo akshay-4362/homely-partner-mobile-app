@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../../theme/colors';
 import client from '../../api/client';
-import { formatDateIST, toISTDateKey, isSameISTDate } from '../../utils/dateTime';
+import { formatDateIST, toISTDateKey, isSameISTDate, getISTDayOfWeek, addISTDays, getISTDayOfMonth } from '../../utils/dateTime';
 
 interface HourlySlot {
   hour: number;
@@ -73,8 +73,7 @@ export const SpecificDateEditor: React.FC<Props> = ({
   }, [date, visible, weeklySchedule, dateOverrides]);
 
   const loadSlotsForDate = (dateString: string) => {
-    const dateObj = new Date(dateString);
-    const dayOfWeek = dateObj.getDay();
+    const dayOfWeek = getISTDayOfWeek(dateString);
 
     // Check for date override first
     const override = dateOverrides.find((o) => o.date === dateString);
@@ -103,8 +102,7 @@ export const SpecificDateEditor: React.FC<Props> = ({
 
     // Get 2 days before and 2 days after
     for (let i = -2; i <= 2; i++) {
-      const date = new Date(centerDate);
-      date.setDate(centerDate.getDate() + i);
+      const date = addISTDays(centerDate, i);
       dates.push(date);
     }
 
@@ -208,7 +206,7 @@ export const SpecificDateEditor: React.FC<Props> = ({
 
   const getDayStatus = (checkDate: Date): 'full' | 'partial' | 'none' => {
     const dateString = toISTDateKey(checkDate);
-    const dayOfWeek = checkDate.getDay();
+    const dayOfWeek = getISTDayOfWeek(checkDate);
 
     // Check override
     const override = dateOverrides.find((o) => o.date === dateString);
@@ -259,7 +257,7 @@ export const SpecificDateEditor: React.FC<Props> = ({
             {nearbyDates.map((d, index) => {
               const isSelected = isSameISTDate(d, dateObj);
               const status = getDayStatus(d);
-              const dayNum = d.getDate();
+              const dayNum = getISTDayOfMonth(d);
               const dayAbbr = formatDateIST(d, { weekday: 'short' }, 'en-US').toUpperCase();
 
               return (

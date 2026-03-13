@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Card } from '../components/common/Card';
 import { proApi } from '../api/proApi';
-import { formatDateIST } from '../utils/dateTime';
+import { addISTDays, formatDateIST, getISTDayOfWeek } from '../utils/dateTime';
 
 interface WeekendDay {
   date: string;
@@ -54,10 +54,8 @@ export const WeekendUnavailableHoursScreen = () => {
   };
 
   const generateMockData = (): WeekendHoursData => {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + 30);
+    const startDate = addISTDays(new Date(), -30);
+    const endDate = addISTDays(new Date(), 30);
 
     const weekendDays: WeekendDay[] = [];
     let totalHours = 0;
@@ -65,7 +63,7 @@ export const WeekendUnavailableHoursScreen = () => {
     // Generate weekend days for the range
     const current = new Date(startDate);
     while (current <= endDate) {
-      const dayOfWeek = current.getDay();
+      const dayOfWeek = getISTDayOfWeek(current);
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         // Sunday or Saturday
         const unavailableHours = Math.floor(Math.random() * 13); // 0-12 hours
@@ -76,7 +74,7 @@ export const WeekendUnavailableHoursScreen = () => {
         });
         totalHours += unavailableHours;
       }
-      current.setDate(current.getDate() + 1);
+      current.setTime(addISTDays(current, 1).getTime());
     }
 
     return {

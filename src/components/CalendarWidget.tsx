@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { useAppSelector } from '../hooks/useAppSelector';
-import { formatDateIST, toISTDateKey, isSameISTDate } from '../utils/dateTime';
+import { formatDateIST, toISTDateKey, isSameISTDate, addISTDays, getISTDayOfMonth } from '../utils/dateTime';
 
 interface DayInfo {
   date: Date;
@@ -36,12 +36,11 @@ export const CalendarWidget = () => {
 
     // Generate next 7 days
     for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(today.getDate() + i);
+      const date = addISTDays(today, i);
 
       const dayName = formatDateIST(date, { weekday: 'short' }, 'en-US');
       const month = formatDateIST(date, { month: 'short' }, 'en-US');
-      const dayNumber = date.getDate();
+      const dayNumber = getISTDayOfMonth(date);
       const dateString = toISTDateKey(date);
 
       nextDays.push({

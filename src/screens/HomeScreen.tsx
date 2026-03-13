@@ -13,7 +13,7 @@ import { fetchAccountingSummary, fetchTodayBookings } from '../store/accountingS
 import { fetchProBookings } from '../store/bookingSlice';
 import { notificationApi } from '../api/notificationApi';
 import { formatCurrency, formatDate } from '../utils/format';
-import { formatTimeIST } from '../utils/dateTime';
+import { addISTDays, formatTimeIST, toISTDateKey } from '../utils/dateTime';
 import { Badge } from '../components/common/Badge';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
@@ -39,12 +39,10 @@ export const HomeScreen = () => {
   const upcomingJobs = allBookings
     .filter((b) => {
       if (b.status !== 'confirmed') return false;
-      const scheduledDate = new Date(b.scheduledAt);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const nextWeek = new Date(today);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      return scheduledDate >= today && scheduledDate <= nextWeek;
+      const scheduledDateKey = toISTDateKey(b.scheduledAt);
+      const todayKey = toISTDateKey(new Date());
+      const nextWeekKey = toISTDateKey(addISTDays(new Date(), 7));
+      return scheduledDateKey >= todayKey && scheduledDateKey <= nextWeekKey;
     })
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
     .slice(0, 3); // Show max 3 upcoming jobs
