@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, StatusBar,
@@ -24,7 +24,7 @@ import { CalendarWidget } from '../components/CalendarWidget';
 import { Notification } from '../types';
 import { usePayoutAccountCheck } from '../hooks/usePayoutAccountCheck';
 import { agreementApi } from '../api/agreementApi';
-import { getSocket } from '../hooks/useSocket';
+import { useSocket, getSocket } from '../hooks/useSocket';
 import { NewBookingAlert, BookingAlertData } from '../components/NewBookingAlert';
 
 export const HomeScreen = () => {
@@ -39,6 +39,10 @@ export const HomeScreen = () => {
   const [socketAlertVisible, setSocketAlertVisible] = useState(false);
   const [socketAlertData, setSocketAlertData] = useState<BookingAlertData | null>(null);
 
+  // Track known confirmed booking IDs to detect new arrivals via polling
+  const knownBookingIdsRef = useRef<Set<string> | null>(null);
+  const isPollingActiveRef = useRef(false);
+
   // Get upcoming confirmed bookings (next 7 days)
   const upcomingJobs = allBookings
     .filter((b) => {
@@ -51,17 +55,23 @@ export const HomeScreen = () => {
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
     .slice(0, 3); // Show max 3 upcoming jobs
 
+  // Initialize socket connection so getSocket() is non-null on this screen
+  useSocket();
+
   // Check for payout account on mount
   const { hasPayoutAccount, recheckPayoutAccount } = usePayoutAccountCheck();
 
   // Listen for real-time booking notifications via Socket.io
   useFocusEffect(
     useCallback(() => {
-      const socket = getSocket();
-      if (!socket) return;
-
       const handleSocketNotification = (notification: any) => {
         if (notification?.type === 'booking' && notification?.data?.bookingId) {
+          // Mark this booking as known so polling doesn't fire a duplicate alert
+          const bookingId = notification.data.bookingId as string;
+          if (knownBookingIdsRef.current) {
+            knownBookingIdsRef.current.add(bookingId);
+          }
+
           // Immediately refresh data
           loadData();
 
@@ -69,16 +79,32 @@ export const HomeScreen = () => {
           setSocketAlertData({
             title: notification.title || 'New Job Assigned!',
             message: notification.message || 'You have a new booking.',
-            bookingId: notification.data.bookingId,
+            bookingId,
           });
           setSocketAlertVisible(true);
         }
       };
 
-      socket.on('notification', handleSocketNotification);
+      const attachListener = () => {
+        const socket = getSocket();
+        if (!socket) return;
+        socket.off('notification', handleSocketNotification);
+        socket.on('notification', handleSocketNotification);
+      };
+
+      // Attach now if socket already connected
+      attachListener();
+
+      // Also attach once socket connects (handles race where socket not yet ready)
+      const socket = getSocket();
+      socket?.on('connect', attachListener);
 
       return () => {
-        socket.off('notification', handleSocketNotification);
+        const s = getSocket();
+        if (s) {
+          s.off('notification', handleSocketNotification);
+          s.off('connect', attachListener);
+        }
       };
     }, [])
   );
@@ -121,6 +147,38 @@ export const HomeScreen = () => {
     }).catch(() => { /* ignore — network issues shouldn't block the home screen */ });
   }, []);
 
+  // Detect new confirmed bookings from polling and trigger alert + sound
+  useEffect(() => {
+    const confirmedIds = new Set(
+      allBookings.filter((b) => b.status === 'confirmed').map((b) => b._id as string)
+    );
+
+    if (knownBookingIdsRef.current === null) {
+      // First load — just seed the known set, no alert
+      knownBookingIdsRef.current = confirmedIds;
+      return;
+    }
+
+    if (!isPollingActiveRef.current) return;
+
+    const newBookings = allBookings.filter(
+      (b) => b.status === 'confirmed' && !knownBookingIdsRef.current!.has(b._id as string)
+    );
+
+    if (newBookings.length > 0) {
+      const newest = newBookings[0];
+      setSocketAlertData({
+        title: 'New Job Assigned!',
+        message: `You have a new booking.`,
+        bookingId: newest._id as string,
+      });
+      setSocketAlertVisible(true);
+    }
+
+    knownBookingIdsRef.current = confirmedIds;
+    isPollingActiveRef.current = false;
+  }, [allBookings]);
+
   useEffect(() => { loadData(); }, []);
 
   // Reload data when screen comes into focus
@@ -136,10 +194,14 @@ export const HomeScreen = () => {
     useCallback(() => {
       const interval = setInterval(() => {
         console.log('🔄 Auto-refreshing home screen data...');
+        isPollingActiveRef.current = true;
         loadData(); // Silent refresh (no loading indicators)
       }, 30000); // 30 seconds
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        isPollingActiveRef.current = false;
+      };
     }, [])
   );
 
