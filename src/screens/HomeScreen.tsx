@@ -24,6 +24,8 @@ import { CalendarWidget } from '../components/CalendarWidget';
 import { Notification } from '../types';
 import { usePayoutAccountCheck } from '../hooks/usePayoutAccountCheck';
 import { agreementApi } from '../api/agreementApi';
+import { getSocket } from '../hooks/useSocket';
+import { NewBookingAlert, BookingAlertData } from '../components/NewBookingAlert';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -34,6 +36,8 @@ export const HomeScreen = () => {
   const { items: allBookings } = useAppSelector((s) => s.bookings);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [socketAlertVisible, setSocketAlertVisible] = useState(false);
+  const [socketAlertData, setSocketAlertData] = useState<BookingAlertData | null>(null);
 
   // Get upcoming confirmed bookings (next 7 days)
   const upcomingJobs = allBookings
@@ -49,6 +53,35 @@ export const HomeScreen = () => {
 
   // Check for payout account on mount
   const { hasPayoutAccount, recheckPayoutAccount } = usePayoutAccountCheck();
+
+  // Listen for real-time booking notifications via Socket.io
+  useFocusEffect(
+    useCallback(() => {
+      const socket = getSocket();
+      if (!socket) return;
+
+      const handleSocketNotification = (notification: any) => {
+        if (notification?.type === 'booking' && notification?.data?.bookingId) {
+          // Immediately refresh data
+          loadData();
+
+          // Show in-app alert with sound
+          setSocketAlertData({
+            title: notification.title || 'New Job Assigned!',
+            message: notification.message || 'You have a new booking.',
+            bookingId: notification.data.bookingId,
+          });
+          setSocketAlertVisible(true);
+        }
+      };
+
+      socket.on('notification', handleSocketNotification);
+
+      return () => {
+        socket.off('notification', handleSocketNotification);
+      };
+    }, [])
+  );
 
   const loadData = async () => {
     // Fetch from Redux (with caching)
@@ -272,6 +305,24 @@ export const HomeScreen = () => {
           )}
         </View>
       </ScrollView>
+
+      {/* Real-time booking alert triggered via Socket.io */}
+      <NewBookingAlert
+        visible={socketAlertVisible}
+        data={socketAlertData}
+        onViewBooking={(bookingId) => {
+          setSocketAlertVisible(false);
+          setSocketAlertData(null);
+          navigation.navigate('Jobs', {
+            screen: 'BookingDetail',
+            params: { bookingId },
+          });
+        }}
+        onDismiss={() => {
+          setSocketAlertVisible(false);
+          setSocketAlertData(null);
+        }}
+      />
     </SafeAreaView>
   );
 };

@@ -6,6 +6,7 @@ import { proApi } from '../api/proApi';
 
 /**
  * Configure how notifications are handled when app is in foreground
+ * Also sets up the high-priority Android notification channel for new bookings.
  */
 export const configureNotificationHandler = () => {
   Notifications.setNotificationHandler({
@@ -15,6 +16,29 @@ export const configureNotificationHandler = () => {
       shouldSetBadge: true,
     }),
   });
+
+  // Create Android notification channel for new booking alerts
+  if (Platform.OS === 'android') {
+    Notifications.setNotificationChannelAsync('new_booking', {
+      name: 'New Job Assignments',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 500, 500],
+      lightColor: '#6366F1',
+      sound: 'new_booking.wav',
+      enableVibrate: true,
+      showBadge: true,
+    }).catch(() => {
+      // Fallback: create channel without custom sound
+      Notifications.setNotificationChannelAsync('new_booking', {
+        name: 'New Job Assignments',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 500, 500],
+        lightColor: '#6366F1',
+        enableVibrate: true,
+        showBadge: true,
+      });
+    });
+  }
 };
 
 /**
@@ -135,6 +159,19 @@ export const unregisterPushToken = async (token: string): Promise<void> => {
   }
 };
 
+/** Callback invoked when a booking notification arrives in the foreground */
+let onForegroundBookingNotification: ((title: string, message: string, bookingId?: string) => void) | null = null;
+
+/**
+ * Register a handler that fires when a booking push notification arrives
+ * while the app is in the foreground.
+ */
+export const setForegroundBookingHandler = (
+  handler: (title: string, message: string, bookingId?: string) => void
+) => {
+  onForegroundBookingNotification = handler;
+};
+
 /**
  * Setup notification listeners for handling incoming notifications
  * @param navigation - Navigation object for navigating on notification tap
@@ -147,7 +184,17 @@ export const setupNotificationListeners = (navigation: any) => {
   const foregroundSubscription = Notifications.addNotificationReceivedListener(
     (notification) => {
       console.log('Notification received in foreground:', notification);
-      // You can show a custom in-app notification here if desired
+      const content = notification.request.content;
+      const data = content.data as any;
+
+      // Fire in-app booking alert for booking notifications
+      if (data?.bookingId && onForegroundBookingNotification) {
+        onForegroundBookingNotification(
+          content.title ?? 'New Job!',
+          content.body ?? '',
+          data.bookingId
+        );
+      }
     }
   );
 

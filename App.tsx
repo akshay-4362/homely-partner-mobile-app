@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Provider, useDispatch } from 'react-redux';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,12 +15,17 @@ import { useAppSelector } from './src/hooks/useAppSelector';
 import {
   registerForPushNotifications,
   setupNotificationListeners,
+  setForegroundBookingHandler,
 } from './src/services/notificationService';
+import { NewBookingAlert, BookingAlertData } from './src/components/NewBookingAlert';
 
 const AppInner = () => {
   const dispatch = useDispatch();
   const { user } = useAppSelector((s) => s.auth);
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertData, setAlertData] = useState<BookingAlertData | null>(null);
 
   useEffect(() => {
     // Restore auth session on app start
@@ -38,22 +43,46 @@ const AppInner = () => {
     }
   }, [user?._id]);
 
-  // Setup notification listeners
+  // Setup notification listeners + foreground booking alert handler
   useEffect(() => {
+    // Register foreground booking alert handler BEFORE setting up listeners
+    setForegroundBookingHandler((title, message, bookingId) => {
+      setAlertData({ title, message, bookingId });
+      setAlertVisible(true);
+    });
+
     if (!navigationRef.current) return;
-
     const cleanup = setupNotificationListeners(navigationRef.current);
-
     return cleanup;
   }, []);
 
   // Initialize socket when user is logged in
   useSocket();
 
+  const handleViewBooking = (bookingId: string) => {
+    setAlertVisible(false);
+    setAlertData(null);
+    navigationRef.current?.navigate('Jobs', {
+      screen: 'BookingDetail',
+      params: { bookingId },
+    });
+  };
+
+  const handleDismiss = () => {
+    setAlertVisible(false);
+    setAlertData(null);
+  };
+
   return (
     <>
       <StatusBar style="dark" />
       <AppNavigator navigationRef={navigationRef} />
+      <NewBookingAlert
+        visible={alertVisible}
+        data={alertData}
+        onViewBooking={handleViewBooking}
+        onDismiss={handleDismiss}
+      />
     </>
   );
 };
