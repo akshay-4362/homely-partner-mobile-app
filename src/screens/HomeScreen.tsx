@@ -12,7 +12,7 @@ import { fetchCreditBalance } from '../store/creditSlice';
 import { fetchAccountingSummary, fetchTodayBookings } from '../store/accountingSlice';
 import { fetchProBookings } from '../store/bookingSlice';
 import { notificationApi } from '../api/notificationApi';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrency } from '../utils/format';
 import { addISTDays, formatTimeIST, toISTDateKey } from '../utils/dateTime';
 import { Badge } from '../components/common/Badge';
 import { SectionHeader } from '../components/common/SectionHeader';
@@ -150,7 +150,7 @@ export const HomeScreen = () => {
   // Detect new confirmed bookings from polling and trigger alert + sound
   useEffect(() => {
     const confirmedIds = new Set(
-      allBookings.filter((b) => b.status === 'confirmed').map((b) => b._id as string)
+      allBookings.filter((b) => b.status === 'confirmed').map((b) => b.id)
     );
 
     if (knownBookingIdsRef.current === null) {
@@ -162,7 +162,7 @@ export const HomeScreen = () => {
     if (!isPollingActiveRef.current) return;
 
     const newBookings = allBookings.filter(
-      (b) => b.status === 'confirmed' && !knownBookingIdsRef.current!.has(b._id as string)
+      (b) => b.status === 'confirmed' && !knownBookingIdsRef.current!.has(b.id)
     );
 
     if (newBookings.length > 0) {
@@ -170,7 +170,7 @@ export const HomeScreen = () => {
       setSocketAlertData({
         title: 'New Job Assigned!',
         message: `You have a new booking.`,
-        bookingId: newest._id as string,
+        bookingId: newest.id,
       });
       setSocketAlertVisible(true);
     }
