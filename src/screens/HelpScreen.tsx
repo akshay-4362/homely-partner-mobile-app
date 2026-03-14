@@ -87,7 +87,7 @@ export const HelpScreen = () => {
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL('whatsapp://send?phone=918001234567&text=Hi, I need help with my Homelyo Pro account').catch(() => {
+    Linking.openURL('whatsapp://send?phone=918001234567&text=Hi, I need help with my Homelyo Partner account').catch(() => {
       Alert.alert('WhatsApp not installed');
     });
   };

@@ -202,7 +202,7 @@ export const CustomDrawer: React.FC<DrawerContentComponentProps> = (props) => {
         </TouchableOpacity>
 
         {/* Version */}
-        <Text style={styles.version}>Homelyo Pro v1.0.0</Text>
+        <Text style={styles.version}>Homelyo Partner v1.0.0</Text>
       </ScrollView>
     </View>
   );

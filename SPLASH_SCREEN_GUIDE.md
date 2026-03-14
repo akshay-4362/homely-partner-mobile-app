@@ -35,7 +35,7 @@ A splash screen is the first screen users see when launching your app. It should
 │                     │
 │                     │
 │      [ICON]         │  ← App icon (400x400)
-│    Homelyo Pro      │  ← App name (optional)
+│  Homelyo Partner    │  ← App name (optional)
 │                     │
 │                     │
 │                     │

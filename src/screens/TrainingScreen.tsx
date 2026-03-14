@@ -194,7 +194,7 @@ const DEMO_MODULES: TrainingModule[] = [
     category: 'safety', duration: 30, status: 'in_progress', mandatory: true,
   },
   {
-    _id: '3', title: 'Using the Homelyo Pro App', description: 'Complete guide to managing jobs on the app',
+    _id: '3', title: 'Using the Homelyo Partner App', description: 'Complete guide to managing jobs on the app',
     category: 'tools', duration: 20, status: 'pending', mandatory: false,
   },
   {

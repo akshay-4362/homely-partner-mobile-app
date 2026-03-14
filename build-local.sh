@@ -8,7 +8,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   Homelyo Pro - Local APK Builder     ║${NC}"
+echo -e "${BLUE}║   Homelyo Partner - Local APK Builder     ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -133,18 +133,18 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}📦 APK Location:${NC}"
-    echo -e "   ${GREEN}android/app/build/outputs/apk/debug/app-debug.apk${NC}"
+    echo -e "   ${GREEN}android/app/build/outputs/apk/debug/homelyo-partner-debug.apk${NC}"
     echo ""
     echo -e "${BLUE}📱 To install on device:${NC}"
     echo -e "   1. Connect your Android phone via USB"
     echo -e "   2. Enable USB debugging"
-    echo -e "   3. Run: ${YELLOW}adb install app/build/outputs/apk/debug/app-debug.apk${NC}"
+    echo -e "   3. Run: ${YELLOW}adb install app/build/outputs/apk/debug/homelyo-partner-debug.apk${NC}"
     echo ""
     echo -e "${BLUE}💡 Or transfer APK to phone and install manually${NC}"
     echo ""
 
     # Get APK size
-    APK_SIZE=$(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+    APK_SIZE=$(du -h app/build/outputs/apk/debug/homelyo-partner-debug.apk | cut -f1)
     echo -e "${BLUE}📊 APK Size: ${GREEN}$APK_SIZE${NC}"
     echo ""
 else

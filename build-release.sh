@@ -8,7 +8,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   Homelyo Pro - Release APK Builder   ║${NC}"
+echo -e "${BLUE}║   Homelyo Partner - Release APK Builder   ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -136,11 +136,11 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}📦 APK Location:${NC}"
-    echo -e "   ${GREEN}android/app/build/outputs/apk/release/app-release.apk${NC}"
+    echo -e "   ${GREEN}android/app/build/outputs/apk/release/homelyo-partner-release.apk${NC}"
     echo ""
 
     # Get APK size
-    APK_SIZE=$(du -h app/build/outputs/apk/release/app-release.apk | cut -f1)
+    APK_SIZE=$(du -h app/build/outputs/apk/release/homelyo-partner-release.apk | cut -f1)
     echo -e "${BLUE}📊 APK Size: ${GREEN}$APK_SIZE${NC}"
     echo ""
 

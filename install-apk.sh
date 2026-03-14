@@ -20,11 +20,11 @@ if ! command -v adb &> /dev/null; then
 fi
 
 # Find APK file
-if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
-    APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+if [ -f "android/app/build/outputs/apk/debug/homelyo-partner-debug.apk" ]; then
+    APK_PATH="android/app/build/outputs/apk/debug/homelyo-partner-debug.apk"
     APK_TYPE="Debug"
-elif [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
-    APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+elif [ -f "android/app/build/outputs/apk/release/homelyo-partner-release.apk" ]; then
+    APK_PATH="android/app/build/outputs/apk/release/homelyo-partner-release.apk"
     APK_TYPE="Release"
 else
     echo -e "${RED}✗${NC} No APK found. Please build first:"
@@ -75,7 +75,7 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}✓${NC} App installed on your device"
-    echo -e "${BLUE}📱${NC} Open the Homelyo Pro app to start using it"
+    echo -e "${BLUE}📱${NC} Open the Homelyo Partner app to start using it"
     echo ""
 else
     echo ""

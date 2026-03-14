@@ -8,7 +8,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/colors';
 const SECTIONS = [
   {
     title: 'Preamble',
-    body: `(A) These Terms and Conditions ("Terms") govern the use of services made available on or through https://www.homelyoapp.com and/or the Homelyo Pro mobile app (collectively, the "Platform" and together with the services made available on or through the Platform, "Services"). These Terms also include our Privacy Policy and any guidelines, additional, or supplemental terms, policies, and disclaimers made available or issued by us from time to time ("Supplemental Terms"). The Privacy Policy and the Supplemental Terms form an integral part of these Terms.
+    body: `(A) These Terms and Conditions ("Terms") govern the use of services made available on or through https://www.homelyoapp.com and/or the Homelyo Partner mobile app (collectively, the "Platform" and together with the services made available on or through the Platform, "Services"). These Terms also include our Privacy Policy and any guidelines, additional, or supplemental terms, policies, and disclaimers made available or issued by us from time to time ("Supplemental Terms"). The Privacy Policy and the Supplemental Terms form an integral part of these Terms.
 
 (B) The Terms constitute a binding and enforceable legal contract between Homelyo Technologies India Pvt. Ltd. ("Homelyo", "we", "us", or "our"), and you, an independent third-party service provider ("you" or "Service Professional"). By using the Services, you represent and warrant that you have the full legal capacity and authority to agree and bind yourself to these Terms.
 
@@ -320,7 +320,7 @@ export const TermsOfServiceScreen = () => {
         <View style={styles.introBanner}>
           <Text style={styles.introText}>
             These Terms and Conditions govern your use of services made available on or through
-            homelyoapp.com and/or the Homelyo Pro mobile app. By using the Services, you agree
+            homelyoapp.com and/or the Homelyo Partner mobile app. By using the Services, you agree
             that you have read, understood, and are bound by these Terms.
           </Text>
         </View>

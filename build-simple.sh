@@ -120,12 +120,12 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}📦 APK Location:${NC}"
-    echo -e "   ${GREEN}android/app/build/outputs/apk/release/app-release.apk${NC}"
+    echo -e "   ${GREEN}android/app/build/outputs/apk/release/homelyo-partner-release.apk${NC}"
     echo ""
 
     # Get APK size
-    if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
-        APK_SIZE=$(du -h app/build/outputs/apk/release/app-release.apk | cut -f1)
+    if [ -f "app/build/outputs/apk/release/homelyo-partner-release.apk" ]; then
+        APK_SIZE=$(du -h app/build/outputs/apk/release/homelyo-partner-release.apk | cut -f1)
         echo -e "${BLUE}📊 APK Size: ${GREEN}$APK_SIZE${NC}"
     fi
     echo ""

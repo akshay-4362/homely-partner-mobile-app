@@ -8,7 +8,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/colors';
 const SECTIONS = [
   {
     title: '1. Introduction',
-    body: `Homelyo ("we", "our", "us") is committed to protecting the privacy of its professional service partners ("you", "Partner", "Provider") who use the Homelyo Pro application and associated services available at homelyoapp.com (collectively, the "Platform").\n\nThis Privacy Policy describes how we collect, use, store, share, and protect your personal information when you register and operate as a service professional on the Platform. By using the Platform, you consent to the practices described in this policy.`,
+    body: `Homelyo ("we", "our", "us") is committed to protecting the privacy of its professional service partners ("you", "Partner", "Provider") who use the Homelyo Partner application and associated services available at homelyoapp.com (collectively, the "Platform").\n\nThis Privacy Policy describes how we collect, use, store, share, and protect your personal information when you register and operate as a service professional on the Platform. By using the Platform, you consent to the practices described in this policy.`,
   },
   {
     title: '2. Information We Collect',
@@ -24,7 +24,7 @@ const SECTIONS = [
   },
   {
     title: '5. Location Data',
-    body: `The Homelyo Pro app may request access to your device location to:\n• Enable accurate job assignment based on your service area\n• Help customers track arrival for confirmed bookings\n• Verify service location for dispute resolution\n\nLocation access is only active when the app is in use. You may disable location permissions through your device settings, though this may affect your ability to receive job assignments.`,
+    body: `The Homelyo Partner app may request access to your device location to:\n• Enable accurate job assignment based on your service area\n• Help customers track arrival for confirmed bookings\n• Verify service location for dispute resolution\n\nLocation access is only active when the app is in use. You may disable location permissions through your device settings, though this may affect your ability to receive job assignments.`,
   },
   {
     title: '6. Data Security',
@@ -40,7 +40,7 @@ const SECTIONS = [
   },
   {
     title: '9. Cookies and Tracking',
-    body: `The Homelyo Pro mobile app does not use browser cookies. We use analytics SDKs and device identifiers to understand app usage and improve performance. You may limit tracking through your device's privacy settings.`,
+    body: `The Homelyo Partner mobile app does not use browser cookies. We use analytics SDKs and device identifiers to understand app usage and improve performance. You may limit tracking through your device's privacy settings.`,
   },
   {
     title: '10. Third-Party Links',
@@ -48,7 +48,7 @@ const SECTIONS = [
   },
   {
     title: '11. Children\'s Privacy',
-    body: `The Homelyo Pro platform is intended for use by adults aged 18 and above. We do not knowingly collect personal information from individuals under 18 years of age. If we become aware of such collection, we will promptly delete the information.`,
+    body: `The Homelyo Partner platform is intended for use by adults aged 18 and above. We do not knowingly collect personal information from individuals under 18 years of age. If we become aware of such collection, we will promptly delete the information.`,
   },
   {
     title: '12. Changes to This Policy',
@@ -86,7 +86,7 @@ export const PrivacyPolicyScreen = () => {
         <View style={styles.introBanner}>
           <Text style={styles.introText}>
             This Privacy Policy applies to professional service partners ("Providers") using
-            the Homelyo Pro app on the Homelyo platform (homelyoapp.com). Please read it carefully.
+            the Homelyo Partner app on the Homelyo platform (homelyoapp.com). Please read it carefully.
           </Text>
         </View>
 

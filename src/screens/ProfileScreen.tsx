@@ -322,7 +322,7 @@ export const ProfileScreen = () => {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>Homelyo Pro v1.0.0</Text>
+        <Text style={styles.version}>Homelyo Partner v1.0.0</Text>
       </ScrollView>
 
 

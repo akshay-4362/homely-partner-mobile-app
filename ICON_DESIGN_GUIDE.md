@@ -2,7 +2,7 @@
 
 ## Brand Identity
 
-**App Name**: Homelyo Pro
+**App Name**: Homelyo Partner
 **Tagline**: Professional Service Partner
 **Brand Color**: #6366F1 (Indigo)
 **Theme**: Professional, Trustworthy, Modern
