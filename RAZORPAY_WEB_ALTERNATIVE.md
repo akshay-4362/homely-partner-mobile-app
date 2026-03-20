@@ -33,7 +33,7 @@ const handlePurchase = async () => {
     const { orderId, keyId } = data;
 
     // Step 2: Build Razorpay checkout URL
-    const callbackUrl = encodeURIComponent('https://homely-backend.vercel.app/api/v1/credits/payment-callback');
+    const callbackUrl = encodeURIComponent('https://api.homelyoapp.com/api/v1/credits/payment-callback');
     const checkoutUrl = `https://api.razorpay.com/v1/checkout/embedded?key_id=${keyId}&order_id=${orderId}&name=Homelyo&description=Credit Purchase&callback_url=${callbackUrl}`;
 
     console.log('🟡 Opening Razorpay checkout:', checkoutUrl);
