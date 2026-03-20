@@ -175,12 +175,12 @@ const DrawerNav = () => (
   </Drawer.Navigator>
 );
 
-export const AppNavigator = ({ navigationRef }: { navigationRef?: any }) => {
+export const AppNavigator = ({ navigationRef, onReady }: { navigationRef?: any; onReady?: () => void }) => {
   const { user, hydrated } = useAppSelector((s) => s.auth);
   if (!hydrated) return null;
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} onReady={onReady}>
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
         key={user ? 'authenticated' : 'guest'}

@@ -76,5 +76,15 @@
     "expo-module-scripts": "^55.0.2",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": ["react-native-razorpay"]
+      }
+    },
+    "install": {
+      "exclude": ["@react-native-picker/picker"]
+    }
+  }
 }

@@ -87,11 +87,18 @@ export const BookingWorkflowScreen = () => {
   const route = useRoute<any>();
   const dispatch = useAppDispatch();
 
-  const initialBooking: ProBooking = normalizeBooking(route.params?.booking);
   const fromScreen = route.params?.fromScreen;
 
-  // Local state
-  const [booking, setBooking] = useState<ProBooking>(initialBooking);
+  // Derive the booking ID from params — supports both full booking object and bookingId-only navigation
+  const paramBookingId: string =
+    route.params?.booking?.id ||
+    route.params?.booking?._id ||
+    route.params?.bookingId;
+
+  // Local state — seeded from route params so there is *something* to show immediately
+  const [booking, setBooking] = useState<ProBooking>(() =>
+    normalizeBooking(route.params?.booking ?? { _id: paramBookingId })
+  );
   const [charges, setCharges] = useState<ChargesData>({
     pending: [],
     approved: [],
@@ -99,9 +106,8 @@ export const BookingWorkflowScreen = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  // Track whether the initial data load has happened so focus-triggered
-  // refreshes are always silent (no unmount/remount of stage components)
-  const hasLoadedOnce = useRef(false);
+  // Track which booking ID we last loaded so we can detect navigation to a different job
+  const loadedBookingIdRef = useRef<string | null>(null);
 
   // Redux state
   const currentStage = useAppSelector(selectCurrentStage);
@@ -116,15 +122,14 @@ export const BookingWorkflowScreen = () => {
     }
   }, [actualStage]);
 
-  // Load full booking data.
-  // showLoading=true only on first mount; subsequent calls are background refreshes
-  // so stage components are never unmounted/remounted while data is fetching.
-  const loadBookingData = async (showLoading = false) => {
+  // Load full booking data from backend.
+  // showLoading=true shows a spinner (first open); false = silent background refresh.
+  const loadBookingData = useCallback(async (id: string, showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
       const [bookingData, chargesData] = await Promise.all([
-        bookingApi.getBookingById(booking.id),
-        bookingApi.getCharges(booking.id).catch(() => ({ pending: [], approved: [], total: 0 })),
+        bookingApi.getBookingById(id),
+        bookingApi.getCharges(id).catch(() => ({ pending: [], approved: [], total: 0 })),
       ]);
 
       setBooking(normalizeBooking(bookingData));
@@ -134,19 +139,27 @@ export const BookingWorkflowScreen = () => {
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
+  }, []);
 
-  // On initial focus: show loading overlay. On re-focus (back navigation, etc.):
-  // refresh silently in the background — no spinner, no stage unmount.
+  // When the screen comes into focus, check if this is a NEW booking (different from last load).
+  // If so, reset state and load fresh. If returning to the same booking, silently refresh.
   useFocusEffect(
     useCallback(() => {
-      if (!hasLoadedOnce.current) {
-        hasLoadedOnce.current = true;
-        loadBookingData(true);
+      if (!paramBookingId) return;
+
+      const isNewBooking = loadedBookingIdRef.current !== paramBookingId;
+
+      if (isNewBooking) {
+        // Reset to the newly selected booking immediately so stale data is never shown
+        setBooking(normalizeBooking(route.params?.booking ?? { _id: paramBookingId }));
+        setCharges({ pending: [], approved: [], total: 0 });
+        loadedBookingIdRef.current = paramBookingId;
+        loadBookingData(paramBookingId, true);
       } else {
-        loadBookingData(false);
+        // Same booking — silent background refresh (no spinner, no unmount of stage components)
+        loadBookingData(paramBookingId, false);
       }
-    }, [booking.id])
+    }, [paramBookingId, loadBookingData])
   );
 
   // Reset workflow on unmount
@@ -163,7 +176,7 @@ export const BookingWorkflowScreen = () => {
    */
   const handleStageComplete = (nextStage: WorkflowStage) => {
     dispatch(setCurrentStage(nextStage));
-    loadBookingData(false); // background refresh, no await
+    loadBookingData(paramBookingId, false); // background refresh, no await
   };
 
   /**

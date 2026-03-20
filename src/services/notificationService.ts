@@ -5,41 +5,46 @@ import Constants from 'expo-constants';
 import { proApi } from '../api/proApi';
 
 /**
- * Configure how notifications are handled when app is in foreground
- * Also sets up the high-priority Android notification channel for new bookings.
+ * MUST be called at module level (before any component mounts) so that
+ * push notifications are displayed even when the app is in the foreground.
+ * Expo requires this to be set synchronously before any listener is added.
  */
-export const configureNotificationHandler = () => {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
-  // Create Android notification channel for new booking alerts
-  if (Platform.OS === 'android') {
+// Create Android high-priority notification channel for booking alerts.
+// Called at module load so it is ready before the first notification arrives.
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync('new_booking', {
+    name: 'New Job Assignments',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 500, 500, 500],
+    lightColor: '#6366F1',
+    sound: 'new_booking.wav',
+    enableVibrate: true,
+    showBadge: true,
+  }).catch(() => {
     Notifications.setNotificationChannelAsync('new_booking', {
       name: 'New Job Assignments',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 500, 500],
       lightColor: '#6366F1',
-      sound: 'new_booking.wav',
       enableVibrate: true,
       showBadge: true,
-    }).catch(() => {
-      // Fallback: create channel without custom sound
-      Notifications.setNotificationChannelAsync('new_booking', {
-        name: 'New Job Assignments',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 500, 500, 500],
-        lightColor: '#6366F1',
-        enableVibrate: true,
-        showBadge: true,
-      });
     });
-  }
-};
+  });
+}
+
+/**
+ * @deprecated Handler and channel are now configured at module level.
+ * Kept for backwards compat — calling this is now a no-op.
+ */
+export const configureNotificationHandler = () => {};
 
 /**
  * Request notification permissions from the user

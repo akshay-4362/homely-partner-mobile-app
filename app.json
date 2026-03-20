@@ -25,11 +25,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "notification": {
-        "icon": "./assets/notification-icon.png",
-        "color": "#6366F1",
-        "sounds": ["./assets/sounds/new_booking.wav"]
-      },
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -45,7 +40,15 @@
     "plugins": [
       "expo-web-browser",
       "expo-font",
-      "expo-av"
+      "expo-av",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366F1",
+          "sounds": ["./assets/sounds/new_booking.wav"]
+        }
+      ]
     ],
     "extra": {
       "eas": {

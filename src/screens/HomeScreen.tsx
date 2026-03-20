@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, StatusBar,
+  RefreshControl, StatusBar, AppState, AppStateStatus,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -188,6 +188,21 @@ export const HomeScreen = () => {
       recheckPayoutAccount();
     }, [])
   );
+
+  // Reload notifications when app comes back to foreground
+  // (redux jobs are already refreshed by App.tsx AppState listener)
+  useEffect(() => {
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        notificationApi.list(5).then((notifData) => {
+          const notifs = notifData?.data || notifData || [];
+          setNotifications(Array.isArray(notifs) ? notifs.slice(0, 5) : []);
+        }).catch(() => {});
+      }
+    };
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, []);
 
   // Real-time polling - refresh every 30 seconds when screen is focused
   useFocusEffect(
