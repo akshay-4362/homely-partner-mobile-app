@@ -23,6 +23,7 @@ import { PendingTasksWidget } from '../components/PendingTasksWidget';
 import { CalendarWidget } from '../components/CalendarWidget';
 import { Notification } from '../types';
 import { usePayoutAccountCheck } from '../hooks/usePayoutAccountCheck';
+import { useOnboardingCheck } from '../hooks/useOnboardingCheck';
 import { agreementApi } from '../api/agreementApi';
 import { useSocket, getSocket } from '../hooks/useSocket';
 import { NewBookingAlert, BookingAlertData } from '../components/NewBookingAlert';
@@ -60,6 +61,9 @@ export const HomeScreen = () => {
 
   // Check for payout account on mount
   const { hasPayoutAccount, recheckPayoutAccount } = usePayoutAccountCheck();
+
+  // Check onboarding completion (categories + hub)
+  const { hasCategories, hasHub, recheckOnboarding } = useOnboardingCheck();
 
   // Listen for real-time booking notifications via Socket.io
   useFocusEffect(
@@ -186,6 +190,7 @@ export const HomeScreen = () => {
     useCallback(() => {
       loadData();
       recheckPayoutAccount();
+      recheckOnboarding();
     }, [])
   );
 
@@ -275,6 +280,42 @@ export const HomeScreen = () => {
             <TouchableOpacity
               style={[styles.pausedBtn, { backgroundColor: Colors.warning }]}
               onPress={() => navigation.navigate('BankAccountSetup')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pausedBtnText}>Setup</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Category Selection Banner */}
+        {hasCategories === false && (
+          <View style={[styles.pausedBanner, styles.infoBanner]}>
+            <Ionicons name="list-outline" size={24} color={Colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.pausedTitle, { color: Colors.primary }]}>Select Your Services</Text>
+              <Text style={styles.pausedSubtitle}>Choose the service categories you offer to start receiving job assignments</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.pausedBtn, { backgroundColor: Colors.primary }]}
+              onPress={() => navigation.navigate('CategorySelection', { isOnboarding: false })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pausedBtnText}>Select</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Hub Setup Banner */}
+        {hasHub === false && (
+          <View style={[styles.pausedBanner, styles.infoBanner]}>
+            <Ionicons name="location-outline" size={24} color={Colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.pausedTitle, { color: Colors.primary }]}>Setup Your Hub</Text>
+              <Text style={styles.pausedSubtitle}>Set your work location to get matched with nearby jobs</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.pausedBtn, { backgroundColor: Colors.primary }]}
+              onPress={() => navigation.navigate('MyHub')}
               activeOpacity={0.7}
             >
               <Text style={styles.pausedBtnText}>Setup</Text>
@@ -526,6 +567,10 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.lg,
     gap: Spacing.md,
+  },
+  infoBanner: {
+    backgroundColor: Colors.primaryBg ?? '#EEF2FF',
+    borderColor: Colors.primary,
   },
   pausedTitle: {
     fontSize: 14,
