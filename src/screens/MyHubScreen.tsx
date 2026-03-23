@@ -20,24 +20,13 @@ const MAPPLS_API_KEY = process.env.EXPO_PUBLIC_MAPPLS_API_KEY || '77982c1e7ce80c
 const BANGALORE_LAT = 12.9716;
 const BANGALORE_LNG = 77.5946;
 
-// Available service hubs
-const SERVICE_HUBS = [
-  'Whitefield', 'HSR', 'Koramangala', 'BTM',
-  'Indiranagar', 'Electronic City', 'Hebbal', 'Yelahanka'
-] as const;
-type Hub = typeof SERVICE_HUBS[number];
-
-// Approximate GPS coordinates for each hub (used for map highlighting)
-const HUB_COORDINATES: Record<Hub, { lat: number; lng: number }> = {
-  'Whitefield':       { lat: 12.9698, lng: 77.7499 },
-  'HSR':              { lat: 12.9116, lng: 77.6473 },
-  'Koramangala':      { lat: 12.9352, lng: 77.6245 },
-  'BTM':              { lat: 12.9166, lng: 77.6101 },
-  'Indiranagar':      { lat: 12.9719, lng: 77.6412 },
-  'Electronic City':  { lat: 12.8458, lng: 77.6692 },
-  'Hebbal':           { lat: 13.0354, lng: 77.5970 },
-  'Yelahanka':        { lat: 13.1005, lng: 77.5963 },
-};
+interface HubOption {
+  _id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  city?: string;
+}
 
 interface HubStats {
   totalJobsDelivered: number;
@@ -63,10 +52,11 @@ export const MyHubScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   // Hub selection state
-  const [currentHub, setCurrentHub] = useState<Hub | null>(null);
+  const [availableHubs, setAvailableHubs] = useState<HubOption[]>([]);
+  const [currentHub, setCurrentHub] = useState<string | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestReason, setRequestReason] = useState('');
-  const [selectedRequestHub, setSelectedRequestHub] = useState<Hub | null>(null);
+  const [selectedRequestHub, setSelectedRequestHub] = useState<string | null>(null);
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<{ requestedHub: string; createdAt: string } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'capturing' | 'saved' | 'error'>('idle');
@@ -82,17 +72,23 @@ export const MyHubScreen = () => {
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const statsRes = await apiClient.get('/professionals/hub/stats');
+      const [statsRes, hubsRes] = await Promise.all([
+        apiClient.get('/professionals/hub/stats'),
+        apiClient.get('/hubs').catch(() => ({ data: { data: [] } }))
+      ]);
       const data = statsRes.data?.data;
       if (data) setStats(data);
       else setStats(null);
+
+      const hubs: HubOption[] = hubsRes.data?.data ?? [];
+      setAvailableHubs(hubs);
 
       // Load current hub + any pending change request
       const [profile, requestsRes] = await Promise.all([
         proApi.fetchProfile(),
         apiClient.get('/hub-change-requests/my').catch(() => ({ data: { requests: [] } }))
       ]);
-      if (profile?.hub) setCurrentHub(profile.hub as Hub);
+      if (profile?.hub) setCurrentHub(profile.hub);
       const pending = requestsRes.data?.requests?.find((r: any) => r.status === 'pending');
       setPendingRequest(pending ? { requestedHub: pending.requestedHub, createdAt: pending.createdAt } : null);
 
@@ -281,7 +277,7 @@ export const MyHubScreen = () => {
         {/* Map Section — centered on selected hub */}
         <Card style={styles.mapCard}>
           {(() => {
-            const hubCoords = currentHub ? HUB_COORDINATES[currentHub] : null;
+            const hubCoords = currentHub ? availableHubs.find(h => h.name === currentHub) : null;
             const mapLat = hubCoords?.lat ?? BANGALORE_LAT;
             const mapLng = hubCoords?.lng ?? BANGALORE_LNG;
             return (
@@ -360,28 +356,28 @@ export const MyHubScreen = () => {
             </Text>
 
             {/* Hub options */}
-            {SERVICE_HUBS.filter(h => h !== currentHub).map((hub) => (
+            {availableHubs.filter(h => h.name !== currentHub).map((hub) => (
               <TouchableOpacity
-                key={hub}
+                key={hub._id}
                 style={[
                   styles.hubOption,
-                  selectedRequestHub === hub && styles.hubOptionActive
+                  selectedRequestHub === hub.name && styles.hubOptionActive
                 ]}
-                onPress={() => setSelectedRequestHub(hub)}
+                onPress={() => setSelectedRequestHub(hub.name)}
                 activeOpacity={0.7}
               >
                 <View style={styles.hubOptionLeft}>
                   <Ionicons
-                    name={selectedRequestHub === hub ? 'location' : 'location-outline'}
+                    name={selectedRequestHub === hub.name ? 'location' : 'location-outline'}
                     size={20}
-                    color={selectedRequestHub === hub ? Colors.primary : Colors.textSecondary}
+                    color={selectedRequestHub === hub.name ? Colors.primary : Colors.textSecondary}
                   />
                   <Text style={[
                     styles.hubOptionText,
-                    selectedRequestHub === hub && styles.hubOptionTextActive
-                  ]}>{hub}</Text>
+                    selectedRequestHub === hub.name && styles.hubOptionTextActive
+                  ]}>{hub.name}</Text>
                 </View>
-                {selectedRequestHub === hub && (
+                {selectedRequestHub === hub.name && (
                   <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
                 )}
               </TouchableOpacity>
