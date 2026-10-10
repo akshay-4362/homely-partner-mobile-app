@@ -77,7 +77,7 @@ export const LegalScreen: React.FC = () => {
             <View style={styles.cardRow}>
               <Ionicons name="shield-checkmark" size={22} color="#10b981" />
               <View style={styles.cardInfo}>
-                <Text style={styles.cardTitle}>{current.agreementId?.title || 'Homelyo Partner Service Agreement'}</Text>
+                <Text style={styles.cardTitle}>{current.agreementId?.title || 'Eazyhomes4u Partner Service Agreement'}</Text>
                 <View style={styles.metaRow}>
                   <View style={styles.versionBadge}>
                     <Text style={styles.versionBadgeText}>v{current.agreementVersion}</Text>

@@ -147,7 +147,7 @@ export const AuthScreen = () => {
 
           {/* Info */}
           <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>Join Homelyo Professionals</Text>
+            <Text style={styles.infoTitle}>Join Eazyhomes4u Professionals</Text>
             <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>✓</Text>
               <Text style={styles.infoItem}>Get auto-assigned jobs in your city</Text>

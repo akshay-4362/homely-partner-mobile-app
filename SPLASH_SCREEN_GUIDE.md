@@ -1,4 +1,4 @@
-# Splash Screen Design Guide - Homelyo Professional
+# Splash Screen Design Guide - Eazyhomes4u Professional
 
 ## Overview
 
@@ -35,7 +35,7 @@ A splash screen is the first screen users see when launching your app. It should
 │                     │
 │                     │
 │      [ICON]         │  ← App icon (400x400)
-│  Homelyo Partner    │  ← App name (optional)
+│  Eazyhomes4u Partner    │  ← App name (optional)
 │                     │
 │                     │
 │                     │

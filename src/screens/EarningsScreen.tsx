@@ -120,7 +120,7 @@ export const EarningsScreen = () => {
 
   const customerPaid = selectedMonthTotalPaid;
   const revenueToSplit = selectedMonthEarnings + selectedMonthCommission;
-  const platformFee = selectedMonthCommission;          // Paid to Homelyo
+  const platformFee = selectedMonthCommission;          // Paid to Eazyhomes4u
   const grossEarnings = selectedMonthEarnings;
   const gstAmount = grossEarnings * 0.18;               // GST on professional's earnings
   const serviceTax = selectedMonthServiceTaxes;
@@ -313,7 +313,7 @@ export const EarningsScreen = () => {
               <View style={styles.divider} />
               <TouchableOpacity style={styles.detailRow} activeOpacity={0.7}
                 onPress={() => navigation.navigate('Payouts')}>
-                <Text style={styles.detailLabel}>Paid to Homelyo</Text>
+                <Text style={styles.detailLabel}>Paid to Eazyhomes4u</Text>
                 <View style={styles.detailRight}>
                   <Text style={[styles.detailValue, { color: '#F97316' }]}>
                     -{formatCurrency(platformFee)}

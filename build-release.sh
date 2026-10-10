@@ -8,7 +8,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   Homelyo Partner - Release APK Builder   ║${NC}"
+echo -e "${BLUE}║   Eazyhomes4u Partner - Release APK Builder   ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -59,7 +59,7 @@ fi
 cd android
 
 # Check if keystore exists
-if [ ! -f "app/homelyo-release-key.keystore" ]; then
+if [ ! -f "app/eazyhomes4u-release-key.keystore" ]; then
     echo -e "${YELLOW}⚠️  Release keystore not found.${NC}"
     echo -e "${BLUE}   Creating new keystore...${NC}"
     echo ""
@@ -69,23 +69,23 @@ if [ ! -f "app/homelyo-release-key.keystore" ]; then
     # Generate keystore
     keytool -genkeypair -v \
         -storetype PKCS12 \
-        -keystore app/homelyo-release-key.keystore \
-        -alias homelyo-key \
+        -keystore app/eazyhomes4u-release-key.keystore \
+        -alias eazyhomes4u-key \
         -keyalg RSA \
         -keysize 2048 \
         -validity 10000 \
-        -storepass homelyo123 \
-        -keypass homelyo123 \
-        -dname "CN=Homelyo, OU=Mobile, O=Homelyo, L=Bangalore, ST=Karnataka, C=IN"
+        -storepass eazyhomes4u123 \
+        -keypass eazyhomes4u123 \
+        -dname "CN=Eazyhomes4u, OU=Mobile, O=Eazyhomes4u, L=Bangalore, ST=Karnataka, C=IN"
 
     if [ $? -eq 0 ]; then
         echo ""
         echo -e "${GREEN}✓${NC} Keystore created successfully"
         echo ""
         echo -e "${YELLOW}⚠️  IMPORTANT: Save these credentials:${NC}"
-        echo -e "   Keystore password: ${GREEN}homelyo123${NC}"
-        echo -e "   Key alias: ${GREEN}homelyo-key${NC}"
-        echo -e "   Key password: ${GREEN}homelyo123${NC}"
+        echo -e "   Keystore password: ${GREEN}eazyhomes4u123${NC}"
+        echo -e "   Key alias: ${GREEN}eazyhomes4u-key${NC}"
+        echo -e "   Key password: ${GREEN}eazyhomes4u123${NC}"
         echo ""
     else
         echo -e "${RED}✗${NC} Failed to create keystore"
@@ -105,10 +105,10 @@ if ! grep -q "signingConfigs" app/build.gradle; then
     sed -i '' '/android {/a\
 \    signingConfigs {\
 \        release {\
-\            storeFile file("homelyo-release-key.keystore")\
-\            storePassword "homelyo123"\
-\            keyAlias "homelyo-key"\
-\            keyPassword "homelyo123"\
+\            storeFile file("eazyhomes4u-release-key.keystore")\
+\            storePassword "eazyhomes4u123"\
+\            keyAlias "eazyhomes4u-key"\
+\            keyPassword "eazyhomes4u123"\
 \        }\
 \    }
 ' app/build.gradle
@@ -136,11 +136,11 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}📦 APK Location:${NC}"
-    echo -e "   ${GREEN}android/app/build/outputs/apk/release/homelyo-partner-release.apk${NC}"
+    echo -e "   ${GREEN}android/app/build/outputs/apk/release/eazyhomes4u-partner-release.apk${NC}"
     echo ""
 
     # Get APK size
-    APK_SIZE=$(du -h app/build/outputs/apk/release/homelyo-partner-release.apk | cut -f1)
+    APK_SIZE=$(du -h app/build/outputs/apk/release/eazyhomes4u-partner-release.apk | cut -f1)
     echo -e "${BLUE}📊 APK Size: ${GREEN}$APK_SIZE${NC}"
     echo ""
 

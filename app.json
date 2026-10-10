@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Homelyo Partner",
-    "slug": "homelyo",
+    "name": "Eazyhomes4u Partner",
+    "slug": "eazyhomes4u",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,13 +14,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.homelyo.pro",
+      "bundleIdentifier": "com.eazyhomes4u.pro",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
-      "package": "com.homelyo.pro",
+      "package": "com.eazyhomes4u.pro",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"

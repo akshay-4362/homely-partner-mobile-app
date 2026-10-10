@@ -114,7 +114,7 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({
         </View>
 
         {/* App Name */}
-        <Text style={styles.appName}>HOMELYO</Text>
+        <Text style={styles.appName}>EAZYHOMES4U</Text>
         <Text style={styles.subtitle}>Partner App</Text>
 
         {/* Animated Loading Dots */}

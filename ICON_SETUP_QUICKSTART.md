@@ -42,7 +42,7 @@ If you need icons **right now** for testing, follow this quick path:
 4. Customize:
    - Change background to #6366F1
    - Add tool icon
-   - Add "H" letter or "Homelyo" text
+   - Add "H" letter or "Eazyhomes4u" text
 5. Download as PNG (1024x1024)
 
 ## 📦 Installation

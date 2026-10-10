@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Icon Generation Script for Homelyo Professional App
+ * Icon Generation Script for Eazyhomes4u Professional App
  *
  * This script generates all required icon sizes from a master 1024x1024 icon.
  *

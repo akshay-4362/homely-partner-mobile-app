@@ -10,7 +10,7 @@ export const HeaderLogo = () => {
         style={styles.logo}
         resizeMode="contain"
       />
-      <Text style={styles.text}>Homelyo Partner</Text>
+      <Text style={styles.text}>Eazyhomes4u Partner</Text>
     </View>
   );
 };

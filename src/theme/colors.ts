@@ -1,7 +1,7 @@
-// Homelyo Brand Colors - Purple/Indigo theme (distinct from UrbanClap green)
+// Eazyhomes4u Brand Colors - Purple/Indigo theme (distinct from UrbanClap green)
 export const Colors = {
   // Brand
-  primary: '#6366F1',         // Indigo - Homelyo signature
+  primary: '#6366F1',         // Indigo - Eazyhomes4u signature
   primaryDark: '#4F46E5',
   primaryLight: '#A5B4FC',
   primaryBg: '#EEF2FF',       // Light indigo bg for cards

@@ -137,7 +137,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
         currency: 'INR',
         key: keyId,
         amount: amount, // Amount in paise
-        name: 'Homelyo Professional',
+        name: 'Eazyhomes4u Professional',
         order_id: orderId,
         prefill: {
           name: 'Professional Partner',

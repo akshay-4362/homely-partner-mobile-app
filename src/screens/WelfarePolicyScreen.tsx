@@ -55,7 +55,7 @@ const SECTIONS: Section[] = [
     iconBg: '#eef2ff',
     title: 'Objectives',
     intro:
-      'To provide clear and effective channels for service professionals on the Homelyo platform to communicate, resolve disputes, and safeguard their interests, while ensuring:',
+      'To provide clear and effective channels for service professionals on the Eazyhomes4u platform to communicate, resolve disputes, and safeguard their interests, while ensuring:',
     items: [
       { text: 'A fair and transparent grievance redressal mechanism.' },
       { text: 'Clear policies for earnings, deactivation, and appeals.' },
@@ -70,7 +70,7 @@ const SECTIONS: Section[] = [
     iconBg: '#eff6ff',
     title: 'Communication with a Human Representative',
     intro:
-      'Homelyo ensures every service professional can communicate with a human representative for support and grievance resolution. The channel is available on the platform 24×7.',
+      'Eazyhomes4u ensures every service professional can communicate with a human representative for support and grievance resolution. The channel is available on the platform 24×7.',
     items: [
       {
         text: 'Service professionals can raise a support ticket directly from the Help Center in the app at any time.',
@@ -119,7 +119,7 @@ const SECTIONS: Section[] = [
     iconBg: '#ecfdf5',
     title: 'Ratings and Deactivation Process',
     intro:
-      'Ratings are a key quality measure but are applied fairly. Homelyo follows a structured process before taking any account action based on ratings.',
+      'Ratings are a key quality measure but are applied fairly. Eazyhomes4u follows a structured process before taking any account action based on ratings.',
     items: [
       {
         text: 'Ratings are calculated as a weighted rolling average. A single low rating does not disproportionately affect your score.',
@@ -171,19 +171,19 @@ const SECTIONS: Section[] = [
     iconBg: '#fdf2f8',
     title: 'Equality and Fair Treatment',
     intro:
-      'Homelyo is committed to an Anti-Discrimination Policy and will not tolerate any form of unequal treatment among service professionals.',
+      'Eazyhomes4u is committed to an Anti-Discrimination Policy and will not tolerate any form of unequal treatment among service professionals.',
     items: [
       {
         text: 'Job assignments are based solely on skills, service category, availability, and rating — never on caste, religion, gender, age, or background.',
       },
       {
-        text: 'Homelyo will regularly monitor assignment patterns to ensure equitable distribution across all partner groups.',
+        text: 'Eazyhomes4u will regularly monitor assignment patterns to ensure equitable distribution across all partner groups.',
       },
       {
         text: 'Any Service Professional who witnesses or experiences discrimination may report it confidentially via the Help Center.',
       },
       {
-        text: 'If a Service Professional reports genuine behaviour, Homelyo shall undertake the following: Investigate the claim within 5 working days; Take corrective action against the offending party; Provide feedback to the reporting partner on the outcome.',
+        text: 'If a Service Professional reports genuine behaviour, Eazyhomes4u shall undertake the following: Investigate the claim within 5 working days; Take corrective action against the offending party; Provide feedback to the reporting partner on the outcome.',
       },
     ],
   },
@@ -194,16 +194,16 @@ const SECTIONS: Section[] = [
     iconBg: '#f0fdfa',
     title: 'Additional Support Measures',
     intro:
-      'Homelyo continuously works with Service Professionals and their representatives to improve welfare. The following additional support measures are in place:',
+      'Eazyhomes4u continuously works with Service Professionals and their representatives to improve welfare. The following additional support measures are in place:',
     items: [
       {
-        text: 'Periodic Welfare Reviews: Homelyo conducts quarterly reviews of service professional welfare policies and communicates updates via the app.',
+        text: 'Periodic Welfare Reviews: Eazyhomes4u conducts quarterly reviews of service professional welfare policies and communicates updates via the app.',
       },
       {
         text: 'Mental Health & Well-Being: Partners facing personal hardship can reach out to the support team for temporary schedule flexibility.',
       },
       {
-        text: 'Financial Assistance: In cases of medical emergency or severe hardship, Homelyo may provide advance payouts on a case-by-case basis.',
+        text: 'Financial Assistance: In cases of medical emergency or severe hardship, Eazyhomes4u may provide advance payouts on a case-by-case basis.',
       },
       {
         text: 'Skill Development: Free training resources and video guides are available in the Training section of the app at all times.',
@@ -219,7 +219,7 @@ const SECTIONS: Section[] = [
     iconColor: '#ef4444',
     iconBg: '#fef2f2',
     title: 'Policy for Ensuring Service Professional Safety',
-    intro: 'Homelyo is committed to the physical safety of every partner on every job.',
+    intro: 'Eazyhomes4u is committed to the physical safety of every partner on every job.',
     subSections: [
       {
         heading: 'A. Service Scheduling and Conduct',
@@ -243,7 +243,7 @@ const SECTIONS: Section[] = [
             text: 'Before/after photo documentation is required for all jobs, protecting partners in case of customer disputes.',
           },
           {
-            text: 'Homelyo does not share a partner\'s personal phone number or home address with customers at any time.',
+            text: 'Eazyhomes4u does not share a partner\'s personal phone number or home address with customers at any time.',
           },
         ],
       },
@@ -260,7 +260,7 @@ const SECTIONS: Section[] = [
             text: 'Partners will not be penalised for refusing a job where safety concerns have been formally reported.',
           },
           {
-            text: 'In case of physical harm or threat, Homelyo will provide full cooperation with law enforcement authorities.',
+            text: 'In case of physical harm or threat, Eazyhomes4u will provide full cooperation with law enforcement authorities.',
           },
         ],
       },
@@ -273,7 +273,7 @@ const SECTIONS: Section[] = [
     iconBg: '#fff7ed',
     title: 'Anti-Discrimination Protocol for Service Professionals',
     intro:
-      'Homelyo is committed to upholding the principles of diversity, inclusion, and respect, and the policy serves as a testament to our commitment to creating a discrimination-free platform for all service professionals.',
+      'Eazyhomes4u is committed to upholding the principles of diversity, inclusion, and respect, and the policy serves as a testament to our commitment to creating a discrimination-free platform for all service professionals.',
     items: [
       {
         text: 'No service professional shall face discrimination in job allocation, earnings, ratings, or platform access on the basis of gender, caste, religion, disability, language, or ethnicity.',
@@ -291,7 +291,7 @@ const SECTIONS: Section[] = [
         text: 'Protective Measures: During any active investigation, the reporting partner is protected from any retaliatory account action.',
       },
       {
-        text: 'Permanently Delisted: Partners or customers found to have engaged in discriminatory behaviour are permanently removed from the Homelyo platform. This measure ensures continued safety and dignity for all service professionals.',
+        text: 'Permanently Delisted: Partners or customers found to have engaged in discriminatory behaviour are permanently removed from the Eazyhomes4u platform. This measure ensures continued safety and dignity for all service professionals.',
       },
     ],
   },
@@ -393,20 +393,20 @@ export const WelfarePolicyScreen = () => {
             </style>
           </head>
           <body>
-            <h1>Homelyo Partner Welfare Policy</h1>
+            <h1>Eazyhomes4u Partner Welfare Policy</h1>
             <p class="meta">Effective: March 2026</p>
             <p class="preamble">
-              Homelyo is committed to supporting the physical, mental, and emotional well-being of every
+              Eazyhomes4u is committed to supporting the physical, mental, and emotional well-being of every
               service professional. As partners, you shall be provided with a fair, safe, and respectful
               environment — and the resources and support you need to thrive.
             </p>
             ${sectionsHtml}
-            <div class="footer">For questions, contact support@homelyoapp.com or raise a ticket via the Help Center in the app.</div>
+            <div class="footer">For questions, contact support@eazyhomes4u.com or raise a ticket via the Help Center in the app.</div>
           </body>
         </html>`;
 
       const { uri } = await Print.printToFileAsync({ html });
-      const fileName = 'Homelyo_Partner_Welfare_Policy.pdf';
+      const fileName = 'Eazyhomes4u_Partner_Welfare_Policy.pdf';
 
       if (Platform.OS === 'android') {
         const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
@@ -450,16 +450,16 @@ export const WelfarePolicyScreen = () => {
           <View style={styles.heroIcon}>
             <Ionicons name="heart" size={28} color="#6366f1" />
           </View>
-          <Text style={styles.heroTitle}>Homelyo Partner Welfare Policy</Text>
+          <Text style={styles.heroTitle}>Eazyhomes4u Partner Welfare Policy</Text>
           <Text style={styles.heroDate}>Effective: March 2026</Text>
           <Text style={styles.heroBody}>
-            Homelyo is committed to supporting the physical, mental, and emotional well-being of
+            Eazyhomes4u is committed to supporting the physical, mental, and emotional well-being of
             every service professional. As partners, you shall be provided with a fair, safe, and
             respectful environment — and the resources and support you need to thrive.
           </Text>
           <View style={styles.heroDivider} />
           <Text style={styles.heroPreamble}>
-            Homelyo is committed to offering a fair and equitable platform. It is committed to
+            Eazyhomes4u is committed to offering a fair and equitable platform. It is committed to
             establishing a safe working environment for all its service professionals. It will
             prioritise the safety of service professionals in all interactions.
           </Text>
@@ -476,7 +476,7 @@ export const WelfarePolicyScreen = () => {
           <Ionicons name="information-circle-outline" size={16} color="#94a3b8" />
           <Text style={styles.footerText}>
             For questions about this policy, contact us at{' '}
-            <Text style={styles.footerLink}>support@homelyoapp.com</Text>
+            <Text style={styles.footerLink}>support@eazyhomes4u.com</Text>
             {' '}or raise a ticket via the Help Center.
           </Text>
         </View>

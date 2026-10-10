@@ -81,13 +81,13 @@ export const HelpScreen = () => {
   };
 
   const handleEmail = () => {
-    Linking.openURL('mailto:pro-support@homelyoapp.com').catch(() => {
+    Linking.openURL('mailto:pro-support@eazyhomes4u.com').catch(() => {
       Alert.alert('Unable to open email app');
     });
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL('whatsapp://send?phone=918001234567&text=Hi, I need help with my Homelyo Partner account').catch(() => {
+    Linking.openURL('whatsapp://send?phone=918001234567&text=Hi, I need help with my Eazyhomes4u Partner account').catch(() => {
       Alert.alert('WhatsApp not installed');
     });
   };

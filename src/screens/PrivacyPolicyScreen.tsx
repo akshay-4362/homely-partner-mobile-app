@@ -8,7 +8,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/colors';
 const SECTIONS = [
   {
     title: '1. Introduction',
-    body: `Homelyo ("we", "our", "us") is committed to protecting the privacy of its professional service partners ("you", "Partner", "Provider") who use the Homelyo Partner application and associated services available at homelyoapp.com (collectively, the "Platform").\n\nThis Privacy Policy describes how we collect, use, store, share, and protect your personal information when you register and operate as a service professional on the Platform. By using the Platform, you consent to the practices described in this policy.`,
+    body: `Eazyhomes4u ("we", "our", "us") is committed to protecting the privacy of its professional service partners ("you", "Partner", "Provider") who use the Eazyhomes4u Partner application and associated services available at eazyhomes4u.com (collectively, the "Platform").\n\nThis Privacy Policy describes how we collect, use, store, share, and protect your personal information when you register and operate as a service professional on the Platform. By using the Platform, you consent to the practices described in this policy.`,
   },
   {
     title: '2. Information We Collect',
@@ -20,11 +20,11 @@ const SECTIONS = [
   },
   {
     title: '4. Sharing of Your Information',
-    body: `We may share your information in the following circumstances:\n\n(a) With Customers\nYour name, profile picture, service category, and ratings are shared with customers when you are assigned to their booking. Your contact number may be shared for coordination purposes.\n\n(b) With Payment Partners\nYour financial information (bank account / UPI) is shared with Razorpay (our payment processing partner) solely for the purpose of processing payouts.\n\n(c) With Service Providers\nWe may share data with trusted third-party vendors who provide services such as cloud hosting, document verification (KYC), analytics, and customer support tools — all bound by confidentiality obligations.\n\n(d) For Legal Compliance\nWe may disclose your information to government authorities, regulators, or law enforcement agencies when required by law, court order, or to protect the rights and safety of Homelyo, its users, or the public.\n\n(e) Business Transfers\nIn the event of a merger, acquisition, or sale of assets, your information may be transferred to the acquiring entity, subject to equivalent privacy protections.\n\nWe do not sell, rent, or trade your personal information to third parties for marketing purposes.`,
+    body: `We may share your information in the following circumstances:\n\n(a) With Customers\nYour name, profile picture, service category, and ratings are shared with customers when you are assigned to their booking. Your contact number may be shared for coordination purposes.\n\n(b) With Payment Partners\nYour financial information (bank account / UPI) is shared with Razorpay (our payment processing partner) solely for the purpose of processing payouts.\n\n(c) With Service Providers\nWe may share data with trusted third-party vendors who provide services such as cloud hosting, document verification (KYC), analytics, and customer support tools — all bound by confidentiality obligations.\n\n(d) For Legal Compliance\nWe may disclose your information to government authorities, regulators, or law enforcement agencies when required by law, court order, or to protect the rights and safety of Eazyhomes4u, its users, or the public.\n\n(e) Business Transfers\nIn the event of a merger, acquisition, or sale of assets, your information may be transferred to the acquiring entity, subject to equivalent privacy protections.\n\nWe do not sell, rent, or trade your personal information to third parties for marketing purposes.`,
   },
   {
     title: '5. Location Data',
-    body: `The Homelyo Partner app may request access to your device location to:\n• Enable accurate job assignment based on your service area\n• Help customers track arrival for confirmed bookings\n• Verify service location for dispute resolution\n\nLocation access is only active when the app is in use. You may disable location permissions through your device settings, though this may affect your ability to receive job assignments.`,
+    body: `The Eazyhomes4u Partner app may request access to your device location to:\n• Enable accurate job assignment based on your service area\n• Help customers track arrival for confirmed bookings\n• Verify service location for dispute resolution\n\nLocation access is only active when the app is in use. You may disable location permissions through your device settings, though this may affect your ability to receive job assignments.`,
   },
   {
     title: '6. Data Security',
@@ -32,15 +32,15 @@ const SECTIONS = [
   },
   {
     title: '7. Data Retention',
-    body: `We retain your personal information for as long as your account is active or as necessary to provide services and comply with legal obligations.\n\n• Account data: Retained for the duration of your active partnership and up to 2 years after account closure\n• Financial records and job history: Retained for up to 7 years as required by Indian tax and financial regulations\n• Identity documents: Retained as required by KYC compliance obligations\n• Marketing communications: Until you opt out\n\nYou may request deletion of your account and associated data by contacting us at support@homelyoapp.com, subject to retention obligations.`,
+    body: `We retain your personal information for as long as your account is active or as necessary to provide services and comply with legal obligations.\n\n• Account data: Retained for the duration of your active partnership and up to 2 years after account closure\n• Financial records and job history: Retained for up to 7 years as required by Indian tax and financial regulations\n• Identity documents: Retained as required by KYC compliance obligations\n• Marketing communications: Until you opt out\n\nYou may request deletion of your account and associated data by contacting us at support@eazyhomes4u.com, subject to retention obligations.`,
   },
   {
     title: '8. Your Rights',
-    body: `As a Homelyo professional partner, you have the following rights regarding your personal data:\n\n• Access: Request a copy of the personal information we hold about you\n• Correction: Update or correct inaccurate information from the Profile screen in the app\n• Deletion: Request deletion of your account and personal data (subject to legal retention obligations)\n• Portability: Request your data in a structured, machine-readable format\n• Objection: Object to specific processing activities where permitted by law\n• Withdraw Consent: Where processing is based on consent, you may withdraw it at any time\n\nTo exercise any of these rights, contact us at: support@homelyoapp.com`,
+    body: `As a Eazyhomes4u professional partner, you have the following rights regarding your personal data:\n\n• Access: Request a copy of the personal information we hold about you\n• Correction: Update or correct inaccurate information from the Profile screen in the app\n• Deletion: Request deletion of your account and personal data (subject to legal retention obligations)\n• Portability: Request your data in a structured, machine-readable format\n• Objection: Object to specific processing activities where permitted by law\n• Withdraw Consent: Where processing is based on consent, you may withdraw it at any time\n\nTo exercise any of these rights, contact us at: support@eazyhomes4u.com`,
   },
   {
     title: '9. Cookies and Tracking',
-    body: `The Homelyo Partner mobile app does not use browser cookies. We use analytics SDKs and device identifiers to understand app usage and improve performance. You may limit tracking through your device's privacy settings.`,
+    body: `The Eazyhomes4u Partner mobile app does not use browser cookies. We use analytics SDKs and device identifiers to understand app usage and improve performance. You may limit tracking through your device's privacy settings.`,
   },
   {
     title: '10. Third-Party Links',
@@ -48,7 +48,7 @@ const SECTIONS = [
   },
   {
     title: '11. Children\'s Privacy',
-    body: `The Homelyo Partner platform is intended for use by adults aged 18 and above. We do not knowingly collect personal information from individuals under 18 years of age. If we become aware of such collection, we will promptly delete the information.`,
+    body: `The Eazyhomes4u Partner platform is intended for use by adults aged 18 and above. We do not knowingly collect personal information from individuals under 18 years of age. If we become aware of such collection, we will promptly delete the information.`,
   },
   {
     title: '12. Changes to This Policy',
@@ -56,11 +56,11 @@ const SECTIONS = [
   },
   {
     title: '13. Grievance Officer',
-    body: `In accordance with the Information Technology Act, 2000 and the rules made thereunder, the name and contact details of our Grievance Officer are:\n\nName: Grievance Officer, Homelyo\nEmail: grievance@homelyoapp.com\nWebsite: homelyoapp.com\n\nYou may contact our Grievance Officer for any privacy-related complaints or queries. We will acknowledge your complaint within 24 hours and resolve it within 30 days.`,
+    body: `In accordance with the Information Technology Act, 2000 and the rules made thereunder, the name and contact details of our Grievance Officer are:\n\nName: Grievance Officer, Eazyhomes4u\nEmail: grievance@eazyhomes4u.com\nWebsite: eazyhomes4u.com\n\nYou may contact our Grievance Officer for any privacy-related complaints or queries. We will acknowledge your complaint within 24 hours and resolve it within 30 days.`,
   },
   {
     title: '14. Contact Us',
-    body: `For any questions, concerns, or requests related to this Privacy Policy:\n\nHomelyo Support Team\nEmail: support@homelyoapp.com\nWebsite: homelyoapp.com`,
+    body: `For any questions, concerns, or requests related to this Privacy Policy:\n\nEazyhomes4u Support Team\nEmail: support@eazyhomes4u.com\nWebsite: eazyhomes4u.com`,
   },
 ];
 
@@ -86,7 +86,7 @@ export const PrivacyPolicyScreen = () => {
         <View style={styles.introBanner}>
           <Text style={styles.introText}>
             This Privacy Policy applies to professional service partners ("Providers") using
-            the Homelyo Partner app on the Homelyo platform (homelyoapp.com). Please read it carefully.
+            the Eazyhomes4u Partner app on the Eazyhomes4u platform (eazyhomes4u.com). Please read it carefully.
           </Text>
         </View>
 

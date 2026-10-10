@@ -1,8 +1,8 @@
-# App Icon Design Guide - Homelyo Professional
+# App Icon Design Guide - Eazyhomes4u Professional
 
 ## Brand Identity
 
-**App Name**: Homelyo Partner
+**App Name**: Eazyhomes4u Partner
 **Tagline**: Professional Service Partner
 **Brand Color**: #6366F1 (Indigo)
 **Theme**: Professional, Trustworthy, Modern
@@ -25,7 +25,7 @@ A clean, modern icon representing professional service excellence.
 - Represents home services
 
 **Option 3: Letter "H" Badge**
-- Stylized "H" for Homelyo
+- Stylized "H" for Eazyhomes4u
 - Professional badge shape
 - Tool elements integrated into letter
 

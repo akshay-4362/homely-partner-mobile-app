@@ -62,7 +62,7 @@ export const PayDeductionModal: React.FC<PayDeductionModalProps> = ({
         currency: 'INR',
         key: keyId,
         amount: orderAmount,
-        name: 'Homelyo Professional',
+        name: 'Eazyhomes4u Professional',
         order_id: orderId,
         prefill: { name: 'Professional Partner' },
         theme: { color: Colors.primary },
@@ -144,7 +144,7 @@ export const PayDeductionModal: React.FC<PayDeductionModalProps> = ({
               <Text style={styles.amountLabel}>Amount Due</Text>
               <Text style={styles.amountValue}>{formatCurrency(amount)}</Text>
               <Text style={styles.amountNote}>
-                This amount is owed to Homelyo from your completed jobs.
+                This amount is owed to Eazyhomes4u from your completed jobs.
               </Text>
             </View>
 
