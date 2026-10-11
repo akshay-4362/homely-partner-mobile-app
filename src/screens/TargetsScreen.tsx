@@ -107,8 +107,8 @@ export const TargetsScreen = () => {
       setMetrics(metricsData);
 
       // Calculate subscription based on credit balance
-      // Each job costs ₹300 (deducted once on assignment)
-      const creditPerJob = creditStats.creditPerJob || 300;
+      // Each job costs ₹100 (deducted once on assignment)
+      const creditPerJob = creditStats.creditPerJob || 100;
       const totalPurchased = creditStats.totalPurchased || 0;
       const jobsAssigned = creditStats.jobsAssigned || 0;
 

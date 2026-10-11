@@ -35,19 +35,19 @@ interface CreditPackage {
 }
 
 const CREDIT_PACKAGES: CreditPackage[] = [
-  { amount: 5000, label: '₹5,000', jobs: 16, popular: true, bonus: 'Most Popular' },
-  { amount: 10000, label: '₹10,000', jobs: 33, bonus: 'Starter' },
-  { amount: 25000, label: '₹25,000', jobs: 83, bonus: 'Popular' },
-  { amount: 50000, label: '₹50,000', jobs: 166, bonus: 'Value' },
-  { amount: 100000, label: '₹1,00,000', jobs: 333, bonus: 'Best Value' },
+  { amount: 2000, label: '₹2,000', jobs: 20, bonus: 'Starter' },
+  { amount: 5000, label: '₹5,000', jobs: 50, popular: true, bonus: 'Most Popular' },
+  { amount: 10000, label: '₹10,000', jobs: 100, bonus: 'Popular' },
+  { amount: 25000, label: '₹25,000', jobs: 250, bonus: 'Value' },
+  { amount: 50000, label: '₹50,000', jobs: 500, bonus: 'Best Value' },
 ];
 
-const MINIMUM_AMOUNT = 5000;
+const MINIMUM_AMOUNT = 2000;
 const MAXIMUM_AMOUNT = 500000;
 
 // Helper to calculate jobs from amount
 const calculateJobs = (amount: number): number => {
-  return Math.floor(amount / 300); // ₹300 per job (deducted on assignment)
+  return Math.floor(amount / 100); // ₹100 per job (deducted on assignment)
 };
 
 export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
@@ -56,7 +56,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
   onSuccess,
 }) => {
   const insets = useSafeAreaInsets();
-  const [selectedAmount, setSelectedAmount] = useState<number>(5000);
+  const [selectedAmount, setSelectedAmount] = useState<number>(2000);
   const [isCustomAmount, setIsCustomAmount] = useState(false);
   const [customAmountText, setCustomAmountText] = useState<string>('');
   const [processing, setProcessing] = useState(false);
@@ -267,7 +267,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
             <View style={styles.infoCard}>
               <Ionicons name="information-circle" size={20} color={Colors.primary} />
               <Text style={styles.infoText}>
-                Credits are deducted once per job: ₹300 when job is assigned to you
+                Credits are deducted once per job: ₹100 when job is assigned to you
               </Text>
             </View>
 
@@ -335,7 +335,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
                     />
                   </View>
                 ) : (
-                  <Text style={styles.packageJobs}>Min: ₹5,000</Text>
+                  <Text style={styles.packageJobs}>Min: ₹2,000</Text>
                 )}
                 {isCustomAmount && customAmountText && parseInt(customAmountText) >= MINIMUM_AMOUNT && (
                   <Text style={styles.packageJobs}>
@@ -349,7 +349,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
             <View style={styles.pricingInfo}>
               <Ionicons name="calculator-outline" size={16} color={Colors.textSecondary} />
               <Text style={styles.pricingText}>
-                ₹300 per job (deducted when assigned)
+                ₹100 per job (deducted when assigned)
               </Text>
             </View>
 
