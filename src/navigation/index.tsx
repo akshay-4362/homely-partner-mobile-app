@@ -16,6 +16,8 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { BookingsScreen } from '../screens/BookingsScreen';
 import { BookingDetailScreen } from '../screens/BookingDetailScreen';
 import { BookingWorkflowScreen } from '../screens/booking-workflow/BookingWorkflowScreen';
+import { CameraScreen } from '../screens/booking-workflow/screens/CameraScreen';
+import { MediaReviewScreen } from '../screens/booking-workflow/screens/MediaReviewScreen';
 import { EarningsScreen } from '../screens/EarningsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AvailabilityScreen } from '../screens/AvailabilityScreen';
@@ -57,6 +59,8 @@ const BookingStackNav = () => {
     >
       <BookingStack.Screen name="BookingsList" component={BookingsScreen} />
       <BookingStack.Screen name="BookingDetail" component={BookingWorkflowScreen} />
+      <BookingStack.Screen name="Camera" component={CameraScreen} options={{ presentation: 'modal' }} />
+      <BookingStack.Screen name="MediaReview" component={MediaReviewScreen} />
       <BookingStack.Screen name="PaymentQR" component={PaymentQRScreen} />
       <BookingStack.Screen name="Chat" component={ChatScreen} />
     </BookingStack.Navigator>
