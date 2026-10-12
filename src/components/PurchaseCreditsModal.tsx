@@ -190,9 +190,11 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
           ]
         );
       } catch (confirmError: any) {
+        console.error('🔴 Confirm error:', confirmError);
+        const confirmMsg = confirmError?.response?.data?.message || confirmError?.message || 'Unknown error';
         Alert.alert(
           'Payment successful but confirmation failed',
-          'Your payment was processed but there was an error updating your balance. Please contact support.',
+          `Error: ${confirmMsg}`,
           [{ text: 'OK', onPress: () => onClose() }]
         );
       }
