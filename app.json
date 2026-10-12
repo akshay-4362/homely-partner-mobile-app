@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Eazyhomes4u Partner",
-    "slug": "eazyhomes4u",
+    "slug": "homelyo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.eazyhomes4u.pro",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -28,7 +30,12 @@
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "softwareKeyboardLayoutMode": "resize",
       "edgeToEdgeEnabled": true,
@@ -46,7 +53,9 @@
         {
           "icon": "./assets/icon.png",
           "color": "#6366F1",
-          "sounds": ["./assets/sounds/new_booking.wav"]
+          "sounds": [
+            "./assets/sounds/new_booking.wav"
+          ]
         }
       ]
     ],
