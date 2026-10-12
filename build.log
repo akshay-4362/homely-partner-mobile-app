@@ -1623,9 +1623,9 @@ w: file:///Users/akshay/urban/urban-mobile-professional/node_modules/react-nativ
 > Task :app:buildCMakeRelWithDebInfo[x86_64]
 
 > Task :app:compileReleaseKotlin
-w: file:///Users/akshay/urban/urban-mobile-professional/android/app/src/main/java/com/homelyo/pro/MainApplication.kt:9:8 'class ReactNativeHost : Any' is deprecated. Deprecated in Java.
-w: file:///Users/akshay/urban/urban-mobile-professional/android/app/src/main/java/com/homelyo/pro/MainApplication.kt:21:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
-w: file:///Users/akshay/urban/urban-mobile-professional/android/app/src/main/java/com/homelyo/pro/MainApplication.kt:21:33 'class ReactNativeHost : Any' is deprecated. Deprecated in Java.
+w: file:///Users/akshay/urban/urban-mobile-professional/android/app/src/main/java/com/eazyhomes4u/pro/MainApplication.kt:9:8 'class ReactNativeHost : Any' is deprecated. Deprecated in Java.
+w: file:///Users/akshay/urban/urban-mobile-professional/android/app/src/main/java/com/eazyhomes4u/pro/MainApplication.kt:21:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///Users/akshay/urban/urban-mobile-professional/android/app/src/main/java/com/eazyhomes4u/pro/MainApplication.kt:21:33 'class ReactNativeHost : Any' is deprecated. Deprecated in Java.
 
 > Task :app:compileReleaseJavaWithJavac
 > Task :app:dexBuilderRelease
