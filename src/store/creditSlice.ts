@@ -90,11 +90,11 @@ export const createPurchaseIntent = createAsyncThunk(
 export const confirmPurchase = createAsyncThunk(
   'credit/confirmPurchase',
   async (
-    { razorpayPaymentId, razorpayOrderId, amount }: { razorpayPaymentId: string; razorpayOrderId: string; amount: number },
+    { razorpayPaymentId, razorpayOrderId, razorpaySignature, amount }: { razorpayPaymentId: string; razorpayOrderId: string; razorpaySignature: string; amount: number },
     { rejectWithValue, dispatch }
   ) => {
     try {
-      const response = await creditApi.confirmPurchase(razorpayPaymentId, razorpayOrderId, amount);
+      const response = await creditApi.confirmPurchase(razorpayPaymentId, razorpayOrderId, razorpaySignature, amount);
       // Refresh balance and stats after successful purchase
       dispatch(fetchCreditBalance());
       dispatch(fetchCreditStats());

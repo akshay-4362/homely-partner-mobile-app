@@ -100,17 +100,18 @@ export const createPurchaseIntent = async (amount: number): Promise<CreatePurcha
 export const confirmPurchase = async (
   razorpayPaymentId: string,
   razorpayOrderId: string,
+  razorpaySignature: string,
   amount: number
 ): Promise<ConfirmPurchaseResponse> => {
   const response = await client.post('/credits/confirm-purchase', {
     razorpayPaymentId,
     razorpayOrderId,
+    razorpaySignature,
     amount,
   });
   return response.data;
 };
 
-// Export as creditApi object for convenience
 export const creditApi = {
   getCreditBalance,
   getCreditStats,

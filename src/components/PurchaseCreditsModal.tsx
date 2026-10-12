@@ -163,11 +163,16 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
       const paymentData = await RazorpayCheckout.open(options);
       console.log('🟢 Payment successful:', JSON.stringify(paymentData, null, 2));
 
-      // Step 4: Payment successful - confirm on backend
+      // Step 4: Payment successful - confirm on backend with signature for verification
+      const signature = paymentData.razorpay_signature;
+      if (!signature) {
+        throw new Error('Payment signature missing from Razorpay response');
+      }
       try {
         await creditApi.confirmPurchase(
           paymentData.razorpay_payment_id,
           paymentData.razorpay_order_id,
+          signature,
           validAmount
         );
 

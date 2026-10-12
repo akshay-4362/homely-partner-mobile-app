@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Animated, Easing, Image } from 'react-native';
 import { Colors } from '../../theme/colors';
 
 interface SplashLoaderProps {
@@ -106,11 +105,13 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({
           },
         ]}
       >
-        {/* Icon Container */}
+        {/* App Icon */}
         <View style={styles.iconContainer}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="home" size={80} color="#fff" />
-          </View>
+          <Image
+            source={require('../../../assets/icon.png')}
+            style={styles.iconImage}
+            resizeMode="contain"
+          />
         </View>
 
         {/* App Name */}
@@ -153,15 +154,9 @@ const styles = StyleSheet.create({
   iconContainer: {
     marginBottom: 32,
   },
-  iconCircle: {
+  iconImage: {
     width: 160,
     height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   appName: {
     fontSize: 42,
