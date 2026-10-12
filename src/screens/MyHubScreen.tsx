@@ -356,32 +356,38 @@ export const MyHubScreen = () => {
             </Text>
 
             {/* Hub options */}
-            {availableHubs.filter(h => h.name !== currentHub).map((hub) => (
-              <TouchableOpacity
-                key={hub._id}
-                style={[
-                  styles.hubOption,
-                  selectedRequestHub === hub.name && styles.hubOptionActive
-                ]}
-                onPress={() => setSelectedRequestHub(hub.name)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.hubOptionLeft}>
-                  <Ionicons
-                    name={selectedRequestHub === hub.name ? 'location' : 'location-outline'}
-                    size={20}
-                    color={selectedRequestHub === hub.name ? Colors.primary : Colors.textSecondary}
-                  />
-                  <Text style={[
-                    styles.hubOptionText,
-                    selectedRequestHub === hub.name && styles.hubOptionTextActive
-                  ]}>{hub.name}</Text>
-                </View>
-                {selectedRequestHub === hub.name && (
-                  <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
+            <ScrollView
+              style={styles.hubOptionsScroll}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {availableHubs.filter(h => h.name !== currentHub).map((hub) => (
+                <TouchableOpacity
+                  key={hub._id}
+                  style={[
+                    styles.hubOption,
+                    selectedRequestHub === hub.name && styles.hubOptionActive
+                  ]}
+                  onPress={() => setSelectedRequestHub(hub.name)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.hubOptionLeft}>
+                    <Ionicons
+                      name={selectedRequestHub === hub.name ? 'location' : 'location-outline'}
+                      size={20}
+                      color={selectedRequestHub === hub.name ? Colors.primary : Colors.textSecondary}
+                    />
+                    <Text style={[
+                      styles.hubOptionText,
+                      selectedRequestHub === hub.name && styles.hubOptionTextActive
+                    ]}>{hub.name}</Text>
+                  </View>
+                  {selectedRequestHub === hub.name && (
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
             {/* Reason text input (only for existing hub holders) */}
             {currentHub && (
@@ -578,6 +584,7 @@ const styles = StyleSheet.create({
   modalHandle: { width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 2, alignSelf: 'center' as const, marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: '700' as const, color: Colors.textPrimary, marginBottom: 6 },
   modalSubtitle: { fontSize: 13, color: Colors.textSecondary, marginBottom: 16, lineHeight: 19 },
+  hubOptionsScroll: { maxHeight: 280, marginBottom: 4 },
   hubOption: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, marginBottom: 8, backgroundColor: '#f8fafc', borderWidth: 1.5, borderColor: '#e2e8f0' },
   hubOptionActive: { backgroundColor: '#f5f3ff', borderColor: Colors.primary },
   hubOptionLeft: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12 },
