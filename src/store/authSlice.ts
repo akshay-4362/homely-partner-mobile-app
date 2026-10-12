@@ -26,6 +26,9 @@ export const login = createAsyncThunk(
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const data = await authApi.login(email, password);
+      if (data.user?.role !== 'professional') {
+        return rejectWithValue('Access denied. This app is for partners only.');
+      }
       await setTokens(data.accessToken, data.refreshToken);
       await setUser(data.user);
       return data;
