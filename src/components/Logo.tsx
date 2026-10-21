@@ -7,8 +7,8 @@ interface LogoProps {
 }
 
 export const Logo: React.FC<LogoProps> = ({ width = 200, height }) => {
-  // Aspect ratio of full logo: 840:198 ≈ 4.24:1
-  const calculatedHeight = height ?? Math.round(width / 4.24);
+  // Aspect ratio of full logo: 1200:254 ≈ 4.72:1
+  const calculatedHeight = height ?? Math.round(width / 4.72);
 
   return (
     <View style={styles.container}>
