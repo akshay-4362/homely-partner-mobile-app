@@ -9,12 +9,23 @@ export const authApi = {
     return data.data || data; // Handle both { data: { user, ... } } and { user, ... }
   },
 
+  sendRegisterOtp: async (phone: string) => {
+    const { data } = await client.post('/auth/register/send-otp', { phone });
+    return data.data || data;
+  },
+
+  verifyRegisterOtp: async (phone: string, otp: string): Promise<{ phoneVerificationToken: string }> => {
+    const { data } = await client.post('/auth/register/verify-otp', { phone, otp });
+    return data.data || data;
+  },
+
   register: async (payload: {
     firstName: string;
     lastName: string;
     email: string;
     password: string;
-    phone?: string;
+    phone: string;
+    phoneVerificationToken: string;
   }) => {
     const { data } = await client.post('/auth/register', {
       ...payload,

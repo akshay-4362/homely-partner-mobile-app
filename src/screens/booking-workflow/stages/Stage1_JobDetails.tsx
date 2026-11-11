@@ -3,7 +3,7 @@
  * Display job info, location, and OTP entry to start job
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -39,6 +39,7 @@ export const Stage1_JobDetails: React.FC<StageComponentProps> = ({
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const startInFlight = useRef(false);
   const [error, setError] = useState('');
   const [otpHelpVisible, setOtpHelpVisible] = useState(false);
 
@@ -91,6 +92,11 @@ export const Stage1_JobDetails: React.FC<StageComponentProps> = ({
       return;
     }
 
+    // Synchronous guard: `loading` state isn't applied until re-render, so a fast double tap
+    // used to send two start requests and show the second one's "already in requested status"
+    if (startInFlight.current) return;
+    startInFlight.current = true;
+
     setError('');
     setLoading(true);
 
@@ -103,31 +109,23 @@ export const Stage1_JobDetails: React.FC<StageComponentProps> = ({
         })
       );
 
-      setLoading(false);
+      const errorMsg = (res.payload as string) || 'Failed to start job';
+      const alreadyStarted = res.meta.requestStatus !== 'fulfilled' && /already in requested status/i.test(errorMsg);
 
-      if (res.meta.requestStatus === 'fulfilled') {
-        // Success - move to stage 2
-        Alert.alert(
-          'Job Started! ✓',
-          'You can now upload before photos/videos and add charges.',
-          [
-            {
-              text: 'Continue',
-              onPress: () => onStageComplete(2),
-            },
-          ]
-        );
+      if (res.meta.requestStatus === 'fulfilled' || alreadyStarted) {
+        onStageComplete(2);
+        Alert.alert('Job Started! ✓', 'You can now upload before photos/videos and add charges.');
       } else {
-        // Error from API
-        const errorMsg = (res.payload as string) || 'Failed to start job';
         setError(errorMsg);
         onError(errorMsg);
       }
     } catch (err) {
-      setLoading(false);
       const errorMsg = err instanceof Error ? err.message : 'Failed to start job';
       setError(errorMsg);
       onError(errorMsg);
+    } finally {
+      setLoading(false);
+      startInFlight.current = false;
     }
   };
 

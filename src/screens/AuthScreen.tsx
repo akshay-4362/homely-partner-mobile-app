@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
+import { authApi } from '../api/authApi';
 import { login, register, clearError } from '../store/authSlice';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
@@ -19,6 +20,10 @@ export const AuthScreen = () => {
   const { status, error, user } = useAppSelector((s) => s.auth);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '' });
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [phoneToken, setPhoneToken] = useState<string | null>(null);
+  const [otpBusy, setOtpBusy] = useState(false);
   const [justRegistered, setJustRegistered] = useState(false);
 
   // Navigate to onboarding after successful registration
@@ -32,6 +37,31 @@ export const AuthScreen = () => {
     }
   }, [justRegistered, user, navigation]);
 
+  const handleSendOtp = async () => {
+    setOtpBusy(true);
+    try {
+      await authApi.sendRegisterOtp(form.phone);
+      setOtpSent(true);
+      setOtp('');
+    } catch (err: any) {
+      Alert.alert('Could not send OTP', err.response?.data?.message || 'Please try again.');
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setOtpBusy(true);
+    try {
+      const { phoneVerificationToken } = await authApi.verifyRegisterOtp(form.phone, otp);
+      setPhoneToken(phoneVerificationToken);
+    } catch (err: any) {
+      Alert.alert('Verification failed', err.response?.data?.message || 'Please try again.');
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (mode === 'login') {
       if (!form.email || !form.password) { Alert.alert('Error', 'Fill all fields'); return; }
@@ -42,7 +72,8 @@ export const AuthScreen = () => {
       }
     } else {
       if (!form.firstName || !form.email || !form.password || !form.phone) { Alert.alert('Error', 'Fill all fields'); return; }
-      const res = await dispatch(register(form));
+      if (!phoneToken) { Alert.alert('Error', 'Please verify your mobile number with OTP'); return; }
+      const res = await dispatch(register({ ...form, phoneVerificationToken: phoneToken }));
       if (res.meta.requestStatus === 'rejected') {
         const errorMsg = typeof res.payload === 'string' ? res.payload : 'Could not register. Please try again.';
         Alert.alert('Registration Failed', errorMsg);
@@ -103,13 +134,51 @@ export const AuthScreen = () => {
             )}
 
             {mode === 'register' && (
-              <Input
-                label="Phone Number"
-                placeholder="+91 98765 43210"
-                keyboardType="phone-pad"
-                value={form.phone}
-                onChangeText={(v) => setForm({ ...form, phone: v })}
-              />
+              <>
+                <Input
+                  label="Mobile Number"
+                  placeholder="10-digit mobile number"
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  editable={!phoneToken}
+                  value={form.phone}
+                  onChangeText={(v) => { setForm({ ...form, phone: v.replace(/\D/g, '') }); setOtpSent(false); }}
+                />
+                {phoneToken ? (
+                  <Text style={{ color: Colors.success, marginBottom: Spacing.md }}>✓ Mobile number verified</Text>
+                ) : (
+                  <>
+                    <Button
+                      label={otpSent ? 'Resend OTP' : 'Send OTP'}
+                      onPress={handleSendOtp}
+                      loading={otpBusy}
+                      disabled={form.phone.length !== 10}
+                      fullWidth
+                      style={{ marginBottom: Spacing.md }}
+                    />
+                    {otpSent && (
+                      <>
+                        <Input
+                          label="OTP"
+                          placeholder="6-digit OTP"
+                          keyboardType="number-pad"
+                          maxLength={6}
+                          value={otp}
+                          onChangeText={(v) => setOtp(v.replace(/\D/g, ''))}
+                        />
+                        <Button
+                          label="Verify OTP"
+                          onPress={handleVerifyOtp}
+                          loading={otpBusy}
+                          disabled={otp.length !== 6}
+                          fullWidth
+                          style={{ marginBottom: Spacing.md }}
+                        />
+                      </>
+                    )}
+                  </>
+                )}
+              </>
             )}
 
             <Input

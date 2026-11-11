@@ -37,6 +37,7 @@ export interface ProBooking {
   total: number;
   additionalChargesTotal: number;
   finalTotal: number;
+  earnings?: number;
   creditDeducted?: number;
   beforeMedia: MediaItem[];
   afterMedia: MediaItem[];

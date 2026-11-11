@@ -49,8 +49,11 @@ const mapBooking = (b: any): ProBooking => ({
   lng: b.address?.lng || b.addressSnapshot?.lng || b.lng,
   total: b.total ?? b.pricing?.total ?? 0,
   additionalChargesTotal: b.additionalChargesTotal ?? 0,
-  finalTotal: b.finalTotal ?? b.total ?? 0,
+  // API sends pricing.total (+ extras), not finalTotal/total — falling back to 0 showed ₹0
+  finalTotal: b.finalTotal || (b.total ?? b.pricing?.total ?? 0) + (b.additionalChargesTotal ?? 0),
   creditDeducted: b.creditDeducted ?? b.pricing?.creditDeducted,
+  // Partner's share — Home's job card reads this; the API only has it under pricing
+  earnings: b.earnings ?? b.lockedPricing?.payout ?? b.pricing?.payout ?? 0,
   beforeMedia: b.beforeMedia || [],
   afterMedia: b.afterMedia || [],
   warrantyExpiresAt: b.warrantyExpiresAt,

@@ -6,6 +6,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5001/
 const SOCKET_URL = BASE_URL.replace('/api/v1', '');
 
 let globalSocket: Socket | null = null;
+let globalSocketToken: string | null = null;
 
 export const getSocket = () => globalSocket;
 
@@ -14,9 +15,18 @@ export const useSocket = () => {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (!user || !accessToken) return;
+    if (!user || !accessToken) {
+      globalSocket?.disconnect();
+      globalSocket = null;
+      globalSocketToken = null;
+      return;
+    }
 
-    if (!globalSocket || !globalSocket.connected) {
+    // Reuse the socket while it is (re)connecting; only replace it when the token changes.
+    // Creating a fresh, undisposed socket on every render multiplied polling requests.
+    if (!globalSocket || globalSocketToken !== accessToken) {
+      globalSocket?.disconnect();
+      globalSocketToken = accessToken;
       globalSocket = io(SOCKET_URL, {
         auth: { token: `Bearer ${accessToken}` },
         transports: ['polling'], // Use polling for Vercel serverless compatibility

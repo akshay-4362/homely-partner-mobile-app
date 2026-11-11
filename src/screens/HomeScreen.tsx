@@ -44,8 +44,11 @@ export const HomeScreen = () => {
   const knownBookingIdsRef = useRef<Set<string> | null>(null);
   const isPollingActiveRef = useRef(false);
 
+  // Jobs already started stay pinned on Home until completed — they used to vanish from here
+  const activeJobs = allBookings.filter((b) => b.status === 'in_progress');
+
   // Get upcoming confirmed bookings (next 7 days)
-  const upcomingJobs = allBookings
+  const upcomingJobs = [...activeJobs, ...allBookings
     .filter((b) => {
       if (b.status !== 'confirmed') return false;
       const scheduledDateKey = toISTDateKey(b.scheduledAt);
@@ -53,8 +56,8 @@ export const HomeScreen = () => {
       const nextWeekKey = toISTDateKey(addISTDays(new Date(), 7));
       return scheduledDateKey >= todayKey && scheduledDateKey <= nextWeekKey;
     })
-    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
-    .slice(0, 3); // Show max 3 upcoming jobs
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())]
+    .slice(0, 3); // Show max 3 jobs, in-progress first
 
   // Initialize socket connection so getSocket() is non-null on this screen
   useSocket();
@@ -293,7 +296,7 @@ export const HomeScreen = () => {
             <Ionicons name="list-outline" size={24} color={Colors.primary} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.pausedTitle, { color: Colors.primary }]}>Select Your Services</Text>
-              <Text style={styles.pausedSubtitle}>Choose the service categories you offer to start receiving job assignments</Text>
+              <Text style={styles.pausedSubtitle}>You're currently matched to jobs for every service. Choose the ones you actually offer.</Text>
             </View>
             <TouchableOpacity
               style={[styles.pausedBtn, { backgroundColor: Colors.primary }]}
@@ -364,7 +367,7 @@ export const HomeScreen = () => {
           {upcomingJobs && upcomingJobs.length > 0 ? (
             <>
               <SectionHeader
-                title="Upcoming Jobs"
+                title={activeJobs.length > 0 ? 'Your Jobs' : 'Upcoming Jobs'}
                 action="View All"
                 onAction={() => navigation.navigate('Jobs')}
               />
