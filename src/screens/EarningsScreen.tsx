@@ -10,7 +10,7 @@ import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchPayouts } from '../store/payoutSlice';
 import { fetchAccountingSummary } from '../store/accountingSlice';
 import { accountingApi } from '../api/accountingApi';
-import { creditApi } from '../api/creditApi';
+import { payoutBalanceApi, PartnerBalance } from '../api/payoutBalanceApi';
 import { useDebouncedRefresh } from '../hooks/useDebouncedRefresh';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { formatCurrency, formatDateOnly } from '../utils/format';
@@ -30,7 +30,7 @@ export const EarningsScreen = () => {
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
   const [expandEarnings, setExpandEarnings] = useState(true);
   const [expandDeductions, setExpandDeductions] = useState(true);
-  const [pendingDeductionAmount, setPendingDeductionAmount] = useState(0);
+  const [partnerBalance, setPartnerBalance] = useState<PartnerBalance | null>(null);
   const [showPayDeductionModal, setShowPayDeductionModal] = useState(false);
 
   const load = async () => {
@@ -46,16 +46,11 @@ export const EarningsScreen = () => {
         : [];
       setMonthlyData(sortedData);
 
-      // Fetch pending cash deductions (partner received cash but hasn't paid back)
+      // Running balance from the payout ledger: online earnings (+), cash-job platform share (−)
       try {
-        const txResp = await creditApi.getCreditTransactions({ type: 'job_deduction' });
-        const txList = txResp?.data?.transactions || [];
-        const pendingTotal = txList
-          .filter((t: any) => t.status === 'pending' && t.metadata?.paidInCash === true)
-          .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
-        setPendingDeductionAmount(pendingTotal);
+        setPartnerBalance(await payoutBalanceApi.getBalance());
       } catch (_) {
-        // pending deductions unavailable
+        // balance unavailable
       }
     } catch (err) {
       console.error('Failed to load earnings:', err);
@@ -75,16 +70,11 @@ export const EarningsScreen = () => {
         : [];
       setMonthlyData(sortedData);
 
-      // Refresh pending cash deductions
+      // Running balance from the payout ledger: online earnings (+), cash-job platform share (−)
       try {
-        const txResp = await creditApi.getCreditTransactions({ type: 'job_deduction' });
-        const txList = txResp?.data?.transactions || [];
-        const pendingTotal = txList
-          .filter((t: any) => t.status === 'pending' && t.metadata?.paidInCash === true)
-          .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
-        setPendingDeductionAmount(pendingTotal);
+        setPartnerBalance(await payoutBalanceApi.getBalance());
       } catch (_) {
-        // pending deductions unavailable
+        // balance unavailable
       }
     } catch (err) {
       console.error('Failed to load earnings:', err);
@@ -390,25 +380,58 @@ export const EarningsScreen = () => {
           </ScrollView>
         )}
 
-        {/* ── Pending Deductions ── */}
-        {pendingDeductionAmount > 0 && (
-          <View style={styles.pendingRow}>
-            <View style={styles.pendingLeft}>
-              <View style={styles.pendingIconBg}>
-                <Ionicons name="timer-outline" size={22} color={Colors.textSecondary} />
+        {/* ── Balance with platform: + next payout / − owed from cash jobs ── */}
+        {partnerBalance && (partnerBalance.balance !== 0 || partnerBalance.items.length > 0) && (
+          <View style={styles.balanceSection}>
+            <View style={[styles.pendingRow, partnerBalance.amountOwed > 0 && styles.owedRow]}>
+              <View style={styles.pendingLeft}>
+                <View style={styles.pendingIconBg}>
+                  <Ionicons
+                    name={partnerBalance.amountOwed > 0 ? 'alert-circle-outline' : 'wallet-outline'}
+                    size={22}
+                    color={partnerBalance.amountOwed > 0 ? Colors.error : Colors.success}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pendingLabel}>
+                    {partnerBalance.amountOwed > 0 ? 'YOU OWE (CASH JOBS)' : 'NEXT PAYOUT'}
+                  </Text>
+                  <Text style={[styles.pendingAmount, partnerBalance.amountOwed > 0 && { color: Colors.error }]}>
+                    {partnerBalance.amountOwed > 0
+                      ? `-${formatCurrency(partnerBalance.amountOwed)}`
+                      : formatCurrency(partnerBalance.nextPayout)}
+                  </Text>
+                  <Text style={styles.balanceHint}>
+                    {partnerBalance.amountOwed > 0
+                      ? 'Deducted from your next payouts, or pay it now.'
+                      : 'Online earnings minus cash-job dues, paid in the daily payout.'}
+                  </Text>
+                </View>
               </View>
-              <View>
-                <Text style={styles.pendingLabel}>PENDING DEDUCTIONS</Text>
-                <Text style={styles.pendingAmount}>{formatCurrency(pendingDeductionAmount)}</Text>
-              </View>
+              {partnerBalance.amountOwed > 0 && (
+                <TouchableOpacity
+                  style={styles.payNowBtn}
+                  onPress={() => setShowPayDeductionModal(true)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.payNowText}>Pay now</Text>
+                </TouchableOpacity>
+              )}
             </View>
-            <TouchableOpacity
-              style={styles.payNowBtn}
-              onPress={() => setShowPayDeductionModal(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.payNowText}>Pay now</Text>
-            </TouchableOpacity>
+
+            {partnerBalance.items.slice(0, 8).map((item, i) => (
+              <View key={`${item.date}-${i}`} style={styles.balanceItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.balanceItemLabel}>{item.label}</Text>
+                  <Text style={styles.balanceItemMeta}>
+                    {item.bookingNumber ? `#${item.bookingNumber} · ` : ''}{formatDateOnly(item.date)}
+                  </Text>
+                </View>
+                <Text style={[styles.balanceItemAmount, { color: item.amount >= 0 ? Colors.success : Colors.error }]}>
+                  {item.amount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(item.amount))}
+                </Text>
+              </View>
+            ))}
           </View>
         )}
 
@@ -439,10 +462,9 @@ export const EarningsScreen = () => {
 
       <PayDeductionModal
         visible={showPayDeductionModal}
-        amount={pendingDeductionAmount}
+        amount={partnerBalance?.amountOwed ?? 0}
         onClose={() => setShowPayDeductionModal(false)}
         onSuccess={() => {
-          setPendingDeductionAmount(0);
           load();
         }}
       />
@@ -451,6 +473,39 @@ export const EarningsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  balanceSection: {
+    marginBottom: Spacing.md,
+  },
+  owedRow: {
+    borderColor: Colors.error,
+    borderWidth: 1,
+  },
+  balanceHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  balanceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  balanceItemLabel: {
+    fontSize: 14,
+    color: Colors.textPrimary,
+  },
+  balanceItemMeta: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  balanceItemAmount: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,

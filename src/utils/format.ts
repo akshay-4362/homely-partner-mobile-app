@@ -17,11 +17,14 @@ export const formatDate = (date: string | Date): string => {
   }).format(new Date(date));
 };
 
-export const formatDateOnly = (date: string | Date): string => {
+export const formatDateOnly = (date: string | Date | null | undefined): string => {
+  const d = date ? new Date(date) : null;
+  // A missing/invalid date used to throw and blank the whole screen
+  if (!d || Number.isNaN(d.getTime())) return '—';
   return new Intl.DateTimeFormat('en-IN', {
     timeZone: IST_TIME_ZONE,
     dateStyle: 'medium',
-  }).format(new Date(date));
+  }).format(d);
 };
 
 export const formatTime = (date: string | Date): string => {

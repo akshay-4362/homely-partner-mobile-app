@@ -14,7 +14,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 import { Colors, Spacing, BorderRadius } from '../theme/colors';
 import { Button } from './common/Button';
 import { formatCurrency } from '../utils/format';
-import { creditApi } from '../api/creditApi';
+import { payoutBalanceApi } from '../api/payoutBalanceApi';
 
 interface PayDeductionModalProps {
   visible: boolean;
@@ -39,9 +39,8 @@ export const PayDeductionModal: React.FC<PayDeductionModalProps> = ({
         throw new Error('Razorpay is not available in Expo Go. Please use a development build.');
       }
 
-      // Create Razorpay order for the exact deduction amount
-      const response = await creditApi.createPurchaseIntent(amount);
-      const { orderId, amount: orderAmount, keyId } = response.data;
+      // Server computes the amount owed from the payout ledger (never trust the client amount)
+      const { orderId, amount: orderAmount, keyId } = await payoutBalanceApi.createDuesOrder();
 
       if (!orderId || !keyId || !orderAmount) {
         throw new Error('Invalid response from server');
@@ -58,7 +57,7 @@ export const PayDeductionModal: React.FC<PayDeductionModalProps> = ({
       }
 
       const paymentData = await RazorpayCheckout.open({
-        description: 'Pending Deduction Payment',
+        description: 'Cash job dues',
         currency: 'INR',
         key: keyId,
         amount: orderAmount,
@@ -68,16 +67,19 @@ export const PayDeductionModal: React.FC<PayDeductionModalProps> = ({
         theme: { color: Colors.primary },
       });
 
-      // Confirm on backend
+      // Confirm on backend — clears the dues in the payout ledger
       try {
-        await creditApi.confirmPurchase(
-          paymentData.razorpay_payment_id,
-          paymentData.razorpay_order_id,
-          amount
-        );
+        if (!paymentData.razorpay_signature) {
+          throw new Error('Missing payment signature');
+        }
+        await payoutBalanceApi.confirmDuesPayment({
+          razorpayOrderId: paymentData.razorpay_order_id,
+          razorpayPaymentId: paymentData.razorpay_payment_id,
+          razorpaySignature: paymentData.razorpay_signature,
+        });
         Alert.alert(
           'Payment Successful',
-          `₹${amount.toFixed(2)} deduction has been cleared.`,
+          `₹${amount.toFixed(2)} dues have been cleared.`,
           [{ text: 'OK', onPress: () => { onSuccess(); onClose(); } }]
         );
       } catch {
@@ -125,7 +127,7 @@ export const PayDeductionModal: React.FC<PayDeductionModalProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.handle} />
-            <Text style={styles.title}>Pay Pending Deduction</Text>
+            <Text style={styles.title}>Pay Cash Job Dues</Text>
             <TouchableOpacity
               style={styles.closeBtn}
               onPress={onClose}
@@ -144,13 +146,14 @@ export const PayDeductionModal: React.FC<PayDeductionModalProps> = ({
               <Text style={styles.amountLabel}>Amount Due</Text>
               <Text style={styles.amountValue}>{formatCurrency(amount)}</Text>
               <Text style={styles.amountNote}>
-                This amount is owed to Eazyhomes4u from your completed jobs.
+                Platform share (fees + GST) from cash you collected, after your online earnings.
+                Pay now, or it is deducted from your next payouts.
               </Text>
             </View>
 
             <View style={styles.details}>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Pending deduction</Text>
+                <Text style={styles.detailLabel}>Amount owed</Text>
                 <Text style={styles.detailValue}>{formatCurrency(amount)}</Text>
               </View>
               <View style={styles.detailRow}>

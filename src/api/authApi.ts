@@ -5,7 +5,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5001/
 
 export const authApi = {
   login: async (email: string, password: string) => {
-    const { data } = await client.post('/auth/login', { email, password });
+    const { data } = await client.post('/auth/login', { email, password, role: 'professional' });
     return data.data || data; // Handle both { data: { user, ... } } and { user, ... }
   },
 
