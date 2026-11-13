@@ -106,10 +106,7 @@ export const CameraScreen = () => {
       setCompressing(true);
       try {
         const asset = result.assets[0];
-        const { dataUrl, sizeBytes } = await processVideo(
-          asset.uri,
-          (asset as any).base64
-        );
+        const { dataUrl, sizeBytes } = await processVideo(asset.uri);
         const media: UploadableMedia = {
           uri: asset.uri,
           type: 'video',

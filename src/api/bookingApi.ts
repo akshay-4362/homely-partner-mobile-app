@@ -1,5 +1,6 @@
 import client from './client';
 import { MediaItem } from '../types';
+import { prepareMediaListForApi } from './mediaUpload';
 
 export const bookingApi = {
   fetchBookings: async () => {
@@ -53,7 +54,8 @@ export const bookingApi = {
   },
 
   addMedia: async (bookingId: string, phase: 'before' | 'after', media: MediaItem[]) => {
-    const { data } = await client.post(`/bookings/${bookingId}/media`, { phase, media });
+    const prepared = await prepareMediaListForApi(bookingId, media);
+    const { data } = await client.post(`/bookings/${bookingId}/media`, { phase, media: prepared });
     return data.data || data;
   },
 
@@ -66,7 +68,14 @@ export const bookingApi = {
       newPartMedia: MediaItem[];
     }>
   ) => {
-    const { data } = await client.post(`/bookings/${bookingId}/parts`, { parts });
+    const prepared = await Promise.all(
+      parts.map(async (part) => ({
+        ...part,
+        oldPartMedia: await prepareMediaListForApi(bookingId, part.oldPartMedia),
+        newPartMedia: await prepareMediaListForApi(bookingId, part.newPartMedia),
+      }))
+    );
+    const { data } = await client.post(`/bookings/${bookingId}/parts`, { parts: prepared });
     return data.data || data;
   },
 

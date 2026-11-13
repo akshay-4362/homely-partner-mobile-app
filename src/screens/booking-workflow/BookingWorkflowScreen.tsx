@@ -52,7 +52,7 @@ const normalizeBooking = (b: any): ProBooking => ({
   paymentStatus: b.payment?.status || b.paymentStatus,
   paidAt: b.payment?.paidAt || b.paidAt,
   paymentAmount: b.payment?.amount || b.paymentAmount,
-  paymentIntentId: b.payment?.stripePaymentIntentId || b.paymentIntentId,
+  paymentReference: b.payment?.razorpayPaymentId || b.payment?.razorpayOrderId,
   addressLine: b.address
     ? [b.address.line1, b.address.city].filter(Boolean).join(', ')
     : b.addressSnapshot

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { mediaThumbnailUri } from '../../../api/mediaUpload';
 import {
   View,
   Text,
@@ -13,8 +14,7 @@ import {
   Alert,
   ScrollView,
   Modal,
-  Dimensions,
-} from 'react-native';
+  Dimensions, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius, Typography } from '../../../theme/colors';
@@ -101,9 +101,9 @@ export const Stage3_AfterMedia: React.FC<StageComponentProps> = ({
               <TouchableOpacity
                 key={index}
                 style={styles.galleryThumb}
-                onPress={() => setFullImageUri(media.dataUrl)}
+                onPress={() => (media.type === 'video' ? Linking.openURL(media.dataUrl).catch(() => undefined) : setFullImageUri(media.dataUrl))}
               >
-                <Image source={{ uri: media.dataUrl }} style={styles.galleryImage} />
+                <Image source={{ uri: mediaThumbnailUri(media) }} style={styles.galleryImage} />
                 <Text style={styles.mediaType}>{media.type === 'video' ? '🎥' : '📷'}</Text>
               </TouchableOpacity>
             ))}

@@ -11,9 +11,12 @@ export interface User {
 }
 
 export interface MediaItem {
+  /** base64 data URI (small photos) or https URL of the stored file */
   dataUrl: string;
   type: 'photo' | 'video';
   label: string;
+  /** local file:// uri, used to upload videos / large files directly to storage */
+  uri?: string;
 }
 
 export interface ProBooking {
@@ -29,7 +32,8 @@ export interface ProBooking {
   paymentStatus?: string;
   paidAt?: string;
   paymentAmount?: number;
-  paymentIntentId?: string;
+  /** Razorpay payment id (or order id while unpaid) of the booking payment */
+  paymentReference?: string;
   addressLine?: string;
   addressFull?: string;
   lat?: number;
@@ -157,10 +161,3 @@ export interface AvailabilitySlot {
   end: string;
 }
 
-export interface StripeAccountStatus {
-  accountId?: string;
-  chargesEnabled?: boolean;
-  payoutsEnabled?: boolean;
-  detailsSubmitted?: boolean;
-  status?: string;
-}

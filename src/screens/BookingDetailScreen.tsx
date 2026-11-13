@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { mediaThumbnailUri } from '../api/mediaUpload';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Modal, FlatList, Image, Linking, Platform, Dimensions,
@@ -45,7 +46,7 @@ const normalizeBooking = (b: any): ProBooking => ({
   paymentStatus: b.payment?.status || b.paymentStatus,
   paidAt: b.payment?.paidAt || b.paidAt,
   paymentAmount: b.payment?.amount || b.paymentAmount,
-  paymentIntentId: b.payment?.stripePaymentIntentId || b.paymentIntentId,
+  paymentReference: b.payment?.razorpayPaymentId || b.payment?.razorpayOrderId,
   addressLine: b.address
     ? [b.address.line1, b.address.city].filter(Boolean).join(', ')
     : b.addressSnapshot
@@ -499,9 +500,11 @@ export const BookingDetailScreen = () => {
 
   const addMediaToTarget = (asset: any, type: 'photo' | 'video') => {
     const mediaItem: MediaItem = {
-      dataUrl: `data:${type === 'video' ? 'video/mp4' : 'image/jpeg'};base64,${asset.base64}`,
+      // Photos go inline as base64; videos are uploaded from the local file (see api/mediaUpload)
+      dataUrl: type === 'photo' && asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : '',
       type,
       label: type === 'photo' ? 'Photo' : 'Video',
+      uri: asset.uri,
     };
 
     const target = mediaBottomSheet.target;
@@ -972,8 +975,8 @@ export const BookingDetailScreen = () => {
                   <Text style={styles.uploadedMediaLabel}>✓ Uploaded</Text>
                   <View style={styles.mediaGrid}>
                     {booking.beforeMedia.map((media, index) => (
-                      <TouchableOpacity key={`uploaded-before-${index}`} style={styles.mediaGridItem} onPress={() => setFullImageUri(media.dataUrl)} activeOpacity={0.8}>
-                        <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                      <TouchableOpacity key={`uploaded-before-${index}`} style={styles.mediaGridItem} onPress={() => (media.type === 'video' ? Linking.openURL(media.dataUrl).catch(() => undefined) : setFullImageUri(media.dataUrl))} activeOpacity={0.8}>
+                        <Image source={{ uri: mediaThumbnailUri(media) }} style={styles.mediaThumbnail} />
                         <View style={styles.uploadedBadge}>
                           <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
                         </View>
@@ -989,7 +992,7 @@ export const BookingDetailScreen = () => {
                 <View style={styles.mediaGrid}>
                   {beforeMedia.map((media, index) => (
                     <View key={index} style={styles.mediaGridItem}>
-                      <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                      <Image source={{ uri: mediaThumbnailUri(media) }} style={styles.mediaThumbnail} />
                       <TouchableOpacity
                         style={styles.removeMediaBtn}
                         onPress={() => removeMediaFromTarget('before', index)}
@@ -1054,8 +1057,8 @@ export const BookingDetailScreen = () => {
                       <Text style={styles.uploadedMediaLabel}>✓ Uploaded</Text>
                       <View style={styles.mediaGrid}>
                         {booking.afterMedia.map((media, index) => (
-                          <TouchableOpacity key={`uploaded-after-${index}`} style={styles.mediaGridItem} onPress={() => setFullImageUri(media.dataUrl)} activeOpacity={0.8}>
-                            <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                          <TouchableOpacity key={`uploaded-after-${index}`} style={styles.mediaGridItem} onPress={() => (media.type === 'video' ? Linking.openURL(media.dataUrl).catch(() => undefined) : setFullImageUri(media.dataUrl))} activeOpacity={0.8}>
+                            <Image source={{ uri: mediaThumbnailUri(media) }} style={styles.mediaThumbnail} />
                             <View style={styles.uploadedBadge}>
                               <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
                             </View>
@@ -1071,7 +1074,7 @@ export const BookingDetailScreen = () => {
                     <View style={styles.mediaGrid}>
                       {afterMedia.map((media, index) => (
                         <View key={index} style={styles.mediaGridItem}>
-                          <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                          <Image source={{ uri: mediaThumbnailUri(media) }} style={styles.mediaThumbnail} />
                           <TouchableOpacity
                             style={styles.removeMediaBtn}
                             onPress={() => removeMediaFromTarget('after', index)}
@@ -1572,7 +1575,7 @@ export const BookingDetailScreen = () => {
                 <View style={styles.mediaGrid}>
                   {currentPart.media.map((media, index) => (
                     <View key={index} style={styles.mediaGridItem}>
-                      <Image source={{ uri: media.dataUrl }} style={styles.mediaThumbnail} />
+                      <Image source={{ uri: mediaThumbnailUri(media) }} style={styles.mediaThumbnail} />
                       <TouchableOpacity
                         style={styles.removeMediaBtn}
                         onPress={() => removeMediaFromTarget('part', index)}

@@ -4,7 +4,8 @@
  */
 
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+// SDK 54: the classic API lives under /legacy; importing it from the root throws at runtime
+import * as FileSystem from 'expo-file-system/legacy';
 import { MediaItem } from '../types';
 
 // ── Compression Config ──
@@ -16,7 +17,7 @@ export interface UploadableMedia {
   uri: string;
   type: 'photo' | 'video';
   label: string;
-  /** base64 data URL for display / upload */
+  /** base64 data URL for photos; empty for videos (uploaded from `uri`) */
   dataUrl: string;
   /** file size in bytes (after compression) */
   sizeBytes: number;
@@ -62,26 +63,15 @@ export const compressPhoto = async (
 };
 
 /**
- * Process a video URI — for now just read as base64
- * (Real compression would need ffmpeg/native module)
+ * Prepare a recorded video. The file is uploaded straight from disk at upload time,
+ * so it is never loaded into memory as base64 (a 30s clip can be 20MB+).
  */
 export const processVideo = async (
-  uri: string,
-  base64?: string | null
+  uri: string
 ): Promise<{ dataUrl: string; sizeBytes: number }> => {
-  if (base64) {
-    const dataUrl = `data:video/mp4;base64,${base64}`;
-    const sizeBytes = Math.ceil((base64.length * 3) / 4);
-    return { dataUrl, sizeBytes };
-  }
-
-  // Read from file
-  const b64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: 'base64',
-  });
-  const dataUrl = `data:video/mp4;base64,${b64}`;
-  const sizeBytes = Math.ceil((b64.length * 3) / 4);
-  return { dataUrl, sizeBytes };
+  const info = await FileSystem.getInfoAsync(uri);
+  const sizeBytes = (info as any).size || 0;
+  return { dataUrl: '', sizeBytes };
 };
 
 /**
@@ -124,7 +114,7 @@ export const uploadMediaWithProgress = async (
 
         // Upload single item
         await uploadFn(bookingId, phase, [
-          { dataUrl: item.dataUrl, type: item.type, label: item.label },
+          { dataUrl: item.dataUrl, type: item.type, label: item.label, uri: item.uri },
         ]);
 
         uploaded = true;
@@ -137,6 +127,9 @@ export const uploadMediaWithProgress = async (
         });
       } catch (error: any) {
         attempts++;
+        // 4xx = request rejected (limit reached, wrong job state): retrying won't help
+        const status = error?.response?.status;
+        if (status && status >= 400 && status < 500) attempts = maxRetries + 1;
         if (attempts > maxRetries) {
           failedIndices.push(i);
           onProgress({
@@ -145,7 +138,7 @@ export const uploadMediaWithProgress = async (
             fileName: item.label,
             status: 'error',
             progress: Math.round(((i + 1) / media.length) * 100),
-            error: error.message || 'Upload failed',
+            error: error?.response?.data?.message || error.message || 'Upload failed',
           });
         }
       }

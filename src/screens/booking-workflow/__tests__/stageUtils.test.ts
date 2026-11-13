@@ -31,7 +31,7 @@ const createMockBooking = (overrides?: Partial<ProBooking>): ProBooking => ({
   paymentStatus: 'pending',
   paidAt: null,
   paymentAmount: 0,
-  paymentIntentId: null,
+  paymentReference: undefined,
   addressLine: '123 Main St',
   addressFull: '123 Main St, Bangalore, Karnataka',
   lat: 12.9716,

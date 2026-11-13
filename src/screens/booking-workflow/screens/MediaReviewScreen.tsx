@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import { mediaThumbnailUri } from '../../../api/mediaUpload';
 import {
   View,
   Text,
@@ -15,8 +16,7 @@ import {
   Alert,
   Modal,
   Dimensions,
-  Platform,
-} from 'react-native';
+  Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -180,9 +180,9 @@ export const MediaReviewScreen = () => {
                 <TouchableOpacity
                   key={`uploaded-${index}`}
                   style={styles.uploadedThumb}
-                  onPress={() => setFullImageUri(media.dataUrl)}
+                  onPress={() => (media.type === 'video' ? Linking.openURL(media.dataUrl).catch(() => undefined) : setFullImageUri(media.dataUrl))}
                 >
-                  <Image source={{ uri: media.dataUrl }} style={styles.thumbImage} />
+                  <Image source={{ uri: mediaThumbnailUri(media) }} style={styles.thumbImage} />
                   <View style={styles.uploadedBadge}>
                     <Ionicons name="checkmark" size={12} color="#fff" />
                   </View>

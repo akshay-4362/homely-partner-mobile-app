@@ -53,7 +53,14 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
   const platformFee = booking.creditDeducted || 0;
 
   // Payment status
-  const isOnlinePaid = !!booking.paidAt;
+  // Service may have been paid online up front while extra charges approved later are still due
+  const isServicePaidOnline = !!booking.paidAt;
+  const unpaidExtras = charges.approved.filter((c) => !c.paidAt);
+  const unpaidExtrasTotal = unpaidExtras.reduce((sum, c) => sum + c.amount, 0);
+  const isOnlinePaid = isServicePaidOnline && unpaidExtrasTotal === 0;
+  const extrasDueOnly = isServicePaidOnline && unpaidExtrasTotal > 0;
+  // Cash for extras is all-inclusive; online/QR adds 18% GST (shown on the QR screen)
+  const amountDue = extrasDueOnly ? unpaidExtrasTotal : totalAmount;
   const paymentConfirmed = isOnlinePaid || cashConfirmed;
 
   /**
@@ -74,7 +81,7 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
                 updateProBookingStatus({
                   bookingId: booking.id,
                   status: 'completed',
-                  ...(cashConfirmed && !isOnlinePaid ? { cashPayment: true } : {}),
+                  ...(cashConfirmed ? { cashPayment: true } : {}),
                   ...(closeJobMode && closeJobReason ? { reason: closeJobReason } : {}),
                 })
               );
@@ -109,7 +116,9 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
   const handleConfirmCash = () => {
     Alert.alert(
       'Confirm Cash Received',
-      `Did you receive ${formatCurrency(totalAmount)} in cash from the customer?`,
+      extrasDueOnly
+        ? `Service was paid online. Did you receive ${formatCurrency(amountDue)} in cash for the extra charges?`
+        : `Did you receive ${formatCurrency(amountDue)} in cash from the customer?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -198,9 +207,17 @@ export const Stage4_Payment: React.FC<StageComponentProps> = ({
             <View style={{ flex: 1 }}>
               <Text style={styles.paidTitle}>Cash Confirmed</Text>
               <Text style={styles.paidSubtitle}>
-                {formatCurrency(totalAmount)} received in cash
+                {formatCurrency(amountDue)} received in cash{extrasDueOnly ? ' (extra charges)' : ''}
               </Text>
             </View>
+          </View>
+        ) : extrasDueOnly ? (
+          <View style={styles.pendingRow}>
+            <Ionicons name="time-outline" size={20} color={Colors.warning} />
+            <Text style={styles.pendingText}>
+              Service paid online. Extra charges of {formatCurrency(unpaidExtrasTotal)} still due
+              (cash, or UPI/online + 18% GST).
+            </Text>
           </View>
         ) : (
           <View style={styles.pendingRow}>
